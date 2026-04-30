@@ -1,0 +1,26 @@
+<Solution>
+  <Folder Name="/Configuration/">
+    <Project Path="Configuration/Promatis.Net.Configuration.csproj" Id="a2066046-6ffb-494c-8a27-13bfc7a8d3c7" />
+  </Folder>
+  <Folder Name="/Data/">
+    <Project Path="Data/Promatis.Net.Data.csproj" Id="5dcc7144-30c0-4dd9-b463-02351cd8393b" />
+  </Folder>
+  <Folder Name="/DataEF/">
+    <Project Path="Data.EF/Promatis.Net.Data.EF.csproj" Id="1c6da193-097d-4b00-925f-a43d6d985de9" />
+  </Folder>
+  <Folder Name="/DataInit/">
+    <Project Path="Data.Init/Promatis.Net.Data.Init.csproj" Id="1a9be981-5fd9-46d4-a0ef-dd4d22e8d955" />
+  </Folder>
+  <Folder Name="/Domain.interface/">
+    <Project Path="Domain.Interface/Promatis.Net.Domain.Interface.csproj" Id="0e14c4a7-a385-4be6-8f04-c2c958001799" />
+  </Folder>
+  <Folder Name="/Domain/">
+    <Project Path="Domain/Promatis.Net.Domain.csproj" />
+  </Folder>
+  <Folder Name="/Service/">
+    <Project Path="Service/Promatis.Net.Service.csproj" Id="f434e99f-9915-4241-9a30-e597776bedf3" />
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="Tests/Promatis.Net.ApplicationModel.Tests.csproj" Id="1141f804-d94d-40f2-824d-7847c687a4ed" />
+  </Folder>
+</Solution>
