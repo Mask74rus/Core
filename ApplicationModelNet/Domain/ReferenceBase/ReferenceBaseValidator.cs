@@ -12,11 +12,15 @@ public class ReferenceBaseValidator<T> : DomainObjectValidator<T> where T : Refe
     {
         RuleFor(x => x.Name)
             .NotEmpty().WithMessage("Наименование обязательно для заполнения")
+            // Проверка на пробелы в начале и конце
+            .Must(name => name == null || name.Trim() == name)
+            .WithMessage("Наименование не может начинаться или заканчиваться пробелами")
             .MinimumLength(2).WithMessage("Наименование должно содержать минимум 2 символа")
             .MaximumLength(250).WithMessage("Превышена максимальная длина наименования (250 символов)");
 
         RuleFor(x => x.Code)
             .Matches(@"^[A-Z0-9_]*$")
+            .When(x => !string.IsNullOrEmpty(x.Code))
             .WithMessage("Код может содержать только латиницу в верхнем регистре, цифры и нижнее подчеркивание");
     }
 

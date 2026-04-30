@@ -14,5 +14,7 @@ public static class DatabaseTriggersConfiguration
         // 1. Валидация (BeforeSave)
         // FluentValidationTrigger будет работать для всех объектов с Guid-ключом
         triggerService.Register<IDomainObjectHasKey<Guid>, FluentValidationTrigger>();
+        // ReferenceTreeParentTrigger будет работать для всех объектов с ParentId (деревьев)
+        triggerService.Register<IDomainObjectHasKey<Guid>, ReferenceTreeParentTrigger>();
     }
 }

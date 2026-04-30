@@ -10,7 +10,7 @@ using Promatis.Net.Domain.Interface;
 namespace Promatis.Net.Data;
 
 public class DatabaseTriggerInterceptor(
-    DatabaseTriggerService triggerService,
+    IDatabaseTriggerService triggerService,
     IServiceProvider serviceProvider) : SaveChangesInterceptor
 {
     // Хранилище для передачи данных между Saving и Saved в рамках одного потока/контекста
@@ -116,7 +116,7 @@ public class DatabaseTriggerInterceptor(
                     object? originalValue = dbValues?[propertyName] ?? e.OriginalValues[propertyName];
                     object? currentValue = p.CurrentValue;
 
-                    if (!Object.Equals(originalValue, currentValue))
+                    if (!Equals(originalValue, currentValue))
                     {
                         changes.Add(new PropertyChangeInfo
                         {

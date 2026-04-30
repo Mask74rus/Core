@@ -6,9 +6,9 @@ using Promatis.Net.Domain;
 namespace Promatis.Net.Data;
 
 public class AuditTrigger(IDbContextFactory<ApplicationDbContext> contextFactory)
-    : IAfterSaveTrigger<Domain.DomainObject>
+    : IAfterSaveTrigger<DomainObject>
 {
-    public async Task HandleAsync(EntityChangedEventArgs<Domain.DomainObject> args)
+    public async Task HandleAsync(EntityChangedEventArgs<DomainObject> args)
     {
         await using ApplicationDbContext context = await contextFactory.CreateDbContextAsync();
 

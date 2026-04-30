@@ -9,5 +9,6 @@ namespace Promatis.Net.Domain;
 public abstract class DomainObjectBase<TKey> : IDomainObjectHasKey<TKey>
 {
     public TKey Id { get; set; } = default!;
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
 }

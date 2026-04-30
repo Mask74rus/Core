@@ -1,9 +1,36 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<OutputType>Exe</OutputType>
+		<IsTestProject>true</IsTestProject>
+    
+		<!-- Принудительно отключаем проверку, которая выдает ошибку -->
+		<XunitV3CheckForExecutable>false</XunitV3CheckForExecutable>
+		<!-- Сообщаем xUnit, что мы сами управляем типом проекта -->
+		<_XunitV3CoreIncluded>true</_XunitV3CoreIncluded>
+    
+		<GenerateTestingPlatformEntryPoint>false</GenerateTestingPlatformEntryPoint>
+		<UseXunitv3EntryPoint>true</UseXunitv3EntryPoint>
+    
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- Оставляем только эти пакеты -->
+		<PackageReference Include="FluentValidation" Version="12.1.1" />
+		<PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.7" />
+		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
+		<PackageReference Include="xunit.v3" Version="3.2.2" />
+		<PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" />
+		<PackageReference Include="Moq" Version="4.20.72" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Data\Promatis.Net.Data.csproj" />
+		<ProjectReference Include="..\Domain\Promatis.Net.Domain.csproj" />
+	</ItemGroup>
 
 </Project>

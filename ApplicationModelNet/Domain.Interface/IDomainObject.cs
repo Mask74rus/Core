@@ -2,5 +2,5 @@
 
 public interface IDomainObject
 {
-    DateTime CreatedAt { get; set; }
+    DateTime CreatedAt { get; init; }
 }

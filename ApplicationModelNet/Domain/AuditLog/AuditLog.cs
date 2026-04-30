@@ -1,6 +1,6 @@
 ﻿namespace Promatis.Net.Domain;
 
-public class AuditLog : Domain.DomainObject
+public class AuditLog : DomainObject
 {
     public string EntityName { get; init; } = string.Empty;
     public Guid EntityId { get; init; }

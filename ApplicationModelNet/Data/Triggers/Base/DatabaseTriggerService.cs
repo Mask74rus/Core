@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Promatis.Net.Data;
 
-public class DatabaseTriggerService(IServiceScopeFactory scopeFactory)
+public class DatabaseTriggerService(IServiceScopeFactory scopeFactory) : IDatabaseTriggerService
 {
     private readonly Dictionary<Type, List<Func<EntityCancelEventArgs<object>, Task>>> _beforeSubscribers = new();
     private readonly Dictionary<Type, List<Func<EntityChangedEventArgs<object>, Task>>> _afterSubscribers = new();

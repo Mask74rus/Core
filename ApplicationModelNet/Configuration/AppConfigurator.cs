@@ -41,6 +41,6 @@ public class AppConfigurator : IAppConfigurator
 
         // 2. Явная регистрация аудита для базового типа DomainObject
         var triggerService = scope.ServiceProvider.GetRequiredService<DatabaseTriggerService>();
-        triggerService.Register<Domain.DomainObject, AuditTrigger>();
+        triggerService.Register<DomainObject, AuditTrigger>();
     }
 }
