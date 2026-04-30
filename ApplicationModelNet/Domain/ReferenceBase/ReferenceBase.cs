@@ -1,4 +1,6 @@
-﻿namespace Promatis.Net.Domain;
+﻿using Promatis.Net.Domain.Interface;
+
+namespace Promatis.Net.Domain;
 
 /// <summary>
 /// Базовый класс для всех справочников

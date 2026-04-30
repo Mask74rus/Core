@@ -29,10 +29,6 @@ public class AppConfigurator : IAppConfigurator
                     x => x.MigrationsAssembly("Promatis.Net.Data.Init"))
                 .AddInterceptors(sp.GetRequiredService<DatabaseTriggerInterceptor>());
         });
-
-        // Репозитории
-        services.AddScoped(typeof(IBaseRepository<,>), typeof(BaseRepository<,>));
-        services.AddScoped(typeof(IReferenceRepository<>), typeof(ReferenceRepository<>));
     }
 
     public virtual void ConfigureApp(WebApplication app)
