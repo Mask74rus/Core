@@ -75,7 +75,7 @@ public class DatabaseTriggerInterceptor(
     {
         List<EntityEntry> entries = context.ChangeTracker.Entries()
             .Where(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
-            .Where(e => e.Entity is not AuditLog && e.Entity is not ISkipAudit)
+            .Where(e => e.Entity is IAudit && e.Entity is not AuditLog)
             .ToList();
 
         var result = new List<ChangeEntryModel>();

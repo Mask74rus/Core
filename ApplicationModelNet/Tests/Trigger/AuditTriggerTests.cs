@@ -4,6 +4,7 @@ using Moq;
 using Promatis.Net.Data;
 using Promatis.Net.Data.Init;
 using Promatis.Net.Domain;
+using Promatis.Net.Domain.Interface;
 using Xunit;
 
 namespace Promatis.Net.ApplicationModel.Tests.Trigger;
@@ -12,7 +13,7 @@ public class AuditTriggerTests
 {
     // --- 1. ТЕСТОВЫЕ КЛАССЫ (вынесены из методов) ---
 
-    private class AuditIntegrationEntity : DomainObject
+    private class AuditIntegrationEntity : DomainObject, IAudit
     {
         public string Name { get; set; } = "";
     }

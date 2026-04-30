@@ -13,7 +13,7 @@ public class FullTriggerChainTests
 {
     // --- 1. ТЕСТОВЫЕ КЛАССЫ ---
 
-    private class IntegrationEntity : DomainObject
+    private class IntegrationEntity : DomainObject, IAudit
     {
         public string Name { get; set; } = "";
     }

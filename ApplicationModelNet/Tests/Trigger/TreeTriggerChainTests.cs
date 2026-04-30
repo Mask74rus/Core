@@ -11,7 +11,7 @@ namespace Promatis.Net.ApplicationModel.Tests.Trigger;
 public class TreeTriggerChainTests
 {
     // 1. Тестовая сущность дерева (наследуем от ReferenceTreeBase для ParentId и SoftDelete)
-    private class TreeIntegrationNode : ReferenceTreeBase<TreeIntegrationNode> { }
+    private class TreeIntegrationNode : ReferenceTreeBase<TreeIntegrationNode>, IAudit { }
 
     // Контекст с регистрацией сущности
     private class TreeIntegrationDbContext(DbContextOptions<ApplicationDbContext> options)
