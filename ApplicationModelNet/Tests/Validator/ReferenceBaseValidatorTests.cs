@@ -42,7 +42,7 @@ public class ReferenceBaseValidatorTests
     public void Code_ShouldBeValid_WhenCorrectFormat(string? code)
     {
         var model = new TestReference { Code = code };
-        var result = _validator.TestValidate(model);
+        TestValidationResult<TestReference>? result = _validator.TestValidate(model);
 
         result.ShouldNotHaveValidationErrorFor(x => x.Code);
     }

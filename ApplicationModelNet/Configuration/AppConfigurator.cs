@@ -6,6 +6,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Promatis.Net.Data;
 using Promatis.Net.Data.Init;
 using Promatis.Net.Domain;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Promatis.Net.Configuration;
 
@@ -15,10 +17,10 @@ public class AppConfigurator : IAppConfigurator
     {
         // Триггеры и валидация
         services.AddValidatorsFromAssemblyContaining<DomainObjectValidator<DomainObject>>();
-        services.AddSingleton<DatabaseTriggerService>();
-        services.AddSingleton<DatabaseTriggerInterceptor>();
+        services.AddScoped<DatabaseTriggerService>();
+        services.AddScoped<DatabaseTriggerInterceptor>();
 
-        // Регистрируем AuditTrigger в DI, чтобы DatabaseTriggerService мог его разрешить
+        // Триггеры приложения
         services.AddScoped<AuditTrigger>();
 
         // БД
@@ -29,18 +31,28 @@ public class AppConfigurator : IAppConfigurator
                     x => x.MigrationsAssembly("Promatis.Net.Data.Init"))
                 .AddInterceptors(sp.GetRequiredService<DatabaseTriggerInterceptor>());
         });
+
+        // Настраиваем опции один раз
+        var jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase, // Чтобы в БД был стандартный JSON
+            //DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, // Экономим место, не пишем null-поля
+            WriteIndented = false // Для БД лучше компактный вид без пробелов
+        };
+
+        // Регистрируем
+        services.AddSingleton(jsonOptions);
     }
 
     public virtual void ConfigureApp(WebApplication app)
     {
         // Инициализация триггеров
-        using var scope = app.Services.CreateScope();
+        using IServiceScope scope = app.Services.CreateScope();
 
         // 1. Стандартная регистрация из метода расширения
         scope.ServiceProvider.RegisterDomainTriggers();
 
-        // 2. Явная регистрация аудита для базового типа DomainObject
-        var triggerService = scope.ServiceProvider.GetRequiredService<DatabaseTriggerService>();
-        triggerService.Register<DomainObject, AuditTrigger>();
+        // 2. Заряжаем триггеры приложения
+        scope.ServiceProvider.RegisterAppTriggers();
     }
 }

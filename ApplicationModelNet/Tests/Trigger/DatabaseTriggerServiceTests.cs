@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using Moq;
+﻿using Moq;
 using Promatis.Net.Data;
 using Promatis.Net.Domain;
 using Promatis.Net.Domain.Interface;
@@ -7,55 +6,62 @@ using Xunit;
 
 namespace Promatis.Net.ApplicationModel.Tests.Trigger;
 
+
+// --- ТЕСТОВЫЕ КЛАССЫ (теперь достаточно одного набора) ---
+public class TestEntity : DomainObject, IAudit { }
+public interface ITestBeforeTrigger : IBeforeSaveTrigger<TestEntity> { }
+public interface ITestAfterTrigger : IAfterSaveTrigger<TestEntity> { }
+public interface ISecondAfterTrigger : IAfterSaveTrigger<TestEntity> { }
+public class InvalidTrigger { }
+
 public class DatabaseTriggerServiceTests
 {
-    private readonly Mock<IServiceScopeFactory> _scopeFactoryMock;
     private readonly Mock<IServiceProvider> _serviceProviderMock;
     private readonly DatabaseTriggerService _service;
 
     public DatabaseTriggerServiceTests()
     {
-        _scopeFactoryMock = new Mock<IServiceScopeFactory>();
+        // 1. Очищаем статику перед каждым тестом
+        DatabaseTriggerService.ClearInternalRegistrations();
+
         _serviceProviderMock = new Mock<IServiceProvider>();
-
-        var scopeMock = new Mock<IServiceScope>();
-        scopeMock.Setup(s => s.ServiceProvider).Returns(_serviceProviderMock.Object);
-        _scopeFactoryMock.Setup(s => s.CreateScope()).Returns(scopeMock.Object);
-
-        _service = new DatabaseTriggerService(_scopeFactoryMock.Object);
+        _service = new DatabaseTriggerService(_serviceProviderMock.Object);
     }
 
-    private class TestEntity : DomainObject { }
-
     [Fact]
-    public async Task ValidateAsync_ShouldExecuteRegisteredBeforeSaveAction()
+    public async Task ValidateAsync_ShouldExecuteRegisteredTrigger()
     {
         // Arrange
-        bool wasCalled = false;
-        _service.BeforeSave<TestEntity>(args =>
-        {
-            wasCalled = true;
-            return Task.CompletedTask;
-        });
+        var triggerMock = new Mock<ITestBeforeTrigger>();
+        _serviceProviderMock.Setup(x => x.GetService(typeof(ITestBeforeTrigger)))
+                            .Returns(triggerMock.Object);
+
+        _service.Register<TestEntity, ITestBeforeTrigger>();
 
         // Act
         await _service.ValidateAsync(new TestEntity(), EntityStateChangeEnum.Added, [], null!);
 
         // Assert
-        Assert.True(wasCalled);
+        triggerMock.Verify(x => x.HandleAsync(It.IsAny<EntityCancelEventArgs<TestEntity>>()), Times.Once);
     }
 
     [Fact]
     public async Task ValidateAsync_ShouldThrowException_WhenTriggerCancels()
     {
         // Arrange
-        var errorMessage = "Stop right there!";
-        _service.BeforeSave<TestEntity>(args =>
-        {
-            args.Cancel = true;
-            args.ErrorMessage = errorMessage;
-            return Task.CompletedTask;
-        });
+        string errorMessage = "Stop!";
+        var triggerMock = new Mock<ITestBeforeTrigger>();
+        triggerMock.Setup(x => x.HandleAsync(It.IsAny<EntityCancelEventArgs<TestEntity>>()))
+                   .Callback<EntityCancelEventArgs<TestEntity>>(args =>
+                   {
+                       args.Cancel = true;
+                       args.ErrorMessage = errorMessage;
+                   });
+
+        _serviceProviderMock.Setup(x => x.GetService(typeof(ITestBeforeTrigger)))
+                            .Returns(triggerMock.Object);
+
+        _service.Register<TestEntity, ITestBeforeTrigger>();
 
         // Act & Assert
         var ex = await Assert.ThrowsAsync<OperationCanceledException>(() =>
@@ -67,23 +73,20 @@ public class DatabaseTriggerServiceTests
     [Fact]
     public async Task Hierarchy_ShouldInvokeTriggerForInterface()
     {
-        // Arrange: Регистрируем триггер на интерфейс, который реализует TestEntity
-        bool interfaceTriggerCalled = false;
-        _service.BeforeSave<IDomainObject>(args =>
-        {
-            interfaceTriggerCalled = true;
-            return Task.CompletedTask;
-        });
+        // Arrange
+        var triggerMock = new Mock<IBeforeSaveTrigger<IAudit>>();
+        _serviceProviderMock.Setup(x => x.GetService(typeof(IBeforeSaveTrigger<IAudit>)))
+                            .Returns(triggerMock.Object);
 
-        // Act
+        // Регистрируем на интерфейс
+        _service.Register<IAudit, IBeforeSaveTrigger<IAudit>>();
+
+        // Act: TestEntity реализует IAudit
         await _service.ValidateAsync(new TestEntity(), EntityStateChangeEnum.Added, [], null!);
 
         // Assert
-        Assert.True(interfaceTriggerCalled, "Триггер для интерфейса должен быть вызван для реализующего его класса");
+        triggerMock.Verify(x => x.HandleAsync(It.IsAny<EntityCancelEventArgs<IAudit>>()), Times.Once);
     }
-
-    
-    private class InvalidTrigger { }
 
     [Fact]
     public void Register_ShouldThrow_WhenTriggerDoesNotImplementInterfaces()
@@ -97,14 +100,23 @@ public class DatabaseTriggerServiceTests
     public async Task NotifyAsync_ShouldStopExecution_WhenHandledIsTrue()
     {
         // Arrange
-        int callCount = 0;
-        _service.AfterSave<TestEntity>(args => { callCount++; args.Handled = true; return Task.CompletedTask; });
-        _service.AfterSave<TestEntity>(args => { callCount++; return Task.CompletedTask; });
+        var triggerMock1 = new Mock<ITestAfterTrigger>();
+        triggerMock1.Setup(x => x.HandleAsync(It.IsAny<EntityChangedEventArgs<TestEntity>>()))
+                    .Callback<EntityChangedEventArgs<TestEntity>>(args => args.Handled = true);
+
+        var triggerMock2 = new Mock<ISecondAfterTrigger>();
+
+        _serviceProviderMock.Setup(x => x.GetService(typeof(ITestAfterTrigger))).Returns(triggerMock1.Object);
+        _serviceProviderMock.Setup(x => x.GetService(typeof(ISecondAfterTrigger))).Returns(triggerMock2.Object);
+
+        _service.Register<TestEntity, ITestAfterTrigger>();
+        _service.Register<TestEntity, ISecondAfterTrigger>();
 
         // Act
         await _service.NotifyAsync(new TestEntity(), EntityStateChangeEnum.Added, [], "User", DateTime.UtcNow);
 
         // Assert
-        Assert.Equal(1, callCount); // Второй триггер не должен вызваться
+        triggerMock1.Verify(x => x.HandleAsync(It.IsAny<EntityChangedEventArgs<TestEntity>>()), Times.Once);
+        triggerMock2.Verify(x => x.HandleAsync(It.IsAny<EntityChangedEventArgs<TestEntity>>()), Times.Never);
     }
 }

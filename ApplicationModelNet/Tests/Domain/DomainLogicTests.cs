@@ -46,7 +46,7 @@ public class DomainLogicTests
     {
         // Arrange
         var reference = new TestReference();
-        var expectedName = "Основной склад";
+        string expectedName = "Основной склад";
 
         // Act
         reference.Name = expectedName;

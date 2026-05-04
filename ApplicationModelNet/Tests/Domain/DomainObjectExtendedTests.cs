@@ -1,6 +1,4 @@
-﻿using System;
-using System.Threading.Tasks;
-using Promatis.Net.Domain;
+﻿using Promatis.Net.Domain;
 using Xunit;
 
 namespace Promatis.Net.ApplicationModel.Tests.Domain;

@@ -21,7 +21,7 @@ public class DatabaseTriggerInterceptorTests
         }
     }
 
-    private class TestEntity : DomainObject, ISoftDeletable, IAudit
+    public class TestEntity : DomainObject, ISoftDeletable
     {
         public string Name { get; set; } = string.Empty;
         public DateTime? DeletedAt { get; set; }

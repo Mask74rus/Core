@@ -23,7 +23,7 @@ public class DatabaseTriggerInterceptor(
 
         string? userName = await GetUserNameAsync();
 
-        // 1. Предварительная обработка Soft Delete
+        // Предварительная обработка Soft Delete
         IEnumerable<EntityEntry<ISoftDeletable>> entries = eventData.Context.ChangeTracker.Entries<ISoftDeletable>()
             .Where(e => e.State == EntityState.Deleted);
 
@@ -36,11 +36,14 @@ public class DatabaseTriggerInterceptor(
             entry.Entity.DeletedBy = userName;
         }
 
-        // 2. Захват изменений (теперь CaptureChanges определит SoftDelete)
+        // ВАЖНО для InMemory и тяжелых операций:
+        eventData.Context.ChangeTracker.DetectChanges();
+
+        // Захват изменений (теперь CaptureChanges определит SoftDelete)
         List<ChangeEntryModel> captured = CaptureChanges(eventData.Context, userName);
         _capturedChanges[eventData.Context.ContextId.InstanceId] = captured;
 
-        // 3. Валидация (BeforeSave)
+        // Валидация (BeforeSave)
         foreach (ChangeEntryModel item in captured)
         {
             await triggerService.ValidateAsync(item.Entity, item.State, item.Changes, eventData.Context);
@@ -73,9 +76,10 @@ public class DatabaseTriggerInterceptor(
 
     private List<ChangeEntryModel> CaptureChanges(DbContext context, string? userName)
     {
+        // Захватываем всё, кроме таблицы логов
         List<EntityEntry> entries = context.ChangeTracker.Entries()
             .Where(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
-            .Where(e => e.Entity is IAudit && e.Entity is not AuditLog)
+            .Where(e => !e.Entity.GetType().Name.Contains("AuditLog"))
             .ToList();
 
         var result = new List<ChangeEntryModel>();
@@ -96,7 +100,7 @@ public class DatabaseTriggerInterceptor(
             if (state == EntityStateChangeEnum.Added)
             {
                 changes = e.Properties
-                    .Where(p => p.CurrentValue != null)
+                    //.Where(p => p.CurrentValue != null)
                     .Select(p => new PropertyChangeInfo
                     {
                         PropertyName = p.Metadata.Name,
@@ -106,16 +110,16 @@ public class DatabaseTriggerInterceptor(
             }
             else if (state is EntityStateChangeEnum.Modified or EntityStateChangeEnum.SoftDeleted)
             {
-                // ГАРАНТИРОВАННЫЙ СПОСОБ: берем значения, которые сейчас реально в БД
-                PropertyValues? dbValues = e.GetDatabaseValues();
+                // Используем OriginalValues из памяти — это НЕ создает запросов к БД
+                PropertyValues originalValues = e.OriginalValues;
 
                 foreach (PropertyEntry p in e.Properties.Where(p => p.IsModified))
                 {
                     string propertyName = p.Metadata.Name;
-                    // Если dbValues нет (запись уже удалена), берем OriginalValues
-                    object? originalValue = dbValues?[propertyName] ?? e.OriginalValues[propertyName];
+                    object? originalValue = originalValues[propertyName];
                     object? currentValue = p.CurrentValue;
 
+                    // Сравниваем значения, чтобы исключить ложные срабатывания (когда свойство помечено как IsModified, но значение то же)
                     if (!Equals(originalValue, currentValue))
                     {
                         changes.Add(new PropertyChangeInfo
