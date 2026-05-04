@@ -1,58 +1,69 @@
-﻿using FluentValidation;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Promatis.Net.Data;
 using Promatis.Net.Data.Init;
-using Promatis.Net.Domain;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.Hosting;
 
 namespace Promatis.Net.Configuration;
 
 public class AppConfigurator : IAppConfigurator
 {
+    // Сохраняем ссылку на коллекцию для автоматики
+    private IServiceCollection? _services;
+
     public virtual void ConfigureServices(IServiceCollection services, IConfiguration configuration)
     {
-        // Триггеры и валидация
-        services.AddValidatorsFromAssemblyContaining<DomainObjectValidator<DomainObject>>();
+        _services = services;
+
+        // 1. АВТОМАТИКА: Находит ВСЕ валидаторы и ВСЕ триггеры в проектах Promatis.*
+        services.AddDomainInfrastructure(projectPrefix: "Promatis.");
+
+        // 2. ИНФРАСТРУКТУРА: Регистрируем сервис и интерцептор
         services.AddScoped<DatabaseTriggerService>();
+        services.AddScoped<IDatabaseTriggerService>(static sp => sp.GetRequiredService<DatabaseTriggerService>());
         services.AddScoped<DatabaseTriggerInterceptor>();
 
-        // Триггеры приложения
-        services.AddScoped<AuditTrigger>();
-
-        // БД
+        // 3. БД: Настройка фабрики
         services.AddDbContextFactory<ApplicationDbContext>((sp, options) =>
         {
             options.UseNpgsql(configuration.GetConnectionString("DefaultConnection"),
-                    // Указываем, что миграции лежат в новой библиотеке
                     x => x.MigrationsAssembly("Promatis.Net.Data.Init"))
                 .AddInterceptors(sp.GetRequiredService<DatabaseTriggerInterceptor>());
         });
 
-        // Настраиваем опции один раз
-        var jsonOptions = new JsonSerializerOptions
+        // 4. ОПЦИИ: JSON настройки
+        services.AddSingleton(new JsonSerializerOptions
         {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase, // Чтобы в БД был стандартный JSON
-            //DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, // Экономим место, не пишем null-поля
-            WriteIndented = false // Для БД лучше компактный вид без пробелов
-        };
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+            WriteIndented = false
+        });
 
-        // Регистрируем
-        services.AddSingleton(jsonOptions);
+        /*
+
+        services.AddScoped<IUserProvider, WebUserProvider>();
+
+         * // Этот класс живет в Web-проекте, где есть доступ к AuthenticationStateProvider
+public class WebUserProvider(AuthenticationStateProvider authStateProvider) : IUserProvider
+{
+    public async Task<string?> GetCurrentUserNameAsync()
+    {
+        var state = await authStateProvider.GetAuthenticationStateAsync();
+        return state.User.Identity?.Name;
+    }
+}
+         */
     }
 
-    public virtual void ConfigureApp(WebApplication app)
+    public virtual void ConfigureApp(IHost app)
     {
-        // Инициализация триггеров
         using IServiceScope scope = app.Services.CreateScope();
 
-        // 1. Стандартная регистрация из метода расширения
-        scope.ServiceProvider.RegisterDomainTriggers();
-
-        // 2. Заряжаем триггеры приложения
-        scope.ServiceProvider.RegisterAppTriggers();
+        // АВТОМАТИКА: Сама связывает все найденные триггеры с сущностями.
+        // Больше не нужно вызывать RegisterDomainTriggers и RegisterAppTriggers вручную!
+        scope.ServiceProvider.AutoRegisterTriggers(_services!);
     }
 }

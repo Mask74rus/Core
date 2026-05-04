@@ -20,7 +20,6 @@
 	<ItemGroup>
 		<!-- Оставляем только эти пакеты -->
 		<PackageReference Include="FluentValidation" Version="12.1.1" />
-		<PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.7" />
 		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
 		<PackageReference Include="xunit.v3" Version="3.2.2" />

@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
-using Promatis.Net.Domain;
 using Promatis.Net.Domain.Interface;
 
 namespace Promatis.Net.Data;
@@ -153,12 +152,13 @@ public class DatabaseTriggerInterceptor(
     {
         try
         {
+            // Пытаемся получить наш абстрактный провайдер
             using IServiceScope scope = serviceProvider.CreateScope();
-            var authStateProvider = scope.ServiceProvider.GetService<AuthenticationStateProvider>();
-            if (authStateProvider != null)
+            var userProvider = scope.ServiceProvider.GetService<IUserProvider>();
+
+            if (userProvider != null)
             {
-                AuthenticationState state = await authStateProvider.GetAuthenticationStateAsync();
-                return state.User.Identity?.Name;
+                return await userProvider.GetCurrentUserNameAsync();
             }
         }
         catch

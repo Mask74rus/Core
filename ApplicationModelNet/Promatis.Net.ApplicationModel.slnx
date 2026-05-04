@@ -2,6 +2,9 @@
   <Folder Name="/Configuration/">
     <Project Path="Configuration/Promatis.Net.Configuration.csproj" Id="a2066046-6ffb-494c-8a27-13bfc7a8d3c7" />
   </Folder>
+  <Folder Name="/Console/">
+    <Project Path="Console/Promatis.Net.ApplicationModel.Console.csproj" Id="008ae90b-769d-44c6-bbe9-3229288a19e2" />
+  </Folder>
   <Folder Name="/Data/">
     <Project Path="Data/Promatis.Net.Data.csproj" Id="5dcc7144-30c0-4dd9-b463-02351cd8393b" />
   </Folder>

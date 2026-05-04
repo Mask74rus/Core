@@ -1,13 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
-using Promatis.Net.ApplicationModel.Tests.Interceptor;
 using Promatis.Net.Data;
 using Promatis.Net.Data.Init;
 using Promatis.Net.Domain;
 using Promatis.Net.Domain.Interface;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using Xunit;
 
 namespace Promatis.Net.ApplicationModel.Tests.Trigger;
