@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Promatis.Net.Data.Init;
+using Promatis.Net.Data;
 using Promatis.Net.Domain;
 
 namespace Promatis.Net.Service;

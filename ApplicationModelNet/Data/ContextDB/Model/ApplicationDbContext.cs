@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Promatis.Net.Data.EF;
 
-namespace Promatis.Net.Data.Init;
+namespace Promatis.Net.Data;
 
 public partial class ApplicationDbContext(
     DbContextOptions<ApplicationDbContext> options)

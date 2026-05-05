@@ -1,6 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Promatis.Net.Data;
-using Promatis.Net.Data.Init;
 using Promatis.Net.Domain;
 using Promatis.Net.Domain.Interface;
 using Xunit;

@@ -2,7 +2,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Promatis.Net.Data;
-using Promatis.Net.Data.Init;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Hosting;
@@ -16,21 +15,20 @@ public class AppConfigurator : IAppConfigurator
 
     public virtual void ConfigureServices(IServiceCollection services, IConfiguration configuration)
     {
-        _services = services;
-
-        // 1. АВТОМАТИКА: Находит ВСЕ валидаторы и ВСЕ триггеры в проектах Promatis.*
+        // 1. Сканируем всё (включая AuditTrigger в проекте Data)
         services.AddDomainInfrastructure(projectPrefix: "Promatis.");
 
-        // 2. ИНФРАСТРУКТУРА: Регистрируем сервис и интерцептор
+        // 2. Регистрируем базовые сервисы
         services.AddScoped<DatabaseTriggerService>();
-        services.AddScoped<IDatabaseTriggerService>(static sp => sp.GetRequiredService<DatabaseTriggerService>());
+        services.AddScoped<IDatabaseTriggerService>(sp => sp.GetRequiredService<DatabaseTriggerService>());
         services.AddScoped<DatabaseTriggerInterceptor>();
 
-        // 3. БД: Настройка фабрики
+        // 3. Теперь ApplicationDbContext можно регистрировать
+        // Он будет лежать в Data, а Init будет использоваться только как Migration Assembly.
         services.AddDbContextFactory<ApplicationDbContext>((sp, options) =>
         {
             options.UseNpgsql(configuration.GetConnectionString("DefaultConnection"),
-                    x => x.MigrationsAssembly("Promatis.Net.Data.Init"))
+                    x => x.MigrationsAssembly("Promatis.Net.Data.Init")) // Ссылка на проект с миграциями
                 .AddInterceptors(sp.GetRequiredService<DatabaseTriggerInterceptor>());
         });
 
@@ -60,10 +58,8 @@ public class WebUserProvider(AuthenticationStateProvider authStateProvider) : IU
 
     public virtual void ConfigureApp(IHost app)
     {
-        using IServiceScope scope = app.Services.CreateScope();
-
-        // АВТОМАТИКА: Сама связывает все найденные триггеры с сущностями.
-        // Больше не нужно вызывать RegisterDomainTriggers и RegisterAppTriggers вручную!
-        scope.ServiceProvider.AutoRegisterTriggers(_services!);
+        using var scope = app.Services.CreateScope();
+        // Вызываем обновленный метод без передачи _services
+        scope.ServiceProvider.AutoRegisterTriggers();
     }
 }

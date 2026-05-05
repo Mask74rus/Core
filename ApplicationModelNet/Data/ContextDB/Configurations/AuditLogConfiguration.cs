@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Promatis.Net.Domain;
 
-namespace Promatis.Net.Data.EF;
+namespace Promatis.Net.Data;
 
 public class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
 {

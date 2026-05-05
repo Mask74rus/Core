@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Metadata;
 using System.Linq.Expressions;
 using Promatis.Net.Domain.Interface;
 
-namespace Promatis.Net.Data.EF;
+namespace Promatis.Net.Data;
 
 public static class ModelBuilderConventions
 {

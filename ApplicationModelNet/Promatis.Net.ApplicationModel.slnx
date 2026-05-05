@@ -8,9 +8,6 @@
   <Folder Name="/Data/">
     <Project Path="Data/Promatis.Net.Data.csproj" Id="5dcc7144-30c0-4dd9-b463-02351cd8393b" />
   </Folder>
-  <Folder Name="/DataEF/">
-    <Project Path="Data.EF/Promatis.Net.Data.EF.csproj" Id="1c6da193-097d-4b00-925f-a43d6d985de9" />
-  </Folder>
   <Folder Name="/DataInit/">
     <Project Path="Data.Init/Promatis.Net.Data.Init.csproj" Id="1a9be981-5fd9-46d4-a0ef-dd4d22e8d955" />
   </Folder>
