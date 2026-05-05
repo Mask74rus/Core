@@ -6,9 +6,9 @@ namespace Promatis.Net.Domain;
 /// <summary>
 /// Универсальный валидатор для всех классов, наследуемых от ReferenceBase
 /// </summary>
-public class ReferenceBaseValidator<T> : DomainObjectValidator<T> where T : ReferenceBase
+public abstract class ReferenceBaseValidator<T> : DomainObjectValidator<T> where T : ReferenceBase
 {
-    public ReferenceBaseValidator()
+    protected ReferenceBaseValidator()
     {
         RuleFor(x => x.Name)
             .NotEmpty().WithMessage("Наименование обязательно для заполнения")

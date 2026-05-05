@@ -5,6 +5,7 @@ using Promatis.Net.Domain.Interface;
 namespace Promatis.Net.Service;
 
 public abstract class BaseService<T, TKey>(IDbContextFactory<ApplicationDbContext> contextFactory)
+    : IBaseService<T, TKey>
     where T : class, IDomainObjectHasKey<TKey>
 {
     protected readonly IDbContextFactory<ApplicationDbContext> ContextFactory = contextFactory;

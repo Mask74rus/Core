@@ -2,9 +2,12 @@
 
 namespace Promatis.Net.Domain;
 
-public class ReferenceTreeBaseValidator<T> : ReferenceBaseValidator<T> where T : ReferenceTreeBase<T>
+/// <summary>
+/// Универсальный валидатор для всех классов, наследуемых от ReferenceTreeBase
+/// </summary>
+public abstract class ReferenceTreeBaseValidator<T> : ReferenceBaseValidator<T> where T : ReferenceTreeBase<T>
 {
-    public ReferenceTreeBaseValidator()
+    protected ReferenceTreeBaseValidator()
     {
         // Проверка на самоцитирование
         RuleFor(x => x.ParentId)

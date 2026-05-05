@@ -5,7 +5,7 @@ using Promatis.Net.Domain;
 namespace Promatis.Net.Service;
 
 public abstract class ReferenceService<T>(IDbContextFactory<ApplicationDbContext> contextFactory)
-    : BaseService<T, Guid>(contextFactory)
+    : BaseService<T, Guid>(contextFactory), IReferenceService<T>
     where T : ReferenceBase
 {
     public async Task<T?> GetByCodeAsync(string code)

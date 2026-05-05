@@ -2,11 +2,13 @@
 
 namespace Promatis.Net.Domain;
 
+/// <summary>
+/// Универсальный валидатор для всех классов, наследуемых от DomainObject
+/// </summary>
 public abstract class DomainObjectValidator<T> : AbstractValidator<T> where T : DomainObject
 {
     protected DomainObjectValidator()
     {
-        // Правила для всех объектов системы
         RuleFor(x => x.Id)
             .NotEmpty().WithMessage("Идентификатор объекта не может быть пустым.");
 

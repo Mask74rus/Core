@@ -2,7 +2,7 @@
 
 namespace Promatis.Net.Domain;
 
-public class CategoryValidator : DomainObjectValidator<Category> {
+public class CategoryValidator : ReferenceTreeBaseValidator<Category> {
     public CategoryValidator()
     {
         RuleFor(x => x.Name).NotEmpty();

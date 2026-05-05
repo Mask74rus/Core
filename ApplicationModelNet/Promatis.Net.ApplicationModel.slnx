@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/Configuration/">
+    <Project Path="Configuration.Web/Promatis.Net.Configuration.Web.csproj" Id="15d2aa00-ea33-44bb-87fd-3a135245e5e9" />
     <Project Path="Configuration/Promatis.Net.Configuration.csproj" Id="a2066046-6ffb-494c-8a27-13bfc7a8d3c7" />
   </Folder>
   <Folder Name="/Console/">
