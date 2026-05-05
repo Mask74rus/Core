@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Promatis.Net.Data;
@@ -18,16 +19,17 @@ public class AuditTriggerTests
         public string Name { get; set; } = "";
     }
 
-    // ТЕСТОВЫЙ КОНТЕКСТ: Должен явно знать обо всех сущностях, иначе InMemory их не увидит
-    public class AuditIntegrationDbContext(DbContextOptions<ApplicationDbContext> options)
-        : ApplicationDbContext(options)
+    // ТЕСТОВЫЙ КОНТЕКСТ: Теперь принимает IConfiguration
+    public class AuditIntegrationDbContext(
+        DbContextOptions<ApplicationDbContext> options,
+        IConfiguration configuration)
+        : ApplicationDbContext(options, configuration)
     {
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // Сначала вызываем базовый, чтобы подтянулись стандартные настройки
             base.OnModelCreating(modelBuilder);
 
-            // Явно регистрируем сущности для InMemory провайдера
+            // Регистрация сущностей для теста
             modelBuilder.Entity<AuditIntegrationEntity>();
             modelBuilder.Entity<AuditLog>();
         }
@@ -44,65 +46,65 @@ public class AuditTriggerTests
     [Fact]
     public async Task SaveChanges_ShouldCreateAuditLog_WithCorrectJson()
     {
-        DatabaseTriggerService.ClearInternalRegistrations();
+        // Создаем фейковую конфигурацию
+        IConfigurationRoot configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["DatabaseSettings:DefaultSchema"] = "test"
+            })
+            .Build();
 
         var services = new ServiceCollection();
         services.AddLogging();
+        services.AddSingleton<IConfiguration>(configuration); // Добавляем в DI
         services.AddSingleton(new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
 
         string dbName = "FinalAuditDb_" + Guid.NewGuid();
-        var dbOptions = new DbContextOptionsBuilder<ApplicationDbContext>()
+        DbContextOptions<ApplicationDbContext> dbOptions = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(dbName)
             .Options;
 
-        // Настройка фабрики
+        // Настройка фабрики (теперь пробрасываем конфиг)
         var factoryMock = new Mock<IDbContextFactory<ApplicationDbContext>>();
         factoryMock.Setup(f => f.CreateDbContextAsync(It.IsAny<CancellationToken>()))
-                   .Returns(() => Task.FromResult<ApplicationDbContext>(new AuditIntegrationDbContext(dbOptions)));
+                   .Returns(() => Task.FromResult<ApplicationDbContext>(new AuditIntegrationDbContext(dbOptions, configuration)));
 
         services.AddSingleton(factoryMock.Object);
         services.AddScoped<AuditTrigger>();
         services.AddScoped<DatabaseTriggerService>();
         services.AddScoped<IDatabaseTriggerService>(sp => sp.GetRequiredService<DatabaseTriggerService>());
 
-        var serviceProvider = services.BuildServiceProvider();
-        using var scope = serviceProvider.CreateScope();
-        var sp = scope.ServiceProvider;
+        ServiceProvider serviceProvider = services.BuildServiceProvider();
+        using IServiceScope scope = serviceProvider.CreateScope();
+        IServiceProvider sp = scope.ServiceProvider;
 
         var triggerService = sp.GetRequiredService<DatabaseTriggerService>();
         triggerService.Register<DomainObject, AuditTrigger>();
 
+        // Перехватчик
         var interceptor = new DatabaseTriggerInterceptor(triggerService, sp);
-        var mainOptions = new DbContextOptionsBuilder<ApplicationDbContext>()
+        DbContextOptions<ApplicationDbContext> mainOptions = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(dbName)
             .AddInterceptors(interceptor)
             .Options;
 
-        Guid entityId = Guid.NewGuid();
+        var entityId = Guid.NewGuid();
 
         // --- ACT & ASSERT ---
-        // Используем один контекст на всё время теста, чтобы InMemory не "утекла"
-        using (var context = new AuditIntegrationDbContext(mainOptions))
+        // Передаем configuration в конструктор контекста
+        await using (var context = new AuditIntegrationDbContext(mainOptions, configuration))
         {
             var entity = new AuditIntegrationEntity { Id = entityId, Name = "Audit Test" };
             context.Add(entity);
-            await context.SaveChangesAsync();
+            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-            // Даем время триггеру (так как он может работать в Task)
-            await Task.Delay(100);
+            // Даем время триггеру
+            await Task.Delay(100, TestContext.Current.CancellationToken);
 
-            // Проверяем лог ПРЯМО ЗДЕСЬ, пока основной контекст жив
-            var log = await context.Set<AuditLog>()
-                .FirstOrDefaultAsync(x => x.EntityId == entityId);
+            AuditLog? log = await context.Set<AuditLog>()
+                .FirstOrDefaultAsync(x => x.EntityId == entityId, cancellationToken: TestContext.Current.CancellationToken);
 
-            if (log == null)
-            {
-                // Если все еще null, ищем вообще любой лог в таблице
-                var anyLog = await context.Set<AuditLog>().AnyAsync();
-                Assert.True(anyLog, "Таблица логов пуста. Триггер не смог записать данные.");
-                Assert.NotNull(log);
-            }
-
+            Assert.NotNull(log);
             Assert.Equal("Added", log.Action);
             Assert.Contains("Audit Test", log.ChangesJson);
         }

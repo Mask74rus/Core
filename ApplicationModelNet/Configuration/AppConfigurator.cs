@@ -10,9 +10,6 @@ namespace Promatis.Net.Configuration;
 
 public class AppConfigurator : IAppConfigurator
 {
-    // Сохраняем ссылку на коллекцию для автоматики
-    private IServiceCollection? _services;
-
     public virtual void ConfigureServices(IServiceCollection services, IConfiguration configuration)
     {
         // 1. Сканируем всё (включая AuditTrigger в проекте Data)

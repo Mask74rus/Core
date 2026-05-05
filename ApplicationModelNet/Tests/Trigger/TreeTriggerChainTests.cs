@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Promatis.Net.Data;
@@ -13,9 +14,11 @@ namespace Promatis.Net.ApplicationModel.Tests.Trigger;
 public class SoftDeleteNode : ReferenceTreeBase<SoftDeleteNode> { }
 public class SelfParentNode : ReferenceTreeBase<SelfParentNode> { }
 
-// Общий контекст для интеграционных тестов
-public class TreeTestDbContext(DbContextOptions<ApplicationDbContext> options)
-    : ApplicationDbContext(options)
+// Общий контекст для интеграционных тестов (теперь с IConfiguration)
+public class TreeTestDbContext(
+    DbContextOptions<ApplicationDbContext> options,
+    IConfiguration configuration)
+    : ApplicationDbContext(options, configuration)
 {
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -27,17 +30,25 @@ public class TreeTestDbContext(DbContextOptions<ApplicationDbContext> options)
 
 public class TreeTriggerChainTests
 {
-    private ServiceProvider CreateProvider()
+    private (ServiceProvider Provider, IConfiguration Config) CreateProviderAndConfig()
     {
+        // Создаем фейковую конфигурацию
+        IConfigurationRoot configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["DatabaseSettings:DefaultSchema"] = "test"
+            })
+            .Build();
+
         var services = new ServiceCollection();
         services.AddLogging();
+        services.AddSingleton<IConfiguration>(configuration); // Добавляем конфиг
 
         // 1. Основные сервисы
         services.AddScoped<DatabaseTriggerService>();
         services.AddScoped<IDatabaseTriggerService>(sp => sp.GetRequiredService<DatabaseTriggerService>());
 
-        // 2. РЕГИСТРИРУЕМ ВСЕ ТРИГГЕРЫ (Защита от статики)
-        // Добавляем FluentValidationTrigger, чтобы тесты не падали, если он остался в статике
+        // 2. РЕГИСТРИРУЕМ ВСЕ ТРИГГЕРЫ
         services.AddScoped<FluentValidationTrigger>();
         services.AddScoped<AuditTrigger>();
         services.AddScoped<ReferenceTreeParentTrigger>();
@@ -45,35 +56,33 @@ public class TreeTriggerChainTests
         // 3. Зависимости триггеров
         services.AddSingleton(new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
 
-        // Мок фабрики для AuditTrigger
         var factoryMock = new Mock<IDbContextFactory<ApplicationDbContext>>();
         services.AddSingleton(factoryMock.Object);
 
-        // 4. Заглушки для иерархических интерфейсов (если были Register<IAudit, ...>)
+        // 4. Заглушки для интерфейсов
         services.AddScoped(_ => new Mock<IBeforeSaveTrigger<IAudit>>().Object);
 
-        return services.BuildServiceProvider();
+        return (services.BuildServiceProvider(), configuration);
     }
 
     [Fact]
     public async Task SaveChanges_ShouldCancel_WhenParentIsSoftDeleted_ThroughChain()
     {
         // --- ARRANGE ---
-        using var serviceProvider = CreateProvider();
-        using var scope = serviceProvider.CreateScope();
-        var sp = scope.ServiceProvider;
+        (ServiceProvider serviceProvider, IConfiguration configuration) = CreateProviderAndConfig();
+        using IServiceScope scope = serviceProvider.CreateScope();
+        IServiceProvider sp = scope.ServiceProvider;
 
         var triggerService = sp.GetRequiredService<DatabaseTriggerService>();
-
-        // Регистрируем системный триггер для интерфейса
         triggerService.Register<IDomainObjectHasKey<Guid>, ReferenceTreeParentTrigger>();
 
-        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+        DbContextOptions<ApplicationDbContext> options = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .AddInterceptors(new DatabaseTriggerInterceptor(triggerService, sp))
             .Options;
 
-        await using var context = new TreeTestDbContext(options);
+        // Передаем опции и конфиг
+        await using var context = new TreeTestDbContext(options, configuration);
 
         // 1. Создаем "удаленного" родителя
         var deadParent = new SoftDeleteNode
@@ -83,7 +92,7 @@ public class TreeTriggerChainTests
             DeletedAt = DateTime.UtcNow
         };
         context.Add(deadParent);
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // 2. Ребенок
         var child = new SoftDeleteNode
@@ -96,7 +105,7 @@ public class TreeTriggerChainTests
         // --- ACT & ASSERT ---
         await Assert.ThrowsAsync<OperationCanceledException>(async () =>
         {
-            await context.SaveChangesAsync();
+            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         });
     }
 
@@ -104,19 +113,19 @@ public class TreeTriggerChainTests
     public async Task SaveChanges_ShouldCancel_WhenSelfParenting_ThroughChain()
     {
         // --- ARRANGE ---
-        using var serviceProvider = CreateProvider();
-        using var scope = serviceProvider.CreateScope();
-        var sp = scope.ServiceProvider;
+        (ServiceProvider serviceProvider, IConfiguration configuration) = CreateProviderAndConfig();
+        using IServiceScope scope = serviceProvider.CreateScope();
+        IServiceProvider sp = scope.ServiceProvider;
 
         var triggerService = sp.GetRequiredService<DatabaseTriggerService>();
         triggerService.Register<IDomainObjectHasKey<Guid>, ReferenceTreeParentTrigger>();
 
-        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+        DbContextOptions<ApplicationDbContext> options = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .AddInterceptors(new DatabaseTriggerInterceptor(triggerService, sp))
             .Options;
 
-        await using var context = new TreeTestDbContext(options);
+        await using var context = new TreeTestDbContext(options, configuration);
 
         var node = new SelfParentNode { Id = Guid.NewGuid(), Name = "Self" };
         node.ParentId = node.Id;
@@ -124,7 +133,7 @@ public class TreeTriggerChainTests
 
         // --- ACT & ASSERT ---
         var exception = await Assert.ThrowsAsync<OperationCanceledException>(async () =>
-            await context.SaveChangesAsync());
+            await context.SaveChangesAsync(TestContext.Current.CancellationToken));
 
         Assert.Equal("Объект не может быть родителем самому себе.", exception.Message);
     }

@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Promatis.Net.Data;
 using Promatis.Net.Domain;
 using Promatis.Net.Domain.Interface;
@@ -8,12 +9,15 @@ namespace Promatis.Net.ApplicationModel.Tests.Trigger;
 
 public class ReferenceTreeParentTriggerTests
 {
-    // Тестовая сущность
+    // --- 1. ТЕСТОВЫЕ КЛАССЫ ---
+
     private class TestNode : ReferenceTreeBase<TestNode> { }
 
-    // Специальный контекст для тестов, знающий о TestNode
-    private class TestDbContext(DbContextOptions<ApplicationDbContext> options)
-        : ApplicationDbContext(options)
+    // Контекст теперь принимает IConfiguration
+    private class TestDbContext(
+        DbContextOptions<ApplicationDbContext> options,
+        IConfiguration configuration)
+        : ApplicationDbContext(options, configuration)
     {
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -22,15 +26,33 @@ public class ReferenceTreeParentTriggerTests
         }
     }
 
+    // --- 2. ПОДГОТОВКА ОКРУЖЕНИЯ ---
+
+    private readonly IConfiguration _configuration;
+
+    public ReferenceTreeParentTriggerTests()
+    {
+        // Создаем фейковый конфиг для тестов
+        _configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["DatabaseSettings:DefaultSchema"] = "test"
+            })
+            .Build();
+    }
+
     private async Task<TestDbContext> GetContextAsync()
     {
         DbContextOptions<ApplicationDbContext> options = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
-        var context = new TestDbContext(options);
+
+        var context = new TestDbContext(options, _configuration);
         await context.Database.EnsureCreatedAsync();
         return context;
     }
+
+    // --- 3. ТЕСТЫ ---
 
     [Fact]
     public async Task Trigger_ShouldCancel_WhenObjectIsItsOwnParent()
@@ -40,7 +62,7 @@ public class ReferenceTreeParentTriggerTests
         var trigger = new ReferenceTreeParentTrigger();
 
         var nodeId = Guid.NewGuid();
-        // ВАЖНО: Id и ParentId совпадают
+        // Id и ParentId совпадают
         var node = new TestNode { Id = nodeId, ParentId = nodeId, Name = "Self Parent" };
 
         var args = new EntityCancelEventArgs<IDomainObjectHasKey<Guid>>(

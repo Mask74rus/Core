@@ -11,9 +11,10 @@ public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<Applicatio
 {
     public ApplicationDbContext CreateDbContext(string[] args)
     {
+        // 1. Загружаем конфигурацию из appsettings.json
         IConfigurationRoot configuration = new ConfigurationBuilder()
             .SetBasePath(AppContext.BaseDirectory)
-            .AddJsonFile("appsettings.json")
+            .AddJsonFile("appsettings.json", optional: false)
             .Build();
 
         var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
@@ -23,8 +24,12 @@ public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<Applicatio
         if (string.IsNullOrEmpty(connectionString))
             throw new InvalidOperationException("ConnectionString 'DefaultConnection' not found.");
 
-        optionsBuilder.UseNpgsql(connectionString);
+        // 2. Настраиваем подключение и указываем сборку с миграциями
+        optionsBuilder.UseNpgsql(connectionString, x =>
+            x.MigrationsAssembly("Promatis.Net.Data.Init"));
 
-        return new ApplicationDbContext(optionsBuilder.Options);
+        // 3. Передаем и опции, и саму конфигурацию в конструктор контекста
+        // Теперь ApplicationDbContext сможет прочитать DatabaseSettings:DefaultSchema
+        return new ApplicationDbContext(optionsBuilder.Options, configuration);
     }
 }

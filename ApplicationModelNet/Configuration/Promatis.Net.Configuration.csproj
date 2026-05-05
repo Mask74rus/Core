@@ -21,6 +21,7 @@
 
 	<ItemGroup>
 	  <ProjectReference Include="..\Data.Init\Promatis.Net.Data.Init.csproj" />
+	  <ProjectReference Include="..\Data\Promatis.Net.Data.csproj" />
 	  <ProjectReference Include="..\Domain\Promatis.Net.Domain.csproj" />
 	</ItemGroup>
 
