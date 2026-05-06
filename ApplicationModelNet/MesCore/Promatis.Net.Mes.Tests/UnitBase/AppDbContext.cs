@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Promatis.Net.MES.Data;
 
-namespace Promatis.Net.Mes.Tests.UnitBase;
+namespace Promatis.Net.MES.Tests.UnitBase;
 
 // Тестовый контекст внутри пространства имен тестов
 public class AppDbContext : DbContext

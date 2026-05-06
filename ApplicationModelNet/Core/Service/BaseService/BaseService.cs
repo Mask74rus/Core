@@ -8,7 +8,8 @@ public abstract class BaseService<T, TKey>(IDbContextFactory<ApplicationDbContex
     : IBaseService<T, TKey>
     where T : class, IDomainObjectHasKey<TKey>
 {
-    protected readonly IDbContextFactory<ApplicationDbContext> ContextFactory = contextFactory;
+    protected readonly IDbContextFactory<ApplicationDbContext> ContextFactory = contextFactory 
+        ?? throw new ArgumentNullException(nameof(contextFactory));
 
     public virtual async Task<T?> GetByIdAsync(TKey id)
     {

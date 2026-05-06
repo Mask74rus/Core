@@ -88,6 +88,8 @@ public abstract class BaseServiceTests
         {
             base.OnModelCreating(modelBuilder);
 
+            modelBuilder.Entity<ReferenceTreeServiceTests.TestTreeEntity>();
+
             // Добавьте эту строку здесь:
             modelBuilder.Entity<ServiceIntegrationTests.IntegratedEntity>();
 

@@ -13,29 +13,35 @@ public static class ModelBuilderConventions
         {
             Type type = entityType.ClrType;
 
-            // Обработка всех свойств сущности (лимиты для строк)
+            // 1. Лимиты для строк (255 по умолчанию)
             foreach (IMutableProperty property in entityType.GetProperties())
             {
-                // Устанавливаем 255 по умолчанию, если не задано иное
                 if (property.ClrType == typeof(string))
-                    if (property.GetMaxLength() == null) property.SetMaxLength(255);
+                {
+                    if (property.GetMaxLength() == null)
+                        property.SetMaxLength(255);
+                }
             }
 
-            // Авто-ключи для Guid
+            // 2. Авто-ключи для Guid (ValueGeneratedNever, так как Id создается в DomainObject)
             if (typeof(IDomainObjectHasKey<Guid>).IsAssignableFrom(type))
             {
                 modelBuilder.Entity(type).Property("Id").ValueGeneratedNever();
             }
 
-            // АВТО-ФИЛЬТР и АВТО-ИНДЕКС для всех SoftDelete объектов
+            // 3. АВТО-ФИЛЬТР и АВТО-ИНДЕКС для SoftDelete объектов
             if (typeof(ISoftDeletable).IsAssignableFrom(type))
             {
-                // А вот ФИЛЬТР ставим ТОЛЬКО на корень
-                // Проверяем: если у типа нет базового типа ИЛИ базовый тип не реализует ISoftDeletable
                 IMutableEntityType? baseType = entityType.BaseType;
+
+                // Ставим фильтр только на корень иерархии (включая абстрактный UnitBase)
                 if (baseType == null || !typeof(ISoftDeletable).IsAssignableFrom(baseType.ClrType))
                 {
+                    // Установка QueryFilter
                     modelBuilder.SetSoftDeleteFilter(type);
+
+                    // Установка индекса на DeletedAt для ускорения запросов
+                    modelBuilder.Entity(type).HasIndex("DeletedAt");
                 }
             }
         }
@@ -43,19 +49,22 @@ public static class ModelBuilderConventions
 
     private static void SetSoftDeleteFilter(this ModelBuilder modelBuilder, Type entityType)
     {
-        // Вместо сложной рефлексии используем встроенный механизм EF для динамических фильтров
-        // если это возможно, либо проверяем, что entityType действительно класс
-        if (entityType.IsClass && !entityType.IsAbstract)
+        // Для TPT/TPH важно ставить фильтр на корень, даже если он абстрактный.
+        // Условие IsClass достаточно.
+        if (entityType.IsClass)
+        {
             modelBuilder.Entity(entityType).HasQueryFilter(GenerateFilter(entityType));
+        }
     }
 
-    // Вспомогательный метод для создания выражения e => e.DeletedAt == null
     private static LambdaExpression GenerateFilter(Type type)
     {
         ParameterExpression parameter = Expression.Parameter(type, "e");
-        MemberExpression property = Expression.Property(parameter, "DeletedAt");
+        // Используем Property для доступа к DeletedAt через интерфейс или свойство
+        MemberExpression property = Expression.Property(parameter, nameof(ISoftDeletable.DeletedAt));
         ConstantExpression nullConstant = Expression.Constant(null, typeof(DateTime?));
         BinaryExpression body = Expression.Equal(property, nullConstant);
+
         return Expression.Lambda(body, parameter);
     }
 }

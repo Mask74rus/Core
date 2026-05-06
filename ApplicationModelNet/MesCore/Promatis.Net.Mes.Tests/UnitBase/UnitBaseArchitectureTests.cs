@@ -4,9 +4,8 @@ using Microsoft.EntityFrameworkCore;
 using Promatis.Net.Data;
 using Promatis.Net.MES.Data;
 using Promatis.Net.MES.Domain.Interface;
-using Promatis.Net.MES.Domain;
 
-namespace Promatis.Net.Mes.Tests.UnitBase;
+namespace Promatis.Net.MES.Tests.UnitBase;
 
 public class UnitBaseArchitectureTests
 {

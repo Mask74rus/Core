@@ -1,6 +1,5 @@
 ﻿using FluentValidation;
 using Promatis.Net.Domain;
-using Promatis.Net.MES.Domain.Interface;
 
 namespace Promatis.Net.MES.Domain;
 

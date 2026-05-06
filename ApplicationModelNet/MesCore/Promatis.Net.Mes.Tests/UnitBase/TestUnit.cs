@@ -1,3 +1,3 @@
-﻿namespace Promatis.Net.Mes.Tests.UnitBase;
+﻿namespace Promatis.Net.MES.Tests.UnitBase;
 
 public class TestUnit : MES.Domain.UnitBase { }
