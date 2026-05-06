@@ -1,27 +1,36 @@
 <Solution>
-  <Folder Name="/Configuration/">
-    <Project Path="Configuration.Web/Promatis.Net.Configuration.Web.csproj" Id="15d2aa00-ea33-44bb-87fd-3a135245e5e9" />
-    <Project Path="Configuration/Promatis.Net.Configuration.csproj" Id="a2066046-6ffb-494c-8a27-13bfc7a8d3c7" />
+  <Folder Name="/App/" />
+  <Folder Name="/App/MDM/">
+    <Project Path="App/MDM/Promatis.Net.Test.MDM.Configuration/Promatis.Net.Test.MDM.Configuration.csproj" Id="cfa295a8-8bcb-4086-b691-37705a2f45aa" />
+    <Project Path="App/MDM/Promatis.Net.Test.MDM.Data/Promatis.Net.Test.MDM.Data.csproj" Id="4dfa0924-d8af-4239-a58e-c5671207ba38" />
+    <Project Path="App/MDM/Promatis.Net.Test.MDM.DataInit/Promatis.Net.Test.MDM.DataInit.csproj" Id="0d39f096-3dbd-443b-81ce-8430ad5457bf" />
+    <Project Path="App/MDM/Promatis.Net.Test.MDM.Domain/Promatis.Net.Test.MDM.Domain.csproj" Id="ef07aa9b-01f2-414d-b3c8-39801cf2d9d7" />
   </Folder>
-  <Folder Name="/Console/">
-    <Project Path="Console/Promatis.Net.ApplicationModel.Console.csproj" Id="008ae90b-769d-44c6-bbe9-3229288a19e2" />
+  <Folder Name="/Core/">
+    <Project Path="Core/Configuration.Web/Promatis.Net.Configuration.Web.csproj" Id="15d2aa00-ea33-44bb-87fd-3a135245e5e9" />
+    <Project Path="Core/Configuration/Promatis.Net.Configuration.csproj" Id="a2066046-6ffb-494c-8a27-13bfc7a8d3c7" />
+    <Project Path="Core/Console/Promatis.Net.ApplicationModel.Console.csproj" Id="008ae90b-769d-44c6-bbe9-3229288a19e2" />
+    <Project Path="Core/Data.Init/Promatis.Net.Data.Init.csproj" Id="1a9be981-5fd9-46d4-a0ef-dd4d22e8d955" />
+    <Project Path="Core/Data/Promatis.Net.Data.csproj" Id="5dcc7144-30c0-4dd9-b463-02351cd8393b" />
+    <Project Path="Core/Domain.Interface/Promatis.Net.Domain.Interface.csproj" Id="0e14c4a7-a385-4be6-8f04-c2c958001799" />
+    <Project Path="Core/Domain/Promatis.Net.Domain.csproj" />
+    <Project Path="Core/Service/Promatis.Net.Service.csproj" Id="f434e99f-9915-4241-9a30-e597776bedf3" />
+    <Project Path="Core/Tests/Promatis.Net.ApplicationModel.Tests.csproj" Id="1141f804-d94d-40f2-824d-7847c687a4ed" />
   </Folder>
-  <Folder Name="/Data/">
-    <Project Path="Data/Promatis.Net.Data.csproj" Id="5dcc7144-30c0-4dd9-b463-02351cd8393b" />
+  <Folder Name="/Launcher/">
+    <Project Path="Launcher/Promatis.Net.Launcher/Promatis.Net.Launcher.csproj" Id="d18bf65b-cbb9-4d41-a85e-a2537cfc5aae" />
   </Folder>
-  <Folder Name="/DataInit/">
-    <Project Path="Data.Init/Promatis.Net.Data.Init.csproj" Id="1a9be981-5fd9-46d4-a0ef-dd4d22e8d955" />
+  <Folder Name="/Mes/" />
+  <Folder Name="/Mes/MDM/">
+    <Project Path="Mes/MDM/Promatis.Net.MES.MDM.Configuration/Promatis.Net.MES.MDM.Configuration.csproj" Id="fabb31a7-ac25-4694-a70a-82328fde24dc" />
+    <Project Path="Mes/MDM/Promatis.Net.MES.MDM.Data/Promatis.Net.MES.MDM.Data.csproj" Id="4bb79588-fb9e-4623-b7c1-4fe6df4305ac" />
+    <Project Path="Mes/MDM/Promatis.Net.MES.MDM.Domain.Interface/Promatis.Net.MES.MDM.Domain.Interface.csproj" Id="bf564800-49af-4e40-9028-ff38731f55df" />
+    <Project Path="Mes/MDM/Promatis.Net.MES.MDM.Domain/Promatis.Net.MES.MDM.Domain.csproj" Id="5df08213-601a-4614-b344-ceee8a63703d" />
   </Folder>
-  <Folder Name="/Domain.interface/">
-    <Project Path="Domain.Interface/Promatis.Net.Domain.Interface.csproj" Id="0e14c4a7-a385-4be6-8f04-c2c958001799" />
-  </Folder>
-  <Folder Name="/Domain/">
-    <Project Path="Domain/Promatis.Net.Domain.csproj" />
-  </Folder>
-  <Folder Name="/Service/">
-    <Project Path="Service/Promatis.Net.Service.csproj" Id="f434e99f-9915-4241-9a30-e597776bedf3" />
-  </Folder>
-  <Folder Name="/Tests/">
-    <Project Path="Tests/Promatis.Net.ApplicationModel.Tests.csproj" Id="1141f804-d94d-40f2-824d-7847c687a4ed" />
+  <Folder Name="/MesCore/">
+    <Project Path="MesCore/Promatis.Net.MES.Configuration/Promatis.Net.MES.Configuration.csproj" Id="8d157c76-eacc-4324-bcce-2f642b81ba42" />
+    <Project Path="MesCore/Promatis.Net.MES.Data/Promatis.Net.MES.Data.csproj" Id="3153a32a-71d0-4e5e-8ed0-6470315ce1df" />
+    <Project Path="MesCore/Promatis.Net.MES.Domain.Interface/Promatis.Net.MES.Domain.Interface.csproj" Id="3f45bf81-e57c-4ab0-a3ec-a61935c29050" />
+    <Project Path="MesCore/Promatis.Net.MES.Domain/Promatis.Net.MES.Domain.csproj" Id="e47b3f45-204f-4c04-a9f6-916219e97f20" />
   </Folder>
 </Solution>

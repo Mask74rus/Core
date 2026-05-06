@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.7" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\MesCore\Promatis.Net.MES.Data\Promatis.Net.MES.Data.csproj" />
+    <ProjectReference Include="..\Promatis.Net.MES.MDM.Domain\Promatis.Net.MES.MDM.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

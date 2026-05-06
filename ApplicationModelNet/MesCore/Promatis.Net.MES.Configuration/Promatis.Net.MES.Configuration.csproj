@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Core\Configuration.Web\Promatis.Net.Configuration.Web.csproj" />
+    <ProjectReference Include="..\Promatis.Net.MES.Data\Promatis.Net.MES.Data.csproj" />
+    <ProjectReference Include="..\Promatis.Net.MES.Domain.Interface\Promatis.Net.MES.Domain.Interface.csproj" />
+    <ProjectReference Include="..\Promatis.Net.MES.Domain\Promatis.Net.MES.Domain.csproj" />
+  </ItemGroup>
+
+</Project>
