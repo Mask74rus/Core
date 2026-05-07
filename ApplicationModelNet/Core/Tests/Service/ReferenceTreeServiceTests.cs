@@ -27,7 +27,7 @@ public class ReferenceTreeServiceTests : BaseServiceTests
         await service.AddAsync(new TestTreeEntity { Id = childId, Name = "Child", ParentId = parentId });
 
         // Act
-        var path = await service.GetParentPathAsync(childId);
+        List<TestTreeEntity> path = await service.GetParentPathAsync(childId);
 
         // Assert
         Assert.Equal(3, path.Count);
@@ -48,7 +48,7 @@ public class ReferenceTreeServiceTests : BaseServiceTests
         await service.AddAsync(new TestTreeEntity { Id = Guid.NewGuid(), Name = "Child2", ParentId = rootId });
 
         // Act
-        var tree = await service.GetFullTreeAsync(rootId);
+        TestTreeEntity? tree = await service.GetFullTreeAsync(rootId);
 
         // Assert
         Assert.NotNull(tree);
@@ -62,15 +62,28 @@ public class ReferenceTreeServiceTests : BaseServiceTests
     {
         // Arrange
         var service = new TestTreeService(Factory);
-        await service.AddAsync(new TestTreeEntity { Id = Guid.NewGuid(), Name = "Root" });
-        await service.AddAsync(new TestTreeEntity { Id = Guid.NewGuid(), Name = "Child", ParentId = Guid.NewGuid() });
+        var rootId = Guid.NewGuid();
+
+        // 1. Создаем честный корень
+        await service.AddAsync(new TestTreeEntity { Id = rootId, Name = "Root" });
+
+        // 2. Создаем ребенка, привязанного к существующему корню
+        // Это гарантирует, что дерево валидно
+        await service.AddAsync(new TestTreeEntity
+        {
+            Id = Guid.NewGuid(),
+            Name = "Child",
+            ParentId = rootId // Используем реальный ID
+        });
 
         // Act
-        var roots = await service.GetRootsAsync();
+        List<TestTreeEntity> roots = await service.GetRootsAsync();
 
         // Assert
+        // Должен остаться только один корень
         Assert.Single(roots);
         Assert.Null(roots[0].ParentId);
+        Assert.Equal("Root", roots[0].Name);
     }
 
     [Fact]
@@ -84,10 +97,84 @@ public class ReferenceTreeServiceTests : BaseServiceTests
         await service.AddAsync(new TestTreeEntity { Id = Guid.NewGuid(), Name = "C2", ParentId = parentId });
 
         // Act
-        var children = await service.GetChildrenAsync(parentId);
+        List<TestTreeEntity> children = await service.GetChildrenAsync(parentId);
 
         // Assert
         Assert.Equal(2, children.Count);
         Assert.All(children, c => Assert.Equal(parentId, c.ParentId));
+    }
+
+    [Fact]
+    public async Task MoveAsync_Should_Update_ParentId_Successfully()
+    {
+        // Arrange
+        var service = new TestTreeService(Factory);
+        var oldParentId = Guid.NewGuid();
+        var newParentId = Guid.NewGuid();
+        var targetId = Guid.NewGuid();
+
+        await service.AddAsync(new TestTreeEntity { Id = oldParentId, Name = "Old Parent" });
+        await service.AddAsync(new TestTreeEntity { Id = newParentId, Name = "New Parent" });
+        await service.AddAsync(new TestTreeEntity { Id = targetId, Name = "Target", ParentId = oldParentId });
+
+        // Act
+        await service.MoveAsync(targetId, newParentId, TestContext.Current.CancellationToken);
+
+        // Assert
+        TestTreeEntity? updated = await service.GetByIdAsync(targetId);
+        Assert.Equal(newParentId, updated!.ParentId);
+    }
+
+    [Fact]
+    public async Task MoveAsync_Into_Self_Should_Throw_InvalidOperationException()
+    {
+        // Arrange
+        var service = new TestTreeService(Factory);
+        var targetId = Guid.NewGuid();
+        await service.AddAsync(new TestTreeEntity { Id = targetId, Name = "Self" });
+
+        // Act & Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.MoveAsync(targetId, targetId, TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task MoveAsync_Into_Own_Subtree_Should_Throw_InvalidOperationException()
+    {
+        // Arrange (Создаем иерархию: A -> B -> C)
+        var service = new TestTreeService(Factory);
+        var idA = Guid.NewGuid();
+        var idB = Guid.NewGuid();
+        var idC = Guid.NewGuid();
+
+        await service.AddAsync(new TestTreeEntity { Id = idA, Name = "A" });
+        await service.AddAsync(new TestTreeEntity { Id = idB, Name = "B", ParentId = idA });
+        await service.AddAsync(new TestTreeEntity { Id = idC, Name = "C", ParentId = idB });
+
+        // Act & Assert 
+        // Пытаемся переместить A внутрь своего внука C
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.MoveAsync(idA, idC, TestContext.Current.CancellationToken));
+
+        Assert.Contains("Циклическая зависимость", exception.Message);
+    }
+
+    [Fact]
+    public async Task MoveAsync_To_Null_Should_Move_To_Root()
+    {
+        // Arrange
+        var service = new TestTreeService(Factory);
+        var parentId = Guid.NewGuid();
+        var childId = Guid.NewGuid();
+
+        await service.AddAsync(new TestTreeEntity { Id = parentId, Name = "Parent" });
+        await service.AddAsync(new TestTreeEntity { Id = childId, Name = "Child", ParentId = parentId });
+
+        // Act
+        await service.MoveAsync(childId, null, TestContext.Current.CancellationToken);
+
+        // Assert
+        TestTreeEntity? updated = await service.GetByIdAsync(childId);
+        Assert.Null(updated!.ParentId);
     }
 }

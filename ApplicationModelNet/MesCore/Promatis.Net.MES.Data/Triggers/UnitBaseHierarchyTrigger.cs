@@ -16,42 +16,44 @@ public class UnitBaseHierarchyTrigger : IBeforeSaveTrigger<UnitBase>
 
         if (!unit.ParentId.HasValue || unit.ParentId == Guid.Empty) return;
 
-        // Нам теперь нужен только Kind родителя
-        UnitKind? parentKind = await args.Context.Set<UnitBase>()
+        // Получаем Kind и Name родителя для информативного сообщения
+        var parentInfo = await args.Context.Set<UnitBase>()
             .Where(x => x.Id == unit.ParentId)
-            .Select(x => (UnitKind?)x.Kind)
+            .Select(x => new { x.Kind, x.Name })
             .FirstOrDefaultAsync();
 
-        if (parentKind.HasValue)
+        if (parentInfo != null)
         {
-            if (!IsHierarchyValid(parentKind.Value, unit.Kind))
+            if (!IsHierarchyValid(parentInfo.Kind, unit.Kind))
             {
                 args.Cancel = true;
-                args.ErrorMessage = $"Нарушение иерархии: объект категории '{unit.Kind}' не может быть вложен в '{parentKind.Value}'.";
+                args.ErrorMessage = $"Нарушение иерархии MES: Объект '{unit.Name}' ({unit.Kind}) " +
+                                    $"не может быть вложен в '{parentInfo.Name}' ({parentInfo.Kind}).";
             }
         }
     }
 
     private static bool IsHierarchyValid(UnitKind parentKind, UnitKind childKind)
     {
-        // 1. Правило для Department: могут быть все, кроме Position
+        // 1. Правило для Position: это терминальный узел (маска Position не может быть родителем)
+        // Используем HasFlag или побитовое И, так как Kind теперь - это набор флагов
+        if (parentKind == UnitKind.Position)
+        {
+            return false;
+        }
+
+        // 2. Правило для Department: может содержать всё, кроме Position
         if (parentKind == UnitKind.Department)
         {
             return childKind != UnitKind.Position;
         }
 
-        // 2. Правила для Production, Transport, Storage
+        // 3. Правила для специализированных зон (Production, Transport, Storage)
+        // Они не могут содержать друг друга, но могут содержать свои подтипы или Position
         if (parentKind is UnitKind.Production or UnitKind.Transport or UnitKind.Storage)
         {
-            // Не могут быть наследниками друг друга (разные Kind запрещены)
-            // Могут содержать только себе подобных (вложенность) или Position
+            // Разрешаем, если ребенок того же вида или является Position
             return childKind == parentKind || childKind == UnitKind.Position;
-        }
-
-        // 3. Правило для Position: это конечная точка (терминальный узел)
-        if (parentKind == UnitKind.Position)
-        {
-            return false;
         }
 
         return true;

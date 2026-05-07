@@ -39,7 +39,7 @@ public class UnitBaseArchitectureTests
     public void Validator_Should_Check_Bitwise_Compatibility(UnitKind kind, UnitType type, bool isValid)
     {
         var unit = new TestUnit { Kind = kind, Type = type, Name = "Test" };
-        var result = _validator.TestValidate(unit);
+        TestValidationResult<TestUnit>? result = _validator.TestValidate(unit);
 
         if (isValid)
         {
@@ -59,11 +59,11 @@ public class UnitBaseArchitectureTests
     [Fact]
     public async Task Trigger_Should_Allow_Root_Units()
     {
-        using var context = new AppDbContext(_options);
+        await using var context = new AppDbContext(_options);
         var root = new TestUnit { ParentId = null, Kind = UnitKind.Department, Type = UnitType.Other };
 
         var trigger = new UnitBaseHierarchyTrigger();
-        var args = CreateArgs(root, context);
+        EntityCancelEventArgs<Domain.UnitBase> args = CreateArgs(root, context);
 
         await trigger.HandleAsync(args);
 
@@ -73,20 +73,20 @@ public class UnitBaseArchitectureTests
     [Fact]
     public async Task Trigger_Should_Reject_Position_In_Department()
     {
-        using var context = new AppDbContext(_options);
+        await using var context = new AppDbContext(_options);
         var parentId = Guid.NewGuid();
 
         context.Units.Add(new TestUnit { Id = parentId, Kind = UnitKind.Department, Type = UnitType.Other, Name = "Dept" });
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var child = new TestUnit { ParentId = parentId, Kind = UnitKind.Position, Type = UnitType.Other, Name = "Pos" };
         var trigger = new UnitBaseHierarchyTrigger();
-        var args = CreateArgs(child, context);
+        EntityCancelEventArgs<Domain.UnitBase> args = CreateArgs(child, context);
 
         await trigger.HandleAsync(args);
 
         args.Cancel.Should().BeTrue();
-        args.ErrorMessage.Should().Contain("не может быть вложен в 'Department'");
+        args.ErrorMessage.Should().Contain("не может быть вложен в 'Dept' (Department)");
     }
 
     [Theory]
@@ -96,15 +96,15 @@ public class UnitBaseArchitectureTests
     [InlineData(UnitKind.Position, UnitKind.Position, true)]      // Позиция в Позицию — Запрещено (терминальный узел)
     public async Task Trigger_Should_Enforce_Isolation(UnitKind pKind, UnitKind cKind, bool shouldCancel)
     {
-        using var context = new AppDbContext(_options);
+        await using var context = new AppDbContext(_options);
         var parentId = Guid.NewGuid();
 
         // Создаем родителя с подходящим типом
         context.Units.Add(new TestUnit { Id = parentId, Kind = pKind, Type = GetFirstType(pKind), Name = "P" });
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var child = new TestUnit { ParentId = parentId, Kind = cKind, Type = GetFirstType(cKind), Name = "C" };
-        var args = CreateArgs(child, context);
+        EntityCancelEventArgs<Domain.UnitBase> args = CreateArgs(child, context);
         await new UnitBaseHierarchyTrigger().HandleAsync(args);
 
         args.Cancel.Should().Be(shouldCancel, $"потому что вложение {cKind} в {pKind} должно привести к Cancel = {shouldCancel}");

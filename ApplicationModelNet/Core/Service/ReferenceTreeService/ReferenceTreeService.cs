@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Internal;
 using Promatis.Net.Data;
 using Promatis.Net.Domain;
 
@@ -91,5 +92,38 @@ public abstract class ReferenceTreeService<T>(IDbContextFactory<ApplicationDbCon
             child.Parent = parent; // Устанавливаем обратную связь
             BuildTree(child, lookup); // Рекурсия по локальным данным (без запросов к БД)
         }
+    }
+
+    public virtual async Task MoveAsync(Guid id, Guid? newParentId, CancellationToken ct = default)
+    {
+        await using ApplicationDbContext context = await ContextFactory.CreateDbContextAsync(ct);
+
+        // Загружаем сущность С ТРЕКИНГОМ (без AsNoTracking), чтобы сохранить изменения
+        T entity = await context.Set<T>()
+                       .FirstOrDefaultAsync(x => x.Id == id, ct)
+                   ?? throw new Exception($"Entity {typeof(T).Name} with id {id} not found");
+
+        if (entity.ParentId == newParentId) return;
+
+        if (newParentId.HasValue)
+        {
+            if (newParentId == id)
+                throw new InvalidOperationException("Узел не может быть родителем самого себя.");
+
+            // Проверка цикла через существующий метод
+            List<T> path = await GetParentPathAsync(newParentId.Value);
+            if (path.Any(x => x.Id == id))
+                throw new InvalidOperationException("Циклическая зависимость: нельзя переместить узел в своё поддерево.");
+
+            // Здесь можно добавить проверку: существует ли вообще новый родитель в базе
+            bool parentExists = await context.Set<T>().AnyAsync(x => x.Id == newParentId.Value, ct);
+            if (!parentExists)
+                throw new Exception("Новый родитель не найден.");
+        }
+
+        entity.ParentId = newParentId;
+
+        // SaveChangesAsync инициирует IBeforeSaveTrigger (UnitBaseHierarchyTrigger)
+        await context.SaveChangesAsync(ct);
     }
 }
