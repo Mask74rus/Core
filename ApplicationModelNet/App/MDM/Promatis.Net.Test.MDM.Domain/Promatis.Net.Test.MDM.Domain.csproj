@@ -11,7 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\Mes\MDM\Promatis.Net.MES.MDM.Data\Promatis.Net.MES.MDM.Data.csproj" />
+    <ProjectReference Include="..\..\..\Mes\MDM\Promatis.Net.MES.MDM.Domain\Promatis.Net.MES.MDM.Domain.csproj" />
   </ItemGroup>
 
 </Project>

@@ -11,7 +11,6 @@
     <Project Path="Core/Configuration.Web/Promatis.Net.Configuration.Web.csproj" Id="15d2aa00-ea33-44bb-87fd-3a135245e5e9" />
     <Project Path="Core/Configuration/Promatis.Net.Configuration.csproj" Id="a2066046-6ffb-494c-8a27-13bfc7a8d3c7" />
     <Project Path="Core/Console/Promatis.Net.ApplicationModel.Console.csproj" Id="008ae90b-769d-44c6-bbe9-3229288a19e2" />
-    <Project Path="Core/Data.Init/Promatis.Net.Data.Init.csproj" Id="1a9be981-5fd9-46d4-a0ef-dd4d22e8d955" />
     <Project Path="Core/Data/Promatis.Net.Data.csproj" Id="5dcc7144-30c0-4dd9-b463-02351cd8393b" />
     <Project Path="Core/Domain.Interface/Promatis.Net.Domain.Interface.csproj" Id="0e14c4a7-a385-4be6-8f04-c2c958001799" />
     <Project Path="Core/Domain/Promatis.Net.Domain.csproj" />

@@ -1,15 +1,18 @@
-﻿using System.Reflection;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Promatis.Net.Domain;
+using System.Reflection;
 
 namespace Promatis.Net.Data;
 
-public partial class ApplicationDbContext(
-    DbContextOptions<ApplicationDbContext> options,
+public class ApplicationDbContext(
+    DbContextOptions options,
     IConfiguration configuration)
     : DbContext(options)
 {
     private readonly string _schema = configuration.GetSection("DatabaseSettings:DefaultSchema").Value ?? "public";
+
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
