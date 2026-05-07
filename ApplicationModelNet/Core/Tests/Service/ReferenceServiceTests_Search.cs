@@ -9,7 +9,8 @@ namespace Promatis.Net.ApplicationModel.Tests.Service;
 public class ReferenceServiceTests_Search : BaseServiceTests
 {
     public class TestRef : ReferenceBase { }
-    public class TestRefService(IDbContextFactory<ApplicationDbContext> f) : ReferenceService<TestRef>(f);
+    public class TestRefService(IDbContextFactory<ApplicationDbContext> f)
+        : ReferenceService<TestRef, ApplicationDbContext>(f);
 
     [Fact]
     public async Task GetByCodeAsync_Should_FindCorrectEntity()

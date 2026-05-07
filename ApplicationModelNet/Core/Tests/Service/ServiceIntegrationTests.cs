@@ -18,11 +18,11 @@ public class ServiceIntegrationTests : BaseServiceTests
         public string Name { get; set; } = "";
     }
 
+    // Добавляем TContext (ApplicationDbContext) в наследование
     public class IntegratedService(IDbContextFactory<ApplicationDbContext> f)
-        : BaseService<IntegratedEntity, Guid>(f);
+        : BaseService<IntegratedEntity, Guid, ApplicationDbContext>(f);
 
     // --- 2. НАСТРОЙКА КОНТЕКСТА ---
-    // Нам нужно добавить сущность в модель, иначе EF её не увидит
     private class ServiceTestDbContext(DbContextOptions<ApplicationDbContext> options, IConfiguration config)
         : TestIntegrationDbContext(options, config)
     {
@@ -41,13 +41,11 @@ public class ServiceIntegrationTests : BaseServiceTests
         // Arrange
         var triggerService = ServiceProvider.GetRequiredService<IDatabaseTriggerService>();
 
-        // ВАЖНО: Регистрируем на DomainObject, так как AuditTrigger 
-        // реализует IAfterSaveTrigger<DomainObject>
+        // Регистрация триггера
         triggerService.Register<DomainObject, AuditTrigger>();
 
-        // Перенастраиваем фабрику для использования нашего расширенного контекста с IntegratedEntity
-        // (Опционально, если IntegratedEntity не попал в общую базу через сканер)
-
+        // Используем базовую фабрику (Factory), так как IntegratedService 
+        // теперь корректно типизирован под ApplicationDbContext
         var service = new IntegratedService(Factory);
         var entityId = Guid.NewGuid();
         var entity = new IntegratedEntity { Id = entityId, Name = "Integration Test" };
@@ -56,14 +54,14 @@ public class ServiceIntegrationTests : BaseServiceTests
         await service.AddAsync(entity);
 
         // Assert
-        // Ждем немного, так как триггеры могут работать асинхронно (если это заложено в логике Notify)
+        // Небольшая задержка для обработки триггеров
         await Task.Delay(50, TestContext.Current.CancellationToken);
 
         await using ApplicationDbContext context = await Factory.CreateDbContextAsync(TestContext.Current.CancellationToken);
 
         // Проверяем лог аудита
         AuditLog? auditLog = await context.Set<AuditLog>()
-            .FirstOrDefaultAsync(x => x.EntityId == entityId, cancellationToken: TestContext.Current.CancellationToken);
+            .FirstOrDefaultAsync(x => x.EntityId == entityId, TestContext.Current.CancellationToken);
 
         Assert.NotNull(auditLog);
         Assert.Equal("Added", auditLog.Action);

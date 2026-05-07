@@ -49,7 +49,7 @@ public static class ServiceScanningExtensions
 
             // Регистрация СЕРВИСОВ
             // Ищем всех наследников BaseService<,> (например, OrderService)
-            .AddClasses(c => c.AssignableTo(typeof(BaseService<,>)).Where(t => !t.IsAbstract))
+            .AddClasses(c => c.AssignableTo(typeof(BaseService<,,>)).Where(t => !t.IsAbstract))
             .AsSelfWithInterfaces()
             .WithScopedLifetime()
 
@@ -118,7 +118,7 @@ public static class ServiceScanningExtensions
                     inheritanceChain.Add(typeName);
 
                     // Если дошли до корня BaseService<,>, значит это наш сервис
-                    if (currentType.IsGenericType && currentType.GetGenericTypeDefinition() == typeof(BaseService<,>))
+                    if (currentType.IsGenericType && currentType.GetGenericTypeDefinition() == typeof(BaseService<,,>))
                     {
                         isService = true;
                         break;

@@ -10,8 +10,9 @@ public class ReferenceTreeServiceTests : BaseServiceTests
 {
     public class TestTreeEntity : ReferenceTreeBase<TestTreeEntity> { }
 
+    // Добавляем ApplicationDbContext в сигнатуру
     public class TestTreeService(IDbContextFactory<ApplicationDbContext> f)
-        : ReferenceTreeService<TestTreeEntity>(f);
+        : ReferenceTreeService<TestTreeEntity, ApplicationDbContext>(f);
 
     [Fact]
     public async Task GetParentPathAsync_Should_Return_Correct_Order()

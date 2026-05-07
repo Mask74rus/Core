@@ -1,17 +1,16 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Internal;
-using Promatis.Net.Data;
 using Promatis.Net.Domain;
 
 namespace Promatis.Net.Service;
 
-public abstract class ReferenceTreeService<T>(IDbContextFactory<ApplicationDbContext> contextFactory)
-    : ReferenceService<T>(contextFactory), IReferenceTreeService<T>
+public abstract class ReferenceTreeService<T, TContext>(IDbContextFactory<TContext> contextFactory)
+    : ReferenceService<T, TContext>(contextFactory), IReferenceTreeService<T>
     where T : ReferenceTreeBase<T>
+    where TContext : DbContext
 {
     public async Task<List<T>> GetRootsAsync()
     {
-        await using ApplicationDbContext context = await ContextFactory.CreateDbContextAsync();
+        await using TContext context = await ContextFactory.CreateDbContextAsync();
         return await context.Set<T>()
             .AsNoTracking() // Ускоряем чтение
             .Where(x => x.ParentId == null)
@@ -20,7 +19,7 @@ public abstract class ReferenceTreeService<T>(IDbContextFactory<ApplicationDbCon
 
     public async Task<List<T>> GetChildrenAsync(Guid parentId)
     {
-        await using ApplicationDbContext context = await ContextFactory.CreateDbContextAsync();
+        await using TContext context = await ContextFactory.CreateDbContextAsync();
         return await context.Set<T>()
             .AsNoTracking()
             .Where(x => x.ParentId == parentId)
@@ -29,7 +28,7 @@ public abstract class ReferenceTreeService<T>(IDbContextFactory<ApplicationDbCon
 
     public async Task<List<T>> GetParentPathAsync(Guid id)
     {
-        await using ApplicationDbContext context = await ContextFactory.CreateDbContextAsync();
+        await using TContext context = await ContextFactory.CreateDbContextAsync();
         var path = new List<T>();
 
         // Используем один контекст на весь цикл
@@ -59,7 +58,7 @@ public abstract class ReferenceTreeService<T>(IDbContextFactory<ApplicationDbCon
 
     public async Task<T?> GetFullTreeAsync(Guid rootId)
     {
-        await using ApplicationDbContext context = await ContextFactory.CreateDbContextAsync();
+        await using TContext context = await ContextFactory.CreateDbContextAsync();
 
         // 1. Загружаем все записи, которые потенциально могут быть в этом дереве.
         // Для TPT (UnitBase) EF Core сам сделает необходимые Join-ы.
@@ -96,7 +95,7 @@ public abstract class ReferenceTreeService<T>(IDbContextFactory<ApplicationDbCon
 
     public virtual async Task MoveAsync(Guid id, Guid? newParentId, CancellationToken ct = default)
     {
-        await using ApplicationDbContext context = await ContextFactory.CreateDbContextAsync(ct);
+        await using TContext context = await ContextFactory.CreateDbContextAsync(ct);
 
         // Загружаем сущность С ТРЕКИНГОМ (без AsNoTracking), чтобы сохранить изменения
         T entity = await context.Set<T>()

@@ -10,32 +10,44 @@ using Promatis.Net.MES.Service;
 
 namespace Promatis.Net.MES.Tests;
 
+
+
 public class UnitServiceStandaloneTests
 {
-    private readonly IDbContextFactory<ApplicationDbContext> _factory;
-    private readonly DbContextOptions<ApplicationDbContext> _options;
+    // 1. Используем везде TestDbContext
+    private readonly IDbContextFactory<TestDbContext> _factory;
+    private readonly DbContextOptions<TestDbContext> _options;
 
-    // Вспомогательный класс для тестов
     public class TestUnit : Domain.UnitBase { }
+
+    public class TestUnitService(IDbContextFactory<TestDbContext> factory)
+        : UnitBaseService<TestDbContext>(factory)
+    { }
 
     public UnitServiceStandaloneTests()
     {
-        _options = new DbContextOptionsBuilder<ApplicationDbContext>()
+        // 2. Опции должны быть для TestDbContext
+        _options = new DbContextOptionsBuilder<TestDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
 
-        var factoryMock = new Mock<IDbContextFactory<ApplicationDbContext>>();
+        // 3. Мокаем фабрику именно для TestDbContext
+        var factoryMock = new Mock<IDbContextFactory<TestDbContext>>();
+
         factoryMock.Setup(f => f.CreateDbContextAsync(It.IsAny<CancellationToken>()))
-            .Returns(() => Task.FromResult<ApplicationDbContext>(new TestDbContext(_options)));
+            .ReturnsAsync(() => new TestDbContext(_options)); // ReturnsAsync упрощает Task.FromResult
 
         _factory = factoryMock.Object;
     }
 
-    private class TestDbContext(DbContextOptions<ApplicationDbContext> options)
+    // 4. Контекст тоже должен принимать правильные опции
+    public class TestDbContext(DbContextOptions<TestDbContext> options)
         : ApplicationDbContext(options, new ConfigurationBuilder().Build())
     {
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            base.OnModelCreating(modelBuilder);
+
             modelBuilder.Entity<Domain.UnitBase>().UseTptMappingStrategy();
             modelBuilder.Entity<TestUnit>().ToTable("TestUnits");
         }
@@ -76,11 +88,13 @@ public class UnitServiceStandaloneTests
         }
     }
 
+
+
     [Fact]
     public async Task GetByKindAsync_Should_Return_Units_Matching_Complex_Mask()
     {
         // Arrange
-        var service = new UnitService(_factory);
+        var service = new TestUnitService(_factory);
 
         // Ячейка входит в маску Storage
         await service.AddAsync(new TestUnit { Id = Guid.NewGuid(), Name = "Cell_01", Kind = UnitKind.Storage, Type = UnitType.Cell });
@@ -99,7 +113,7 @@ public class UnitServiceStandaloneTests
     public async Task GetByTypeAsync_Should_Handle_Specific_Flags()
     {
         // Arrange
-        var service = new UnitService(_factory);
+        var service = new TestUnitService(_factory);
         await service.AddAsync(new TestUnit { Id = Guid.NewGuid(), Name = "Crane_1", Kind = UnitKind.Storage, Type = UnitType.Crane });
         await service.AddAsync(new TestUnit { Id = Guid.NewGuid(), Name = "Vehicle_1", Kind = UnitKind.Transport, Type = UnitType.Vehicle });
 
@@ -114,7 +128,7 @@ public class UnitServiceStandaloneTests
     public async Task MoveAsync_Should_Throw_When_Moving_Into_Position()
     {
         // Arrange
-        var service = new UnitService(_factory);
+        var service = new TestUnitService(_factory);
         var posId = Guid.NewGuid();
         var machineId = Guid.NewGuid();
 
@@ -132,7 +146,7 @@ public class UnitServiceStandaloneTests
     public async Task MoveAsync_Should_Prevent_Circular_Dependencies()
     {
         // Arrange
-        var service = new UnitService(_factory);
+        var service = new TestUnitService(_factory);
         var idA = Guid.NewGuid();
         var idB = Guid.NewGuid();
 
@@ -165,7 +179,7 @@ public class UnitServiceStandaloneTests
     public async Task GetFullTreeAsync_Should_Maintain_Hierarchy_And_References()
     {
         // Arrange
-        var service = new UnitService(_factory);
+        var service = new TestUnitService(_factory);
         var rootId = Guid.NewGuid();
         var sectionId = Guid.NewGuid();
 
@@ -208,7 +222,7 @@ public class UnitServiceStandaloneTests
     public async Task MoveAsync_Department_Should_Not_Contain_Position()
     {
         // Arrange
-        var service = new UnitService(_factory);
+        var service = new TestUnitService(_factory);
         var deptId = Guid.NewGuid();
         var positionId = Guid.NewGuid();
 
@@ -244,7 +258,7 @@ public class UnitServiceStandaloneTests
     public async Task MoveAsync_Production_Should_Contain_Production_Subnode()
     {
         // Arrange
-        var service = new UnitService(_factory);
+        var service = new TestUnitService(_factory);
         var parentProdId = Guid.NewGuid();
         var childProdId = Guid.NewGuid();
 

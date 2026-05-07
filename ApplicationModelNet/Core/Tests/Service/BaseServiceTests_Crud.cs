@@ -11,8 +11,9 @@ public class BaseServiceTests_Crud : BaseServiceTests
     // Тестовая сущность
     public class TestEntity : DomainObject { public string Title { get; set; } = ""; }
 
-    // Реализация сервиса для теста (одной строкой!)
-    public class TestService(IDbContextFactory<ApplicationDbContext> f) : BaseService<TestEntity, Guid>(f);
+    // Реализация сервиса для теста с указанием контекста
+    public class TestService(IDbContextFactory<ApplicationDbContext> f)
+        : BaseService<TestEntity, Guid, ApplicationDbContext>(f);
 
     [Fact]
     public async Task AddAsync_Should_SaveEntityToDatabase()

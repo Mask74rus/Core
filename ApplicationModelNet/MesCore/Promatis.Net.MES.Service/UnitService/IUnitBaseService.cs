@@ -4,7 +4,7 @@ using Promatis.Net.Service;
 
 namespace Promatis.Net.MES.Service;
 
-public interface IUnitService : IReferenceTreeService<UnitBase>
+public interface IUnitBaseService : IReferenceTreeService<UnitBase>
 {
     Task<List<UnitBase>> GetByKindAsync(UnitKind kind);
     Task<List<UnitBase>> GetByTypeAsync(UnitType type);
