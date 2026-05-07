@@ -55,8 +55,7 @@ public class WebUserProvider(AuthenticationStateProvider authStateProvider) : IU
 
     public virtual void ConfigureApp(IHost app)
     {
-        using var scope = app.Services.CreateScope();
-        // Вызываем обновленный метод без передачи _services
+        using IServiceScope scope = app.Services.CreateScope();
         scope.ServiceProvider.AutoRegisterTriggers();
     }
 }

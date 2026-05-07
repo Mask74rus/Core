@@ -6,20 +6,20 @@
     <Project Path="App/MDM/Promatis.Net.Test.MDM.DataInit/Promatis.Net.Test.MDM.DataInit.csproj" Id="0d39f096-3dbd-443b-81ce-8430ad5457bf" />
     <Project Path="App/MDM/Promatis.Net.Test.MDM.Domain/Promatis.Net.Test.MDM.Domain.csproj" Id="ef07aa9b-01f2-414d-b3c8-39801cf2d9d7" />
     <Project Path="App/MDM/Promatis.Net.Test.MDM.Tests/Promatis.Net.Test.MDM.Tests.csproj" Id="873b2cc3-0e13-46b2-991d-fd715337910c" />
-    <Project Path="Promatis.Net.Test.MDM.Service/Promatis.Net.Test.MDM.Service.csproj" Id="c7663b03-5523-40e2-bbe7-5b464c84b1d7" />
+    <Project Path="App/MDM/Promatis.Net.Test.MDM.Service/Promatis.Net.Test.MDM.Service.csproj" Id="c7663b03-5523-40e2-bbe7-5b464c84b1d7" />
   </Folder>
   <Folder Name="/Core/">
     <Project Path="Core/Configuration.Web/Promatis.Net.Configuration.Web.csproj" Id="15d2aa00-ea33-44bb-87fd-3a135245e5e9" />
     <Project Path="Core/Configuration/Promatis.Net.Configuration.csproj" Id="a2066046-6ffb-494c-8a27-13bfc7a8d3c7" />
-    <Project Path="Core/Console/Promatis.Net.ApplicationModel.Console.csproj" Id="008ae90b-769d-44c6-bbe9-3229288a19e2" />
     <Project Path="Core/Data/Promatis.Net.Data.csproj" Id="5dcc7144-30c0-4dd9-b463-02351cd8393b" />
     <Project Path="Core/Domain.Interface/Promatis.Net.Domain.Interface.csproj" Id="0e14c4a7-a385-4be6-8f04-c2c958001799" />
     <Project Path="Core/Domain/Promatis.Net.Domain.csproj" />
     <Project Path="Core/Service/Promatis.Net.Service.csproj" Id="f434e99f-9915-4241-9a30-e597776bedf3" />
     <Project Path="Core/Tests/Promatis.Net.ApplicationModel.Tests.csproj" Id="1141f804-d94d-40f2-824d-7847c687a4ed" />
+    <Project Path="Core/Promatis.Net.Web.UI/Promatis.Net.Web.UI.csproj" Id="6ca6a89f-76ac-4d03-8302-c12a8096b21b" />
   </Folder>
   <Folder Name="/Launcher/">
-    <Project Path="Launcher/Promatis.Net.Launcher/Promatis.Net.Launcher.csproj" Id="d18bf65b-cbb9-4d41-a85e-a2537cfc5aae" />
+    <Project Path="Launcher/Promatis.Net.Launcher.Web/Promatis.Net.Launcher.Web.csproj" Id="02f055d5-6a09-4f95-a3e6-3f5cf6afc609" />
   </Folder>
   <Folder Name="/Mes/" />
   <Folder Name="/Mes/MDM/">

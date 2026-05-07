@@ -7,6 +7,5 @@ namespace Promatis.Net.Configuration;
 public interface IAppConfigurator
 {
     void ConfigureServices(IServiceCollection services, IConfiguration configuration);
-
     void ConfigureApp(IHost app);
 }

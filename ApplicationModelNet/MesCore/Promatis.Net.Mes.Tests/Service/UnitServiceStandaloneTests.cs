@@ -2,7 +2,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Options;
 using Moq;
 using Promatis.Net.Data;
 using Promatis.Net.MES.Domain.Interface;

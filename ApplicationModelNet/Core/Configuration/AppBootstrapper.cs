@@ -1,27 +1,75 @@
-﻿using Microsoft.Extensions.Hosting;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
+using System.Reflection;
+using System.Runtime.Loader;
 
 namespace Promatis.Net.Configuration;
 
 public abstract class AppBootstrapper
 {
-    public void Run(string[] args)
+    public virtual void Run(string[] args)
     {
+        // 1. ПРИНУДИТЕЛЬНАЯ ЗАГРУЗКА DLL (чтобы Type.GetType их видел)
+        LoadProjectAssemblies("Promatis.");
+
         HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
 
-        IAppConfigurator configurator = CreateConfigurator();
+        // 2. УМНЫЙ ПОИСК КОНФИГУРАТОРОВ ИЗ JSON
+        List<IAppConfigurator> configurators = GetConfigurators(builder.Configuration).ToList();
 
-        // 1. Регистрация сервисов
-        configurator.ConfigureServices(builder.Services, builder.Configuration);
+        foreach (IAppConfigurator config in configurators)
+        {
+            config.ConfigureServices(builder.Services, builder.Configuration);
+        }
 
-        // 2. Сборка приложения
-        IHost app = builder.Build();
+        IHost host = builder.Build();
 
-        // 3. Настройка логики (ваша авторегистрация триггеров и т.д.)
-        configurator.ConfigureApp(app);
+        foreach (IAppConfigurator config in configurators)
+        {
+            config.ConfigureApp(host);
+        }
 
-        // 4. Запуск
-        app.Run();
+        host.Run();
     }
 
-    protected abstract IAppConfigurator CreateConfigurator();
+    protected virtual IEnumerable<IAppConfigurator> GetConfigurators(IConfiguration configuration)
+    {
+        string[] typeNames = configuration.GetSection("LauncherSettings:Modules").Get<string[]>()
+                             ?? [];
+
+        foreach (string name in typeNames)
+        {
+            // Ищем тип во всех загруженных сборках
+            Type? type = AppDomain.CurrentDomain.GetAssemblies()
+                .Select(a => a.GetType(name))
+                .FirstOrDefault(t => t != null);
+
+            if (type != null && typeof(IAppConfigurator).IsAssignableFrom(type))
+            {
+                if (Activator.CreateInstance(type) is IAppConfigurator instance)
+                {
+                    yield return instance;
+                }
+            }
+            else
+            {
+                Console.WriteLine($"[BOOTSTRAPPER][WARN] Тип не найден или не валиден: {name}");
+            }
+        }
+    }
+
+    private void LoadProjectAssemblies(string prefix)
+    {
+        string? path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+        if (path == null) return;
+
+        foreach (string file in Directory.GetFiles(path, $"{prefix}*.dll"))
+        {
+            try
+            {
+                AssemblyLoadContext.Default.LoadFromAssemblyPath(file);
+            }
+            catch { /* Игнорируем ошибки загрузки */ }
+        }
+    }
 }
