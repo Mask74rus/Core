@@ -5,6 +5,7 @@
     <Project Path="App/MDM/Promatis.Net.Test.MDM.Data/Promatis.Net.Test.MDM.Data.csproj" Id="4dfa0924-d8af-4239-a58e-c5671207ba38" />
     <Project Path="App/MDM/Promatis.Net.Test.MDM.DataInit/Promatis.Net.Test.MDM.DataInit.csproj" Id="0d39f096-3dbd-443b-81ce-8430ad5457bf" />
     <Project Path="App/MDM/Promatis.Net.Test.MDM.Domain/Promatis.Net.Test.MDM.Domain.csproj" Id="ef07aa9b-01f2-414d-b3c8-39801cf2d9d7" />
+    <Project Path="App/MDM/Promatis.Net.Test.MDM.Tests/Promatis.Net.Test.MDM.Tests.csproj" Id="873b2cc3-0e13-46b2-991d-fd715337910c" />
   </Folder>
   <Folder Name="/Core/">
     <Project Path="Core/Configuration.Web/Promatis.Net.Configuration.Web.csproj" Id="15d2aa00-ea33-44bb-87fd-3a135245e5e9" />
@@ -26,13 +27,14 @@
     <Project Path="Mes/MDM/Promatis.Net.MES.MDM.Data/Promatis.Net.MES.MDM.Data.csproj" Id="4bb79588-fb9e-4623-b7c1-4fe6df4305ac" />
     <Project Path="Mes/MDM/Promatis.Net.MES.MDM.Domain.Interface/Promatis.Net.MES.MDM.Domain.Interface.csproj" Id="bf564800-49af-4e40-9028-ff38731f55df" />
     <Project Path="Mes/MDM/Promatis.Net.MES.MDM.Domain/Promatis.Net.MES.MDM.Domain.csproj" Id="5df08213-601a-4614-b344-ceee8a63703d" />
+    <Project Path="Mes/MDM/Promatis.Net.MES.MDM.Tests/Promatis.Net.MES.MDM.Tests.csproj" Id="b5db8d9f-d5c2-4abe-83b3-fe36f2005792" />
   </Folder>
   <Folder Name="/MesCore/">
     <Project Path="MesCore/Promatis.Net.MES.Configuration/Promatis.Net.MES.Configuration.csproj" Id="8d157c76-eacc-4324-bcce-2f642b81ba42" />
     <Project Path="MesCore/Promatis.Net.MES.Data/Promatis.Net.MES.Data.csproj" Id="3153a32a-71d0-4e5e-8ed0-6470315ce1df" />
     <Project Path="MesCore/Promatis.Net.MES.Domain.Interface/Promatis.Net.MES.Domain.Interface.csproj" Id="3f45bf81-e57c-4ab0-a3ec-a61935c29050" />
     <Project Path="MesCore/Promatis.Net.MES.Domain/Promatis.Net.MES.Domain.csproj" Id="e47b3f45-204f-4c04-a9f6-916219e97f20" />
-    <Project Path="MesCore/Promatis.Net.MES.Tests/Promatis.Net.MES.Tests.csproj" Id="71571995-961b-4cff-95f7-e4f91b37b685" DisplayName="Promatis.Net.MES.Tests" />
-    <Project Path="MesCore/Promatis.Net.MES.Service/Promatis.Net.MES.Service.csproj" Id="cff63f69-9037-4d49-86fd-5c81c9429189" DisplayName="Promatis.Net.MES.Service" />
+    <Project Path="MesCore/Promatis.Net.MES.Tests/Promatis.Net.MES.Tests.csproj" Id="71571995-961b-4cff-95f7-e4f91b37b685" />
+    <Project Path="MesCore/Promatis.Net.MES.Service/Promatis.Net.MES.Service.csproj" Id="cff63f69-9037-4d49-86fd-5c81c9429189" />
   </Folder>
 </Solution>
