@@ -12,6 +12,9 @@ public abstract class WebAppBootstrapper<TRootComponent> : AppBootstrapper
         // LoadProjectAssemblies ("Promatis.") уже вызвана в base.Run, 
         // но здесь мы используем WebApplicationBuilder.
 
+        // ОБЯЗАТЕЛЬНО: Без этого AppDomain не увидит модули при Type.GetType
+        LoadProjectAssemblies("Promatis.");
+
         WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
         List<IAppConfigurator> configs = GetConfigurators(builder.Configuration).ToList();
 

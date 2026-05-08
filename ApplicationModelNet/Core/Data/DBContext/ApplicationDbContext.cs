@@ -10,14 +10,14 @@ public class ApplicationDbContext(
     IConfiguration configuration)
     : DbContext(options)
 {
-    private readonly string _schema = configuration.GetSection("DatabaseSettings:DefaultSchema").Value ?? "public";
+    protected virtual string Schema => "public";
 
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // Указываем общую схему
-        modelBuilder.HasDefaultSchema(_schema);
+        modelBuilder.HasDefaultSchema(Schema);
 
         // АВТОМАТИКА: Находим все классы IEntityTypeConfiguration в этой сборке
         // Сканируем все загруженные сборки Promatis.* на наличие конфигураций

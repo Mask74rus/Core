@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
+using Npgsql;
 using Promatis.Net.Test.MDM.Data;
 
 namespace Promatis.Net.Test.MDM.DataInit;
@@ -12,20 +13,28 @@ public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<AppApplica
 {
     public AppApplicationDbContext CreateDbContext(string[] args)
     {
-        // 1. Конфигурация
+        // 1. Указываем путь к appsettings.json в лаунчере
+        string basePath = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "..", "Promatis.Net.Launcher.Web"));
+
+        if (!Directory.Exists(basePath)) basePath = Directory.GetCurrentDirectory();
+
         IConfigurationRoot configuration = new ConfigurationBuilder()
-            .SetBasePath(Directory.GetCurrentDirectory()) // Важно: для CLI лучше Directory
+            .SetBasePath(basePath)
             .AddJsonFile("appsettings.json", optional: false)
             .Build();
 
-        var optionsBuilder = new DbContextOptionsBuilder<AppApplicationDbContext>();
-        var connectionString = configuration.GetConnectionString("DefaultConnection");
+        // 2. Чистая строка подключения для MDM
+        var connBuilder = new NpgsqlConnectionStringBuilder(configuration.GetConnectionString("DefaultConnection"))
+        {
+            Username = "mdm",
+            Password = "mdm"
+        };
 
-        // 2. Настройка Npgsql
-        optionsBuilder.UseNpgsql(connectionString, x =>
-            // Миграции будут храниться в этом же проекте (DataInit)
+        var optionsBuilder = new DbContextOptionsBuilder<AppApplicationDbContext>();
+        optionsBuilder.UseNpgsql(connBuilder.ConnectionString, x =>
             x.MigrationsAssembly("Promatis.Net.Test.MDM.DataInit"));
 
+        // НИКАКИХ .AddInterceptors() здесь быть не должно!
         return new AppApplicationDbContext(optionsBuilder.Options, configuration);
     }
 }

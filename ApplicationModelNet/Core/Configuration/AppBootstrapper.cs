@@ -58,7 +58,7 @@ public abstract class AppBootstrapper
         }
     }
 
-    private void LoadProjectAssemblies(string prefix)
+    protected void LoadProjectAssemblies(string prefix)
     {
         string? path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
         if (path == null) return;

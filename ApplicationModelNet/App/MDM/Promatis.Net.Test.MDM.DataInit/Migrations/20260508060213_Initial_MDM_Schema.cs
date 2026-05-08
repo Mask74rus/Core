@@ -6,17 +6,17 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Promatis.Net.Test.MDM.DataInit.Migrations
 {
     /// <inheritdoc />
-    public partial class Init : Migration
+    public partial class Initial_MDM_Schema : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.EnsureSchema(
-                name: "test");
+                name: "mdm");
 
             migrationBuilder.CreateTable(
                 name: "AuditLogs",
-                schema: "test",
+                schema: "mdm",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -35,7 +35,7 @@ namespace Promatis.Net.Test.MDM.DataInit.Migrations
 
             migrationBuilder.CreateTable(
                 name: "Units",
-                schema: "test",
+                schema: "mdm",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -55,14 +55,14 @@ namespace Promatis.Net.Test.MDM.DataInit.Migrations
                     table.ForeignKey(
                         name: "FK_Units_Units_ParentId",
                         column: x => x.ParentId,
-                        principalSchema: "test",
+                        principalSchema: "mdm",
                         principalTable: "Units",
                         principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
                 name: "DepartmentUnits",
-                schema: "test",
+                schema: "mdm",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false)
@@ -73,7 +73,7 @@ namespace Promatis.Net.Test.MDM.DataInit.Migrations
                     table.ForeignKey(
                         name: "FK_DepartmentUnits_Units_Id",
                         column: x => x.Id,
-                        principalSchema: "test",
+                        principalSchema: "mdm",
                         principalTable: "Units",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -81,7 +81,7 @@ namespace Promatis.Net.Test.MDM.DataInit.Migrations
 
             migrationBuilder.CreateTable(
                 name: "PositionUnits",
-                schema: "test",
+                schema: "mdm",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false)
@@ -92,7 +92,7 @@ namespace Promatis.Net.Test.MDM.DataInit.Migrations
                     table.ForeignKey(
                         name: "FK_PositionUnits_Units_Id",
                         column: x => x.Id,
-                        principalSchema: "test",
+                        principalSchema: "mdm",
                         principalTable: "Units",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -100,7 +100,7 @@ namespace Promatis.Net.Test.MDM.DataInit.Migrations
 
             migrationBuilder.CreateTable(
                 name: "ProductionUnits",
-                schema: "test",
+                schema: "mdm",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false)
@@ -111,7 +111,7 @@ namespace Promatis.Net.Test.MDM.DataInit.Migrations
                     table.ForeignKey(
                         name: "FK_ProductionUnits_Units_Id",
                         column: x => x.Id,
-                        principalSchema: "test",
+                        principalSchema: "mdm",
                         principalTable: "Units",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -119,7 +119,7 @@ namespace Promatis.Net.Test.MDM.DataInit.Migrations
 
             migrationBuilder.CreateTable(
                 name: "StorageUnits",
-                schema: "test",
+                schema: "mdm",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false)
@@ -130,7 +130,7 @@ namespace Promatis.Net.Test.MDM.DataInit.Migrations
                     table.ForeignKey(
                         name: "FK_StorageUnits_Units_Id",
                         column: x => x.Id,
-                        principalSchema: "test",
+                        principalSchema: "mdm",
                         principalTable: "Units",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -138,7 +138,7 @@ namespace Promatis.Net.Test.MDM.DataInit.Migrations
 
             migrationBuilder.CreateTable(
                 name: "TransportUnits",
-                schema: "test",
+                schema: "mdm",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false)
@@ -149,7 +149,7 @@ namespace Promatis.Net.Test.MDM.DataInit.Migrations
                     table.ForeignKey(
                         name: "FK_TransportUnits_Units_Id",
                         column: x => x.Id,
-                        principalSchema: "test",
+                        principalSchema: "mdm",
                         principalTable: "Units",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -157,13 +157,13 @@ namespace Promatis.Net.Test.MDM.DataInit.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_Units_DeletedAt",
-                schema: "test",
+                schema: "mdm",
                 table: "Units",
                 column: "DeletedAt");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Units_ParentId",
-                schema: "test",
+                schema: "mdm",
                 table: "Units",
                 column: "ParentId");
         }
@@ -173,31 +173,31 @@ namespace Promatis.Net.Test.MDM.DataInit.Migrations
         {
             migrationBuilder.DropTable(
                 name: "AuditLogs",
-                schema: "test");
+                schema: "mdm");
 
             migrationBuilder.DropTable(
                 name: "DepartmentUnits",
-                schema: "test");
+                schema: "mdm");
 
             migrationBuilder.DropTable(
                 name: "PositionUnits",
-                schema: "test");
+                schema: "mdm");
 
             migrationBuilder.DropTable(
                 name: "ProductionUnits",
-                schema: "test");
+                schema: "mdm");
 
             migrationBuilder.DropTable(
                 name: "StorageUnits",
-                schema: "test");
+                schema: "mdm");
 
             migrationBuilder.DropTable(
                 name: "TransportUnits",
-                schema: "test");
+                schema: "mdm");
 
             migrationBuilder.DropTable(
                 name: "Units",
-                schema: "test");
+                schema: "mdm");
         }
     }
 }

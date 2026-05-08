@@ -11,6 +11,10 @@ public class AppApplicationDbContext(
     IConfiguration configuration)
     : MesMdmApplicationDbContext(options, configuration)
 {
+
+    // Указываем схему для этого конкретного контекста
+    protected override string Schema => "mdm";
+
     public DbSet<UnitBase> Units => Set<UnitBase>();
     public DbSet<DepartmentUnit> DepartmentUnits => Set<DepartmentUnit>();
     public DbSet<ProductionUnit> ProductionUnits => Set<ProductionUnit>();

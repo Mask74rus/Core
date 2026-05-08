@@ -12,15 +12,15 @@ using Promatis.Net.Test.MDM.Data;
 namespace Promatis.Net.Test.MDM.DataInit.Migrations
 {
     [DbContext(typeof(AppApplicationDbContext))]
-    [Migration("20260507065012_Init")]
-    partial class Init
+    [Migration("20260508060213_Initial_MDM_Schema")]
+    partial class Initial_MDM_Schema
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasDefaultSchema("test")
+                .HasDefaultSchema("mdm")
                 .HasAnnotation("ProductVersion", "10.0.7")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
@@ -61,7 +61,7 @@ namespace Promatis.Net.Test.MDM.DataInit.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("AuditLogs", "test");
+                    b.ToTable("AuditLogs", "mdm");
                 });
 
             modelBuilder.Entity("Promatis.Net.MES.Domain.UnitBase", b =>
@@ -107,7 +107,7 @@ namespace Promatis.Net.Test.MDM.DataInit.Migrations
 
                     b.HasIndex("ParentId");
 
-                    b.ToTable("Units", "test");
+                    b.ToTable("Units", "mdm");
 
                     b.UseTptMappingStrategy();
                 });
@@ -116,35 +116,35 @@ namespace Promatis.Net.Test.MDM.DataInit.Migrations
                 {
                     b.HasBaseType("Promatis.Net.MES.Domain.UnitBase");
 
-                    b.ToTable("DepartmentUnits", "test");
+                    b.ToTable("DepartmentUnits", "mdm");
                 });
 
             modelBuilder.Entity("Promatis.Net.Test.MDM.Domain.PositionUnit", b =>
                 {
                     b.HasBaseType("Promatis.Net.MES.Domain.UnitBase");
 
-                    b.ToTable("PositionUnits", "test");
+                    b.ToTable("PositionUnits", "mdm");
                 });
 
             modelBuilder.Entity("Promatis.Net.Test.MDM.Domain.ProductionUnit", b =>
                 {
                     b.HasBaseType("Promatis.Net.MES.Domain.UnitBase");
 
-                    b.ToTable("ProductionUnits", "test");
+                    b.ToTable("ProductionUnits", "mdm");
                 });
 
             modelBuilder.Entity("Promatis.Net.Test.MDM.Domain.StorageUnit", b =>
                 {
                     b.HasBaseType("Promatis.Net.MES.Domain.UnitBase");
 
-                    b.ToTable("StorageUnits", "test");
+                    b.ToTable("StorageUnits", "mdm");
                 });
 
             modelBuilder.Entity("Promatis.Net.Test.MDM.Domain.TransportUnit", b =>
                 {
                     b.HasBaseType("Promatis.Net.MES.Domain.UnitBase");
 
-                    b.ToTable("TransportUnits", "test");
+                    b.ToTable("TransportUnits", "mdm");
                 });
 
             modelBuilder.Entity("Promatis.Net.MES.Domain.UnitBase", b =>
