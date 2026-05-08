@@ -14,7 +14,7 @@ public class Configurator : IWebAppConfigurator
     public void ConfigureServices(IServiceCollection services, IConfiguration configuration)
     {
         // Регистрируем фабрику контекста
-        services.AddDbContextFactory<AppApplicationDbContext>((sp, options) =>
+        services.AddDbContextFactory<MdmApplicationDbContext>((sp, options) =>
         {
             string? baseConnString = configuration.GetConnectionString("DefaultConnection");
 
@@ -40,7 +40,7 @@ public class Configurator : IWebAppConfigurator
     services.AddScoped<IDbContextFactory<ApplicationDbContext>>(sp => 
     {
         // Получаем фабрику MDM
-        var factory = sp.GetRequiredService<IDbContextFactory<AppApplicationDbContext>>();
+        var factory = sp.GetRequiredService<IDbContextFactory<MdmApplicationDbContext>>();
         
         // Оборачиваем её в универсальный адаптер
         return new DbContextFactoryAdapter(factory);
@@ -57,7 +57,7 @@ public class Configurator : IWebAppConfigurator
         // Конфигурация промежуточного слоя
     }
 
-    private class DbContextFactoryAdapter(IDbContextFactory<AppApplicationDbContext> factory)
+    private class DbContextFactoryAdapter(IDbContextFactory<MdmApplicationDbContext> factory)
         : IDbContextFactory<ApplicationDbContext>
     {
         public ApplicationDbContext CreateDbContext() => factory.CreateDbContext();

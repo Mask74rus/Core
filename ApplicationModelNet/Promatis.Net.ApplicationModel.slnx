@@ -1,12 +1,26 @@
 <Solution>
   <Folder Name="/App/" />
+  <Folder Name="/App/DCA/">
+    <Project Path="App/DCA/Promatis.Net.Test.DCA.Configuration/Promatis.Net.Test.DCA.Configuration.csproj" Id="ddbf81a2-f6fc-4469-82a3-8b57343ad9c6" />
+    <Project Path="App/DCA/Promatis.Net.Test.DCA.Data/Promatis.Net.Test.DCA.Data.csproj" Id="0e779e13-b3d3-4d37-bf00-127e5b48947d" />
+    <Project Path="App/DCA/Promatis.Net.Test.DCA.DataInit/Promatis.Net.Test.DCA.DataInit.csproj" Id="6d7bbf96-2303-4c7b-8322-cb0e616e5145" />
+    <Project Path="App/DCA/Promatis.Net.Test.DCA.Domain/Promatis.Net.Test.DCA.Domain.csproj" Id="db09efc1-fb33-4e56-b8ca-1336597b8419" />
+  </Folder>
+  <Folder Name="/App/DCA/_Unused/">
+    <Project Path="App/DCA/Promatis.Net.Test.DCA.Domain.Interface/Promatis.Net.Test.DCA.Domain.Interface.csproj" Id="3a986d83-1bc8-436b-92c5-a23ea3cdb14c" />
+    <Project Path="App/DCA/Promatis.Net.Test.DCA.Service/Promatis.Net.Test.DCA.Service.csproj" Id="1f519334-006c-4100-af33-b0486c778192" />
+    <Project Path="App/DCA/Promatis.Net.Test.DCA.Tests/Promatis.Net.Test.DCA.Tests.csproj" Id="e33e8227-a3d4-47c6-9cbd-c69eb79abb9a" />
+  </Folder>
   <Folder Name="/App/MDM/">
     <Project Path="App/MDM/Promatis.Net.Test.MDM.Configuration/Promatis.Net.Test.MDM.Configuration.csproj" Id="cfa295a8-8bcb-4086-b691-37705a2f45aa" />
     <Project Path="App/MDM/Promatis.Net.Test.MDM.Data/Promatis.Net.Test.MDM.Data.csproj" Id="4dfa0924-d8af-4239-a58e-c5671207ba38" />
     <Project Path="App/MDM/Promatis.Net.Test.MDM.DataInit/Promatis.Net.Test.MDM.DataInit.csproj" Id="0d39f096-3dbd-443b-81ce-8430ad5457bf" />
     <Project Path="App/MDM/Promatis.Net.Test.MDM.Domain/Promatis.Net.Test.MDM.Domain.csproj" Id="ef07aa9b-01f2-414d-b3c8-39801cf2d9d7" />
-    <Project Path="App/MDM/Promatis.Net.Test.MDM.Tests/Promatis.Net.Test.MDM.Tests.csproj" Id="873b2cc3-0e13-46b2-991d-fd715337910c" />
     <Project Path="App/MDM/Promatis.Net.Test.MDM.Service/Promatis.Net.Test.MDM.Service.csproj" Id="c7663b03-5523-40e2-bbe7-5b464c84b1d7" />
+  </Folder>
+  <Folder Name="/App/MDM/_Unused/">
+    <Project Path="App/MDM/Promatis.Net.Test.MDM.Domain.Interface/Promatis.Net.Test.MDM.Domain.Interface.csproj" Id="94b9de96-0a5f-4bd2-a9de-bd5ba6300bc1" />
+    <Project Path="App/MDM/Promatis.Net.Test.MDM.Tests/Promatis.Net.Test.MDM.Tests.csproj" Id="873b2cc3-0e13-46b2-991d-fd715337910c" />
   </Folder>
   <Folder Name="/Core/">
     <Project Path="Core/Configuration.Web/Promatis.Net.Configuration.Web.csproj" Id="15d2aa00-ea33-44bb-87fd-3a135245e5e9" />
@@ -22,19 +36,33 @@
     <Project Path="Launcher/Promatis.Net.Launcher.Web/Promatis.Net.Launcher.Web.csproj" Id="02f055d5-6a09-4f95-a3e6-3f5cf6afc609" />
   </Folder>
   <Folder Name="/Mes/" />
+  <Folder Name="/Mes/DCA/" />
+  <Folder Name="/Mes/DCA/_Unused/">
+    <Project Path="Mes/DCA/Promatis.Net.MES.DCA.Configuration/Promatis.Net.MES.DCA.Configuration.csproj" Id="beb77a48-eac0-4d9a-8426-ffbcbe4502bf" />
+    <Project Path="Mes/DCA/Promatis.Net.MES.DCA.Data/Promatis.Net.MES.DCA.Data.csproj" Id="c8a1bfd8-d4e2-491e-bea4-6f7393d0de57" />
+    <Project Path="Mes/DCA/Promatis.Net.MES.DCA.Domain.Interface/Promatis.Net.MES.DCA.Domain.Interface.csproj" Id="a49bbb57-bbd3-4b44-8aa8-9e30f7bee27e" />
+    <Project Path="Mes/DCA/Promatis.Net.MES.DCA.Domain/Promatis.Net.MES.DCA.Domain.csproj" Id="d82299f4-68f7-4d79-a40e-7d6d1886c778" />
+    <Project Path="Mes/DCA/Promatis.Net.MES.DCA.Service/Promatis.Net.MES.DCA.Service.csproj" Id="5f87d41c-29a8-42cf-8ef2-7f80a603e428" />
+    <Project Path="Mes/DCA/Promatis.Net.MES.DCA.Tests/Promatis.Net.MES.DCA.Tests.csproj" Id="e5469d96-ec5d-4e3b-8d19-64364c628845" />
+  </Folder>
   <Folder Name="/Mes/MDM/">
-    <Project Path="Mes/MDM/Promatis.Net.MES.MDM.Configuration/Promatis.Net.MES.MDM.Configuration.csproj" Id="fabb31a7-ac25-4694-a70a-82328fde24dc" />
-    <Project Path="Mes/MDM/Promatis.Net.MES.MDM.Data/Promatis.Net.MES.MDM.Data.csproj" Id="4bb79588-fb9e-4623-b7c1-4fe6df4305ac" />
-    <Project Path="Mes/MDM/Promatis.Net.MES.MDM.Domain.Interface/Promatis.Net.MES.MDM.Domain.Interface.csproj" Id="bf564800-49af-4e40-9028-ff38731f55df" />
     <Project Path="Mes/MDM/Promatis.Net.MES.MDM.Domain/Promatis.Net.MES.MDM.Domain.csproj" Id="5df08213-601a-4614-b344-ceee8a63703d" />
     <Project Path="Mes/MDM/Promatis.Net.MES.MDM.Tests/Promatis.Net.MES.MDM.Tests.csproj" Id="b5db8d9f-d5c2-4abe-83b3-fe36f2005792" />
   </Folder>
+  <Folder Name="/Mes/MDM/_Unused/">
+    <Project Path="Mes/MDM/Promatis.Net.MES.MDM.Configuration/Promatis.Net.MES.MDM.Configuration.csproj" Id="fabb31a7-ac25-4694-a70a-82328fde24dc" />
+    <Project Path="Mes/MDM/Promatis.Net.MES.MDM.Data/Promatis.Net.MES.MDM.Data.csproj" Id="4bb79588-fb9e-4623-b7c1-4fe6df4305ac" />
+    <Project Path="Mes/MDM/Promatis.Net.MES.MDM.Domain.Interface/Promatis.Net.MES.MDM.Domain.Interface.csproj" Id="bf564800-49af-4e40-9028-ff38731f55df" />
+    <Project Path="Mes/MDM/Promatis.Net.MES.MDM.Service/Promatis.Net.MES.MDM.Service.csproj" Id="3cc5bb5b-e3f2-4fc1-8b44-0e0a3147177e" />
+  </Folder>
   <Folder Name="/MesCore/">
-    <Project Path="MesCore/Promatis.Net.MES.Configuration/Promatis.Net.MES.Configuration.csproj" Id="8d157c76-eacc-4324-bcce-2f642b81ba42" />
     <Project Path="MesCore/Promatis.Net.MES.Data/Promatis.Net.MES.Data.csproj" Id="3153a32a-71d0-4e5e-8ed0-6470315ce1df" />
     <Project Path="MesCore/Promatis.Net.MES.Domain.Interface/Promatis.Net.MES.Domain.Interface.csproj" Id="3f45bf81-e57c-4ab0-a3ec-a61935c29050" />
     <Project Path="MesCore/Promatis.Net.MES.Domain/Promatis.Net.MES.Domain.csproj" Id="e47b3f45-204f-4c04-a9f6-916219e97f20" />
     <Project Path="MesCore/Promatis.Net.MES.Tests/Promatis.Net.MES.Tests.csproj" Id="71571995-961b-4cff-95f7-e4f91b37b685" />
     <Project Path="MesCore/Promatis.Net.MES.Service/Promatis.Net.MES.Service.csproj" Id="cff63f69-9037-4d49-86fd-5c81c9429189" />
+  </Folder>
+  <Folder Name="/MesCore/_Unused/">
+    <Project Path="MesCore/Promatis.Net.MES.Configuration/Promatis.Net.MES.Configuration.csproj" Id="8d157c76-eacc-4324-bcce-2f642b81ba42" />
   </Folder>
 </Solution>

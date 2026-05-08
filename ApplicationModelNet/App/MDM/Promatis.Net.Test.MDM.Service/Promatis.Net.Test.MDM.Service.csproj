@@ -7,9 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\MesCore\Promatis.Net.MES.Service\Promatis.Net.MES.Service.csproj" />
+    <ProjectReference Include="..\..\..\Mes\MDM\Promatis.Net.MES.MDM.Service\Promatis.Net.MES.MDM.Service.csproj" />
     <ProjectReference Include="..\Promatis.Net.Test.MDM.Data\Promatis.Net.Test.MDM.Data.csproj" />
-    <ProjectReference Include="..\Promatis.Net.Test.MDM.Domain\Promatis.Net.Test.MDM.Domain.csproj" />
   </ItemGroup>
 
 </Project>

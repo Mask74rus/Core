@@ -17,9 +17,9 @@
 	  <PackageReference Include="Scrutor" Version="7.0.0" />
 	</ItemGroup>
 
+
+
 	<ItemGroup>
-	  <ProjectReference Include="..\Data\Promatis.Net.Data.csproj" />
-	  <ProjectReference Include="..\Domain\Promatis.Net.Domain.csproj" />
 	  <ProjectReference Include="..\Service\Promatis.Net.Service.csproj" />
 	</ItemGroup>
 

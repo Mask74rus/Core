@@ -9,9 +9,9 @@ namespace Promatis.Net.Test.MDM.DataInit;
 /// <summary>
 /// Класс для получения данных необходимых миграции без запуска приложения
 /// </summary>
-public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<AppApplicationDbContext>
+public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<MdmApplicationDbContext>
 {
-    public AppApplicationDbContext CreateDbContext(string[] args)
+    public MdmApplicationDbContext CreateDbContext(string[] args)
     {
         // 1. Указываем путь к appsettings.json в лаунчере
         string basePath = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "..", "Promatis.Net.Launcher.Web"));
@@ -30,11 +30,11 @@ public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<AppApplica
             Password = "mdm"
         };
 
-        var optionsBuilder = new DbContextOptionsBuilder<AppApplicationDbContext>();
+        var optionsBuilder = new DbContextOptionsBuilder<MdmApplicationDbContext>();
         optionsBuilder.UseNpgsql(connBuilder.ConnectionString, x =>
             x.MigrationsAssembly("Promatis.Net.Test.MDM.DataInit"));
 
         // НИКАКИХ .AddInterceptors() здесь быть не должно!
-        return new AppApplicationDbContext(optionsBuilder.Options, configuration);
+        return new MdmApplicationDbContext(optionsBuilder.Options, configuration);
     }
 }

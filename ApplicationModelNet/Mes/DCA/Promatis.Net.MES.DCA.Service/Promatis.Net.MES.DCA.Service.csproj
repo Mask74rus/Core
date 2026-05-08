@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\MesCore\Promatis.Net.MES.Service\Promatis.Net.MES.Service.csproj" />
+    <ProjectReference Include="..\Promatis.Net.MES.DCA.Data\Promatis.Net.MES.DCA.Data.csproj" />
+  </ItemGroup>
+
+</Project>

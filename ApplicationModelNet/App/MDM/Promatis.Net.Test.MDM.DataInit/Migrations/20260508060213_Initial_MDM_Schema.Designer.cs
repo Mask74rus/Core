@@ -11,7 +11,7 @@ using Promatis.Net.Test.MDM.Data;
 
 namespace Promatis.Net.Test.MDM.DataInit.Migrations
 {
-    [DbContext(typeof(AppApplicationDbContext))]
+    [DbContext(typeof(MdmApplicationDbContext))]
     [Migration("20260508060213_Initial_MDM_Schema")]
     partial class Initial_MDM_Schema
     {

@@ -9,8 +9,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\Mes\MDM\Promatis.Net.MES.MDM.Configuration\Promatis.Net.MES.MDM.Configuration.csproj" />
     <ProjectReference Include="..\Promatis.Net.Test.MDM.DataInit\Promatis.Net.Test.MDM.DataInit.csproj" />
-    <ProjectReference Include="..\Promatis.Net.Test.MDM.Data\Promatis.Net.Test.MDM.Data.csproj" />
-    <ProjectReference Include="..\Promatis.Net.Test.MDM.Domain\Promatis.Net.Test.MDM.Domain.csproj" />
+    <ProjectReference Include="..\Promatis.Net.Test.MDM.Service\Promatis.Net.Test.MDM.Service.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,15 +1,15 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Promatis.Net.Data;
 using Promatis.Net.MES.Domain;
-using Promatis.Net.MES.MDM.Data;
 using Promatis.Net.Test.MDM.Domain;
 
 namespace Promatis.Net.Test.MDM.Data;
 
-public class AppApplicationDbContext(
-    DbContextOptions<AppApplicationDbContext> options,
+public class MdmApplicationDbContext(
+    DbContextOptions<MdmApplicationDbContext> options,
     IConfiguration configuration)
-    : MesMdmApplicationDbContext(options, configuration)
+    : ApplicationDbContext(options, configuration)
 {
 
     // Указываем схему для этого конкретного контекста

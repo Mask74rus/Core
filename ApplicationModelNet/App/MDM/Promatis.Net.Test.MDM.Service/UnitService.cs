@@ -4,7 +4,7 @@ using Promatis.Net.Test.MDM.Data;
 
 namespace Promatis.Net.Test.MDM.Service;
 
-public class UnitService(IDbContextFactory<AppApplicationDbContext> contextFactory)
-    : UnitBaseService<AppApplicationDbContext>(contextFactory)
+public class UnitService(IDbContextFactory<MdmApplicationDbContext> contextFactory)
+    : UnitBaseService<MdmApplicationDbContext>(contextFactory)
 {
 }

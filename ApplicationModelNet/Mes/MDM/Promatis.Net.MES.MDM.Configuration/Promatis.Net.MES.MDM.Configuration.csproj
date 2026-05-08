@@ -8,9 +8,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\MesCore\Promatis.Net.MES.Configuration\Promatis.Net.MES.Configuration.csproj" />
-    <ProjectReference Include="..\Promatis.Net.MES.MDM.Data\Promatis.Net.MES.MDM.Data.csproj" />
-    <ProjectReference Include="..\Promatis.Net.MES.MDM.Domain.Interface\Promatis.Net.MES.MDM.Domain.Interface.csproj" />
-    <ProjectReference Include="..\Promatis.Net.MES.MDM.Domain\Promatis.Net.MES.MDM.Domain.csproj" />
+    <ProjectReference Include="..\Promatis.Net.MES.MDM.Service\Promatis.Net.MES.MDM.Service.csproj" />
   </ItemGroup>
 
 </Project>

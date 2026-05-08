@@ -10,7 +10,7 @@ using Promatis.Net.Test.MDM.Data;
 
 namespace Promatis.Net.Test.MDM.DataInit.Migrations
 {
-    [DbContext(typeof(AppApplicationDbContext))]
+    [DbContext(typeof(MdmApplicationDbContext))]
     partial class AppApplicationDbContextModelSnapshot : ModelSnapshot
     {
         protected override void BuildModel(ModelBuilder modelBuilder)

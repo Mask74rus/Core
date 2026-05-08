@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Mes\DCA\Promatis.Net.MES.DCA.Domain\Promatis.Net.MES.DCA.Domain.csproj" />
+    <ProjectReference Include="..\..\MDM\Promatis.Net.Test.MDM.Domain.Interface\Promatis.Net.Test.MDM.Domain.Interface.csproj" />
+  </ItemGroup>
+
+</Project>
