@@ -8,7 +8,7 @@ namespace Promatis.Net.ApplicationModel.Tests.Service;
 
 public class ReferenceTreeServiceTests : BaseServiceTests
 {
-    public class TestTreeEntity : ReferenceTreeBase<TestTreeEntity> { }
+    public class TestTreeEntity : ReferenceTreeBase { }
 
     // Добавляем ApplicationDbContext в сигнатуру
     public class TestTreeService(IDbContextFactory<ApplicationDbContext> f)

@@ -5,7 +5,7 @@ namespace Promatis.Net.Service;
 
 public abstract class ReferenceTreeService<T, TContext>(IDbContextFactory<TContext> contextFactory)
     : ReferenceService<T, TContext>(contextFactory), IReferenceTreeService<T>
-    where T : ReferenceTreeBase<T>
+    where T : ReferenceTreeBase
     where TContext : DbContext
 {
     public async Task<List<T>> GetRootsAsync()
@@ -82,14 +82,16 @@ public abstract class ReferenceTreeService<T, TContext>(IDbContextFactory<TConte
 
     private void BuildTree(T parent, ILookup<Guid?, T> lookup)
     {
-        // Находим всех детей для текущего родителя в локальном списке
+        // 1. Получаем детей типа T и приводим их к списку базового типа ReferenceTreeBase
         List<T> children = lookup[parent.Id].ToList();
-        parent.Children = children;
+
+        // Используем Cast или просто Select, чтобы коллекция соответствовала типу свойства
+        parent.Children = children.Cast<ReferenceTreeBase>().ToList();
 
         foreach (T child in children)
         {
-            child.Parent = parent; // Устанавливаем обратную связь
-            BuildTree(child, lookup); // Рекурсия по локальным данным (без запросов к БД)
+            child.Parent = parent;
+            BuildTree(child, lookup);
         }
     }
 

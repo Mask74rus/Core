@@ -7,7 +7,8 @@ namespace Promatis.Net.MES.Domain;
 /// Абстрактный валидатор для базового класса UnitBase.
 /// </summary>
 /// <typeparam name="T">Тип, наследуемый от UnitBase.</typeparam>
-public abstract class UnitBaseValidator<T> : ReferenceBaseValidator<T> where T : UnitBase
+public abstract class UnitBaseValidator<T> : ReferenceTreeBaseValidator<T>
+    where T : UnitBase
 {
     protected UnitBaseValidator()
     {

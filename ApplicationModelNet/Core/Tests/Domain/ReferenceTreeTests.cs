@@ -6,7 +6,7 @@ namespace Promatis.Net.ApplicationModel.Tests.Domain;
 
 public class ReferenceTreeTests
 {
-    private class TestNode : ReferenceTreeBase<TestNode> { }
+    private class TestNode : ReferenceTreeBase { }
     private class TestNodeValidator : ReferenceTreeBaseValidator<TestNode> { }
 
     private readonly TestNodeValidator _validator = new();

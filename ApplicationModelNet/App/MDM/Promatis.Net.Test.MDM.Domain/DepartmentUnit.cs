@@ -5,4 +5,4 @@ namespace Promatis.Net.Test.MDM.Domain;
 /// <summary>
 /// Категория: Департамент (Цех, Участок как орг-единица)
 /// </summary>
-public class DepartmentUnit : DepartmentUnitBase { }
+public class DepartmentUnit : DepartmentUnitBase {}

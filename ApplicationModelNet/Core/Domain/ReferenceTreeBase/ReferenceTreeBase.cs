@@ -1,10 +1,10 @@
 ﻿namespace Promatis.Net.Domain;
 
-public abstract class ReferenceTreeBase<T> : ReferenceBase where T : ReferenceTreeBase<T>
+public abstract class ReferenceTreeBase: ReferenceBase
 {
     public Guid? ParentId { get; set; }
 
-    public virtual T? Parent { get; set; }
+    public virtual ReferenceTreeBase? Parent { get; set; }
 
-    public virtual ICollection<T> Children { get; set; } = new List<T>();
+    public virtual ICollection<ReferenceTreeBase> Children { get; set; } = new List<ReferenceTreeBase>();
 }

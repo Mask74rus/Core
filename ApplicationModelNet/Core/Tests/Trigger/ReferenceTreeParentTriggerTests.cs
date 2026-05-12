@@ -11,7 +11,7 @@ public class ReferenceTreeParentTriggerTests
 {
     // --- 1. ТЕСТОВЫЕ КЛАССЫ ---
 
-    private class TestNode : ReferenceTreeBase<TestNode> { }
+    private class TestNode : ReferenceTreeBase { }
 
     // Контекст теперь принимает IConfiguration
     private class TestDbContext(

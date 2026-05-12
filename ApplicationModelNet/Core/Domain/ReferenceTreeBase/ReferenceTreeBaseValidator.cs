@@ -5,7 +5,8 @@ namespace Promatis.Net.Domain;
 /// <summary>
 /// Универсальный валидатор для всех классов, наследуемых от ReferenceTreeBase
 /// </summary>
-public abstract class ReferenceTreeBaseValidator<T> : ReferenceBaseValidator<T> where T : ReferenceTreeBase<T>
+public abstract class ReferenceTreeBaseValidator<T> : ReferenceBaseValidator<T>
+    where T : ReferenceTreeBase
 {
     protected ReferenceTreeBaseValidator()
     {

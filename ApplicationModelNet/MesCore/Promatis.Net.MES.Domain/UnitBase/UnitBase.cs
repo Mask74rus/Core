@@ -6,7 +6,7 @@ namespace Promatis.Net.MES.Domain;
 /// <summary>
 /// Абстрактная база для всех организационных и производственных единиц.
 /// </summary>
-public abstract class UnitBase : ReferenceTreeBase<UnitBase>
+public abstract class UnitBase : ReferenceTreeBase
 {
     /// <summary>
     /// Категория юнита. Задается при создании конкретного наследника.

@@ -19,15 +19,8 @@ public class ApplicationDbContext(
         // Указываем общую схему
         modelBuilder.HasDefaultSchema(Schema);
 
-        // АВТОМАТИКА: Находим все классы IEntityTypeConfiguration в этой сборке
-        // Сканируем все загруженные сборки Promatis.* на наличие конфигураций
-        IEnumerable<Assembly> assemblies = AppDomain.CurrentDomain.GetAssemblies()
-            .Where(a => a.FullName != null && a.FullName.StartsWith("Promatis."));
-
-        foreach (Assembly assembly in assemblies)
-        {
-            modelBuilder.ApplyConfigurationsFromAssembly(assembly);
-        }
+        // Вызываем наше расширение, передавая сборку текущего контекста
+        modelBuilder.ApplyModuleConfigurations(GetType().Assembly);
 
         // ГЛОБАЛЬНЫЕ ПРАВИЛА: Применяем индексы и настройки ключей через метод расширения
         modelBuilder.ApplyGlobalConventions();

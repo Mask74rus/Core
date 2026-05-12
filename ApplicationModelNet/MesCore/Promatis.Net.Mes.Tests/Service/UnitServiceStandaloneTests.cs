@@ -20,9 +20,10 @@ public class UnitServiceStandaloneTests
     public class TestUnit : Domain.UnitBase { }
 
     public class TestUnitService(IDbContextFactory<TestDbContext> factory)
-        : UnitBaseService<TestDbContext>(factory)
-    { }
-
+        : UnitBaseService<Domain.UnitBase, TestDbContext>(factory)
+    {
+        // Теперь сервис знает, что он работает с типом UnitBase в контексте TestDbContext
+    }
     public UnitServiceStandaloneTests()
     {
         // 2. Опции должны быть для TestDbContext

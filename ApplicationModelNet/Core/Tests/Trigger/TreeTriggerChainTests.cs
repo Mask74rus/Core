@@ -11,8 +11,8 @@ using Xunit;
 namespace Promatis.Net.ApplicationModel.Tests.Trigger;
 
 // --- УНИКАЛЬНЫЕ СУЩНОСТИ ДЛЯ ИЗОЛЯЦИИ ТЕСТОВ ---
-public class SoftDeleteNode : ReferenceTreeBase<SoftDeleteNode> { }
-public class SelfParentNode : ReferenceTreeBase<SelfParentNode> { }
+public class SoftDeleteNode : ReferenceTreeBase { }
+public class SelfParentNode : ReferenceTreeBase { }
 
 // Общий контекст для интеграционных тестов (теперь с IConfiguration)
 public class TreeTestDbContext(

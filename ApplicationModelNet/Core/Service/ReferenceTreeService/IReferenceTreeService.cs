@@ -2,7 +2,7 @@
 
 namespace Promatis.Net.Service;
 
-public interface IReferenceTreeService<T> : IReferenceService<T> where T : ReferenceTreeBase<T>
+public interface IReferenceTreeService<T> : IReferenceService<T> where T : ReferenceTreeBase
 {
     Task<List<T>> GetRootsAsync();
 
