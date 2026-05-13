@@ -5,6 +5,7 @@
     <Project Path="App/DCA/Promatis.Net.Test.DCA.Data/Promatis.Net.Test.DCA.Data.csproj" Id="0e779e13-b3d3-4d37-bf00-127e5b48947d" />
     <Project Path="App/DCA/Promatis.Net.Test.DCA.DataInit/Promatis.Net.Test.DCA.DataInit.csproj" Id="6d7bbf96-2303-4c7b-8322-cb0e616e5145" />
     <Project Path="App/DCA/Promatis.Net.Test.DCA.Domain/Promatis.Net.Test.DCA.Domain.csproj" Id="db09efc1-fb33-4e56-b8ca-1336597b8419" />
+    <Project Path="App/DCA/Promatis.Net.Test.DCA.Launcher.Web/Promatis.Net.Test.DCA.Launcher.Web.csproj" Id="08142deb-0efb-4331-9231-b3c022af2abc" />
   </Folder>
   <Folder Name="/App/DCA/_Unused/">
     <Project Path="App/DCA/Promatis.Net.Test.DCA.Domain.Interface/Promatis.Net.Test.DCA.Domain.Interface.csproj" Id="3a986d83-1bc8-436b-92c5-a23ea3cdb14c" />
@@ -17,6 +18,7 @@
     <Project Path="App/MDM/Promatis.Net.Test.MDM.DataInit/Promatis.Net.Test.MDM.DataInit.csproj" Id="0d39f096-3dbd-443b-81ce-8430ad5457bf" />
     <Project Path="App/MDM/Promatis.Net.Test.MDM.Domain/Promatis.Net.Test.MDM.Domain.csproj" Id="ef07aa9b-01f2-414d-b3c8-39801cf2d9d7" />
     <Project Path="App/MDM/Promatis.Net.Test.MDM.Service/Promatis.Net.Test.MDM.Service.csproj" Id="c7663b03-5523-40e2-bbe7-5b464c84b1d7" />
+    <Project Path="App/MDM/Promatis.Net.Test.MDM.Launcher.Web/Promatis.Net.Test.MDM.Launcher.Web.csproj" Id="e15dd3e8-7be3-4bd4-83e5-04f5c63bec2e" />
   </Folder>
   <Folder Name="/App/MDM/_Unused/">
     <Project Path="App/MDM/Promatis.Net.Test.MDM.Domain.Interface/Promatis.Net.Test.MDM.Domain.Interface.csproj" Id="94b9de96-0a5f-4bd2-a9de-bd5ba6300bc1" />

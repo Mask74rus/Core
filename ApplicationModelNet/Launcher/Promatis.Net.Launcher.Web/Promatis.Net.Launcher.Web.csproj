@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.7">
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.8">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\App\DCA\Promatis.Net.Test.DCA.Configuration\Promatis.Net.Test.DCA.Configuration.csproj" />
+    <ProjectReference Include="..\..\App\MDM\Promatis.Net.Test.MDM.Configuration\Promatis.Net.Test.MDM.Configuration.csproj" />
     <ProjectReference Include="..\..\Core\Configuration.Web\Promatis.Net.Configuration.Web.csproj" />
   </ItemGroup>
 

@@ -27,30 +27,39 @@ public class IntegrationValidator : AbstractValidator<IntegrationEntity>
     }
 }
 
-// Теперь принимает IConfiguration
 public class IntegrationDbContext(
     DbContextOptions<ApplicationDbContext> options,
     IConfiguration configuration)
     : ApplicationDbContext(options, configuration)
 {
+    // Объявляем приватный тестовый узел прямо внутри контекста или файла тестов
+    private class TestNode : ReferenceTreeBase { }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // Сначала вызываем базовое сканирование (оно пропустит TestNode благодаря фильтру !t.IsNested)
+        // 1. Запускаем базовый автоматический сканер Promatis
         base.OnModelCreating(modelBuilder);
 
-        // Если в текущем тестовом контексте используется TestNode, конфигурируем его изолированно
+        // 2. ИСПРАВЛЕНИЕ: Для InMemory провайдера просто регистрируем сущность как самостоятельную.
+        // Больше никаких HasBaseType и дискриминаторов, так как ReferenceTreeBase глобально проигнорирован!
         if (Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory")
         {
             modelBuilder.Entity<TestNode>(builder =>
             {
-                // Явно задаем имя таблицы или дискриминатора, уникальное для этого файла тестов
-                builder.HasBaseType<ReferenceTreeBase>();
-                builder.HasDiscriminator<string>("Discriminator").HasValue("FullTriggerChain_TestNode");
+                // Задаем явное имя таблицы, чтобы InMemory изолировал её
+                builder.ToTable("FullTriggerChain_TestNodes");
+
+                // Явно указываем типы связей Родитель-Потомок через базовый класс дерева
+                builder.HasOne(typeof(ReferenceTreeBase), nameof(ReferenceTreeBase.Parent))
+                    .WithMany(nameof(ReferenceTreeBase.Children))
+                    .HasForeignKey(nameof(ReferenceTreeBase.ParentId));
             });
+
+            // Также регистрируем саму тестовую интеграционную сущность
+            modelBuilder.Entity<IntegrationEntity>();
         }
     }
 }
-
 public class FullTriggerChainTests
 {
     [Fact]

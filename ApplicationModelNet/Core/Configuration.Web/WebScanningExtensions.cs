@@ -26,9 +26,9 @@ public static class WebScanningExtensions
         services.AddScoped<UiModuleService>();
 
         // Логируем найденные модули
-        using var serviceProvider = services.BuildServiceProvider();
-        var modules = serviceProvider.GetServices<IUiModule>();
-        foreach (var module in modules)
+        using ServiceProvider serviceProvider = services.BuildServiceProvider();
+        IEnumerable<IUiModule> modules = serviceProvider.GetServices<IUiModule>();
+        foreach (IUiModule module in modules)
         {
             Console.WriteLine($"[SCANNER] UI Модуль:  {module.Name}");
         }

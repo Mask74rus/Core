@@ -11,7 +11,7 @@ public class TechnologicalOperationHierarchyTrigger : IBeforeSaveTrigger<Technol
 {
     public async Task HandleAsync(EntityCancelEventArgs<TechnologicalOperationBase> args)
     {
-        var op = args.Entity;
+        TechnologicalOperationBase op = args.Entity;
         if (op.ParentId.HasValue && op.ParentId != Guid.Empty)
         {
             var parent = await args.Context.Set<TechnologicalOperationBase>()

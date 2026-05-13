@@ -6,5 +6,6 @@
 public interface ISoftDeletable
 {
     DateTime? DeletedAt { get; set; }
+
     string? DeletedBy { get; set; }
 }

@@ -16,7 +16,7 @@ namespace Promatis.Net.Web.UI
 
         public async ValueTask<string> Prompt(string message)
         {
-            var module = await moduleTask.Value;
+            IJSObjectReference module = await moduleTask.Value;
             return await module.InvokeAsync<string>("showPrompt", message);
         }
 
@@ -24,7 +24,7 @@ namespace Promatis.Net.Web.UI
         {
             if (moduleTask.IsValueCreated)
             {
-                var module = await moduleTask.Value;
+                IJSObjectReference module = await moduleTask.Value;
                 await module.DisposeAsync();
             }
         }

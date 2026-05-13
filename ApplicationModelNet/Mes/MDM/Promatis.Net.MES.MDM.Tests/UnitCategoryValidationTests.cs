@@ -35,7 +35,7 @@ public class UnitCategoryValidationTests
     public void DepartmentValidator_Should_Verify_Types(UnitType type, bool isValid)
     {
         var unit = new TestDept { Type = type, Name = "Dept" };
-        var result = _deptValidator.TestValidate(unit);
+        TestValidationResult<TestDept>? result = _deptValidator.TestValidate(unit);
 
         if (isValid) result.ShouldNotHaveAnyValidationErrors();
         else result.ShouldHaveValidationErrorFor(x => x).WithErrorMessage("Тип не соответствует категории.");
@@ -48,7 +48,7 @@ public class UnitCategoryValidationTests
     public void ProductionValidator_Should_Verify_Types(UnitType type, bool isValid)
     {
         var unit = new TestProd { Type = type, Name = "Prod" };
-        var result = _prodValidator.TestValidate(unit);
+        TestValidationResult<TestProd>? result = _prodValidator.TestValidate(unit);
 
         if (isValid) result.ShouldNotHaveAnyValidationErrors();
         else result.ShouldHaveValidationErrorFor(x => x).WithErrorMessage("Тип не соответствует категории.");
@@ -61,7 +61,7 @@ public class UnitCategoryValidationTests
     public void StorageValidator_Should_Verify_Types(UnitType type, bool isValid)
     {
         var unit = new TestStor { Type = type, Name = "Stor" };
-        var result = _storValidator.TestValidate(unit);
+        TestValidationResult<TestStor>? result = _storValidator.TestValidate(unit);
 
         if (isValid) result.ShouldNotHaveAnyValidationErrors();
         else result.ShouldHaveValidationErrorFor(x => x).WithErrorMessage("Тип не соответствует категории.");
@@ -74,7 +74,7 @@ public class UnitCategoryValidationTests
     public void PositionValidator_Should_Verify_Types(UnitType type, bool isValid)
     {
         var unit = new TestPos { Type = type, Name = "Pos" };
-        var result = _posValidator.TestValidate(unit);
+        TestValidationResult<TestPos>? result = _posValidator.TestValidate(unit);
 
         if (isValid) result.ShouldNotHaveAnyValidationErrors();
         else result.ShouldHaveValidationErrorFor(x => x).WithErrorMessage("Тип не соответствует категории.");
@@ -88,7 +88,7 @@ public class UnitCategoryValidationTests
     public void TransportValidator_Should_Verify_Types(UnitType type, bool isValid)
     {
         var unit = new TestTrans { Type = type, Name = "Trans" };
-        var result = _transValidator.TestValidate(unit);
+        TestValidationResult<TestTrans>? result = _transValidator.TestValidate(unit);
 
         if (isValid) result.ShouldNotHaveAnyValidationErrors();
         else result.ShouldHaveValidationErrorFor(x => x).WithErrorMessage("Тип не соответствует категории.");

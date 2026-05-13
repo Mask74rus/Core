@@ -52,14 +52,14 @@ public class AuditTrigger(
 
         // 4. Сохранение в БД через "ленивое" получение фабрики
         // Создаем Scope, чтобы корректно получить фабрику, зарегистрированную в текущем модуле
-        using var scope = serviceProvider.CreateScope();
+        using IServiceScope scope = serviceProvider.CreateScope();
 
         // Ищем фабрику базового контекста (которую мы "подменили" адаптером в MDM)
         var factory = scope.ServiceProvider.GetService<IDbContextFactory<ApplicationDbContext>>();
 
         if (factory != null)
         {
-            await using var context = await factory.CreateDbContextAsync();
+            await using ApplicationDbContext context = await factory.CreateDbContextAsync();
             context.Set<AuditLog>().Add(auditLog);
             await context.SaveChangesAsync();
         }

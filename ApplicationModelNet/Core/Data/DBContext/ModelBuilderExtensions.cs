@@ -15,7 +15,7 @@ public static class ModelBuilderExtensions
     {
         // 1. Агрессивно собираем все сборки Promatis (включая промежуточные Promatis.Net.*)
         List<Assembly> loadedAssemblies = AppDomain.CurrentDomain.GetAssemblies()
-            .Where(a => a.FullName.StartsWith("Promatis.", StringComparison.OrdinalIgnoreCase))
+            .Where(a => a.FullName != null && a.FullName.StartsWith("Promatis.", StringComparison.OrdinalIgnoreCase))
             .ToList();
 
         string binPath = AppDomain.CurrentDomain.BaseDirectory;

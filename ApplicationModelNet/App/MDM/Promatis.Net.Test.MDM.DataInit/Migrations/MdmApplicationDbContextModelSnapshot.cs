@@ -18,7 +18,7 @@ namespace Promatis.Net.Test.MDM.DataInit.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasDefaultSchema("mdm")
-                .HasAnnotation("ProductVersion", "10.0.7")
+                .HasAnnotation("ProductVersion", "10.0.8")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);

@@ -148,4 +148,69 @@ public class ReferenceTreeParentTriggerTests
         Assert.True(args.Cancel);
         Assert.Equal("Нельзя назначить родителем удаленный объект.", args.ErrorMessage);
     }
+
+    [Fact]
+    public async Task Trigger_ShouldCancel_WhenDirectCyclicDependencyDetected()
+    {
+        // Arrange
+        await using TestDbContext context = await GetContextAsync();
+        var trigger = new ReferenceTreeParentTrigger();
+
+        // 1. Создаем и сохраняем родительский элемент А
+        var nodeA = new TestNode { Id = Guid.NewGuid(), Name = "Node A" };
+        context.Add(nodeA);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // 2. Создаем и сохраняем дочерний элемент B (Родитель: А)
+        var nodeB = new TestNode { Id = Guid.NewGuid(), Name = "Node B", ParentId = nodeA.Id };
+        context.Add(nodeB);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // 3. Имитируем попытку сделать узел B родителем для узла A (Петля: A -> B -> A)
+        nodeA.ParentId = nodeB.Id;
+
+        var args = new EntityCancelEventArgs<IDomainObjectHasKey<Guid>>(
+            nodeA, EntityStateChangeEnum.Modified, [], context);
+
+        // Act
+        await trigger.HandleAsync(args);
+
+        // Assert
+        Assert.True(args.Cancel);
+        Assert.Equal("Циклическая зависимость: нельзя переместить родительский узел внутрь собственного дочернего поддерева.", args.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task Trigger_ShouldCancel_WhenDeepCyclicDependencyDetected()
+    {
+        // Arrange
+        await using TestDbContext context = await GetContextAsync();
+        var trigger = new ReferenceTreeParentTrigger();
+
+        // Построим цепочку: Root -> Child -> SubChild
+        var root = new TestNode { Id = Guid.NewGuid(), Name = "Root" };
+        context.Add(root);
+
+        var child = new TestNode { Id = Guid.NewGuid(), Name = "Child", ParentId = root.Id };
+        context.Add(child);
+
+        var subChild = new TestNode { Id = Guid.NewGuid(), Name = "SubChild", ParentId = child.Id };
+        context.Add(subChild);
+
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Имитируем попытку переместить самый верхний узел "Root" внутрь его глубокого потомка "SubChild"
+        // Цепочка проверки пойдет вверх: SubChild (в БД) -> Child (в БД) -> Root (перемещаемый). 
+        root.ParentId = subChild.Id;
+
+        var args = new EntityCancelEventArgs<IDomainObjectHasKey<Guid>>(
+            root, EntityStateChangeEnum.Modified, [], context);
+
+        // Act
+        await trigger.HandleAsync(args);
+
+        // Assert
+        Assert.True(args.Cancel);
+        Assert.Equal("Циклическая зависимость: нельзя переместить родительский узел внутрь собственного дочернего поддерева.", args.ErrorMessage);
+    }
 }
