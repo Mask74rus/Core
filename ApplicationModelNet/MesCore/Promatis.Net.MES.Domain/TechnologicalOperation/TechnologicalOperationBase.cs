@@ -23,6 +23,12 @@ public abstract class TechnologicalOperationBase : ReferenceTreeBase, ITreeNode<
     public virtual ICollection<TechnologicalOperationUnitBase> UnitLinks { get; set; } = new List<TechnologicalOperationUnitBase>();
 
     /// <summary>
+    /// Коллекция контролируемых технологических параметров для данной операции.
+    /// </summary>
+    public virtual ICollection<TechnologicalOperationParameterBase> ParameterLinks { get; set; } = new List<TechnologicalOperationParameterBase>();
+
+
+    /// <summary>
     /// Строго типизированный родитель для использования в сервисах. Не мапится в БД.
     /// </summary>
     [NotMapped]

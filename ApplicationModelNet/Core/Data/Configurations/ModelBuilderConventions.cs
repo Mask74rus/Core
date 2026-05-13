@@ -13,7 +13,7 @@ public static class ModelBuilderConventions
         {
             Type type = entityType.ClrType;
 
-            // 1. Лимиты для строк (255 по умолчанию)
+            // Лимиты для строк (255 по умолчанию)
             foreach (IMutableProperty property in entityType.GetProperties())
             {
                 if (property.ClrType == typeof(string))
@@ -23,13 +23,13 @@ public static class ModelBuilderConventions
                 }
             }
 
-            // 2. Авто-ключи для Guid (ValueGeneratedNever, так как Id создается в DomainObject)
+            // Авто-ключи для Guid (ValueGeneratedNever, так как Id создается в DomainObject)
             if (typeof(IDomainObjectHasKey<Guid>).IsAssignableFrom(type))
             {
                 modelBuilder.Entity(type).Property("Id").ValueGeneratedNever();
             }
 
-            // 3. АВТО-ФИЛЬТР и АВТО-ИНДЕКС для SoftDelete объектов
+            // АВТО-ФИЛЬТР и АВТО-ИНДЕКС для SoftDelete объектов
             if (typeof(ISoftDeletable).IsAssignableFrom(type))
             {
                 IMutableEntityType? baseType = entityType.BaseType;

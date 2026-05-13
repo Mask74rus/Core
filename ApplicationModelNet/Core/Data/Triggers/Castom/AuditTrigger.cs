@@ -14,7 +14,7 @@ public class AuditTrigger(
     public async Task HandleAsync(EntityChangedEventArgs<DomainObject> args)
     {
         // 1. Фильтр: логируем только те сущности, которые помечены IAudit
-        if (!args.Entity.GetType().GetInterfaces().Any(i => i.Name == nameof(IAudit)))
+        if (args.Entity.GetType().GetInterfaces().All(i => i.Name != nameof(IAudit)))
             return;
 
         // 2. Формируем данные для JSON
@@ -65,7 +65,7 @@ public class AuditTrigger(
         }
         else
         {
-            // Опционально: логирование ошибки, если база не настроена
+            // Логирование ошибки, если база не настроена
             Console.WriteLine("[AuditTrigger][Error] Не удалось найти IDbContextFactory<ApplicationDbContext>");
         }
     }

@@ -5,7 +5,7 @@ using Promatis.Net.MES.Domain;
 namespace Promatis.Net.MES.Data;
 
 /// <summary>
-/// Триггер контроля иерархии (остается без изменений)
+/// Триггер контроля иерархии
 /// </summary>
 public class TechnologicalOperationHierarchyTrigger : IBeforeSaveTrigger<TechnologicalOperationBase>
 {

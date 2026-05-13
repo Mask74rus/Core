@@ -19,7 +19,8 @@ public class ApplicationDbContext(
         modelBuilder.HasDefaultSchema(Schema);
 
         // Вызываем наше расширение, передавая сборку текущего контекста
-        modelBuilder.ApplyModuleConfigurations(GetType().Assembly);
+        //modelBuilder.ApplyModuleConfigurations(GetType().Assembly);
+        modelBuilder.ApplyConfigurationsFromAssembly(GetType().Assembly, configType => !configType.IsAbstract);
 
         // ГЛОБАЛЬНЫЕ ПРАВИЛА: Применяем индексы и настройки ключей через метод расширения
         modelBuilder.ApplyGlobalConventions();
