@@ -1,20 +1,36 @@
 ﻿using Promatis.Net.Domain;
+using Promatis.Net.Domain.Interface;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Promatis.Net.MES.Domain;
 
 /// <summary>
-/// Базовый класс технологической операции
+/// Базовая технологическая операция.
+/// Наследует чистое не-дженерик дерево СУБД, убирая конфликты маппинга,
+/// и предоставляет строго типизированный интерфейс для бизнес-логики.
 /// </summary>
-public abstract class TechnologicalOperationBase : ReferenceTreeBase
+public abstract class TechnologicalOperationBase : ReferenceTreeBase, ITreeNode<TechnologicalOperationBase>
 {
     /// <summary>
-    /// Признак того, что это конечная операция (лист), а не группа.
+    /// Признак того, что это конечная операция (лист), а не группа операций.
     /// </summary>
     public bool IsLeaf { get; set; } = true;
 
     /// <summary>
-    /// Коллекция связей с оборудованием. 
-    /// Используем конкретный класс связи (неабстрактный, если это MDM).
+    /// Коллекция связей с производственным оборудованием (юнитами). 
+    /// Ссылается на базовую абстракцию связи Many-to-Many.
     /// </summary>
     public virtual ICollection<TechnologicalOperationUnitBase> UnitLinks { get; set; } = new List<TechnologicalOperationUnitBase>();
+
+    /// <summary>
+    /// Строго типизированный родитель для использования в сервисах. Не мапится в БД.
+    /// </summary>
+    [NotMapped]
+    public TechnologicalOperationBase? TypedParent => Parent as TechnologicalOperationBase;
+
+    /// <summary>
+    /// Строго типизированные дочерние операции для использования в сервисах. Не мапится в БД.
+    /// </summary>
+    [NotMapped]
+    public IEnumerable<TechnologicalOperationBase> TypedChildren => Children.Cast<TechnologicalOperationBase>();
 }

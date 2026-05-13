@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Promatis.Net.Test.MDM.DataInit.Migrations
 {
     /// <inheritdoc />
-    public partial class Initial_MDM_Schema : Migration
+    public partial class Init : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -34,6 +34,26 @@ namespace Promatis.Net.Test.MDM.DataInit.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "TechnologicalOperation",
+                schema: "mdm",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    Description = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    Code = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedBy = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    ParentId = table.Column<Guid>(type: "uuid", nullable: true),
+                    IsLeaf = table.Column<bool>(type: "boolean", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TechnologicalOperation", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Units",
                 schema: "mdm",
                 columns: table => new
@@ -52,12 +72,6 @@ namespace Promatis.Net.Test.MDM.DataInit.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Units", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Units_Units_ParentId",
-                        column: x => x.ParentId,
-                        principalSchema: "mdm",
-                        principalTable: "Units",
-                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
@@ -137,6 +151,38 @@ namespace Promatis.Net.Test.MDM.DataInit.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "TechnologicalOperationUnit",
+                schema: "mdm",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    OperationId = table.Column<Guid>(type: "uuid", nullable: false),
+                    UnitId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Priority = table.Column<int>(type: "integer", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedBy = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TechnologicalOperationUnit", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_TechnologicalOperationUnit_TechnologicalOperation_Operation~",
+                        column: x => x.OperationId,
+                        principalSchema: "mdm",
+                        principalTable: "TechnologicalOperation",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_TechnologicalOperationUnit_Units_UnitId",
+                        column: x => x.UnitId,
+                        principalSchema: "mdm",
+                        principalTable: "Units",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "TransportUnits",
                 schema: "mdm",
                 columns: table => new
@@ -156,16 +202,34 @@ namespace Promatis.Net.Test.MDM.DataInit.Migrations
                 });
 
             migrationBuilder.CreateIndex(
+                name: "IX_TechnologicalOperation_DeletedAt",
+                schema: "mdm",
+                table: "TechnologicalOperation",
+                column: "DeletedAt");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TechnologicalOperationUnit_DeletedAt",
+                schema: "mdm",
+                table: "TechnologicalOperationUnit",
+                column: "DeletedAt");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TechnologicalOperationUnit_OperationId",
+                schema: "mdm",
+                table: "TechnologicalOperationUnit",
+                column: "OperationId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TechnologicalOperationUnit_UnitId",
+                schema: "mdm",
+                table: "TechnologicalOperationUnit",
+                column: "UnitId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Units_DeletedAt",
                 schema: "mdm",
                 table: "Units",
                 column: "DeletedAt");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Units_ParentId",
-                schema: "mdm",
-                table: "Units",
-                column: "ParentId");
         }
 
         /// <inheritdoc />
@@ -192,7 +256,15 @@ namespace Promatis.Net.Test.MDM.DataInit.Migrations
                 schema: "mdm");
 
             migrationBuilder.DropTable(
+                name: "TechnologicalOperationUnit",
+                schema: "mdm");
+
+            migrationBuilder.DropTable(
                 name: "TransportUnits",
+                schema: "mdm");
+
+            migrationBuilder.DropTable(
+                name: "TechnologicalOperation",
                 schema: "mdm");
 
             migrationBuilder.DropTable(

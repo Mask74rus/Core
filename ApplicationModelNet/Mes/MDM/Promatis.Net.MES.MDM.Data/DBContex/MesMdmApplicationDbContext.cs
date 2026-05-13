@@ -12,6 +12,4 @@ public class MesMdmApplicationDbContext(
 {
     public DbSet<TechnologicalOperation> TechnologicalOperations => Set<TechnologicalOperation>();
     public DbSet<TechnologicalOperationUnit> TechnologicalOperationUnits => Set<TechnologicalOperationUnit>();
-
-
 }

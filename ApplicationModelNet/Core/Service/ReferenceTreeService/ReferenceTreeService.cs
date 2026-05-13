@@ -1,8 +1,15 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Internal;
 using Promatis.Net.Domain;
 
 namespace Promatis.Net.Service;
 
+/// <summary>
+/// Универсальный базовый сервис для работы со всеми древовидными структурами в системе.
+/// Наследует логику обычных справочников (ReferenceService) и расширяет её для иерархий.
+/// </summary>
+/// <typeparam name="T">Тип сущности, унаследованный от ReferenceTreeBase.</typeparam>
+/// <typeparam name="TContext">Контекст базы данных.</typeparam>
 public abstract class ReferenceTreeService<T, TContext>(IDbContextFactory<TContext> contextFactory)
     : ReferenceService<T, TContext>(contextFactory), IReferenceTreeService<T>
     where T : ReferenceTreeBase
@@ -12,7 +19,7 @@ public abstract class ReferenceTreeService<T, TContext>(IDbContextFactory<TConte
     {
         await using TContext context = await ContextFactory.CreateDbContextAsync();
         return await context.Set<T>()
-            .AsNoTracking() // Ускоряем чтение
+            .AsNoTracking()
             .Where(x => x.ParentId == null)
             .ToListAsync();
     }
@@ -31,7 +38,6 @@ public abstract class ReferenceTreeService<T, TContext>(IDbContextFactory<TConte
         await using TContext context = await ContextFactory.CreateDbContextAsync();
         var path = new List<T>();
 
-        // Используем один контекст на весь цикл
         T? current = await context.Set<T>()
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == id);
@@ -45,7 +51,6 @@ public abstract class ReferenceTreeService<T, TContext>(IDbContextFactory<TConte
 
             Guid parentId = current.ParentId.Value;
 
-            // Заменяем FindAsync на FirstOrDefaultAsync для надежной работы QueryFilter
             current = await context.Set<T>()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.Id == parentId);
@@ -60,21 +65,20 @@ public abstract class ReferenceTreeService<T, TContext>(IDbContextFactory<TConte
     {
         await using TContext context = await ContextFactory.CreateDbContextAsync();
 
-        // 1. Загружаем все записи, которые потенциально могут быть в этом дереве.
-        // Для TPT (UnitBase) EF Core сам сделает необходимые Join-ы.
+        // 1. Выкачиваем все записи справочника одним быстрым запросом.
         // Глобальный фильтр SoftDelete отсечет удаленные узлы автоматически.
         List<T> allItems = await context.Set<T>()
             .AsNoTracking()
             .ToListAsync();
 
-        // 2. Строим словарь для быстрого поиска
+        // 2. Строим индекс (Lookup) по физическому полю ParentId
         ILookup<Guid?, T> lookup = allItems.ToLookup(x => x.ParentId);
 
         // 3. Находим корневой элемент
         T? root = allItems.FirstOrDefault(x => x.Id == rootId);
         if (root == null) return null;
 
-        // 4. Рекурсивно связываем объекты в памяти
+        // 4. Рекурсивно связываем объекты в памяти через стандартные навигационные свойства
         BuildTree(root, lookup);
 
         return root;
@@ -82,15 +86,18 @@ public abstract class ReferenceTreeService<T, TContext>(IDbContextFactory<TConte
 
     private void BuildTree(T parent, ILookup<Guid?, T> lookup)
     {
-        // 1. Получаем детей типа T и приводим их к списку базового типа ReferenceTreeBase
         List<T> children = lookup[parent.Id].ToList();
 
-        // Используем Cast или просто Select, чтобы коллекция соответствовала типу свойства
-        parent.Children = children.Cast<ReferenceTreeBase>().ToList();
+        // Прямо очищаем и наполняем стандартную коллекцию Children.
+        // Благодаря отсутствию каскада дженериков нам больше не нужны обертки
+        parent.Children.Clear();
 
         foreach (T child in children)
         {
-            child.Parent = parent;
+            parent.Children.Add(child);
+            child.Parent = parent; // Восстанавливаем прямую ссылку на родителя в графе объектов
+
+            // Продолжаем рекурсивную сборку для текущего потомка
             BuildTree(child, lookup);
         }
     }
@@ -109,14 +116,13 @@ public abstract class ReferenceTreeService<T, TContext>(IDbContextFactory<TConte
         if (newParentId.HasValue)
         {
             if (newParentId == id)
-                throw new InvalidOperationException("Узел не может быть родителем самого себя.");
+                throw new InvalidOperationException("Узел не может быть родителем самому себе.");
 
-            // Проверка цикла через существующий метод
+            // Эффективная проверка цикла на базе пути родителя
             List<T> path = await GetParentPathAsync(newParentId.Value);
             if (path.Any(x => x.Id == id))
                 throw new InvalidOperationException("Циклическая зависимость: нельзя переместить узел в своё поддерево.");
 
-            // Здесь можно добавить проверку: существует ли вообще новый родитель в базе
             bool parentExists = await context.Set<T>().AnyAsync(x => x.Id == newParentId.Value, ct);
             if (!parentExists)
                 throw new Exception("Новый родитель не найден.");
@@ -124,7 +130,7 @@ public abstract class ReferenceTreeService<T, TContext>(IDbContextFactory<TConte
 
         entity.ParentId = newParentId;
 
-        // SaveChangesAsync инициирует IBeforeSaveTrigger (UnitBaseHierarchyTrigger)
+        // Сохранение инициирует IBeforeSaveTrigger (UnitBaseHierarchyTrigger / ReferenceTreeParentTrigger)
         await context.SaveChangesAsync(ct);
     }
 }

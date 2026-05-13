@@ -12,7 +12,7 @@ using Promatis.Net.Test.DCA.Data;
 namespace Promatis.Net.Test.DCA.DataInit.Migrations
 {
     [DbContext(typeof(DcaApplicationDbContext))]
-    [Migration("20260512074007_Init")]
+    [Migration("20260513081625_Init")]
     partial class Init
     {
         /// <inheritdoc />

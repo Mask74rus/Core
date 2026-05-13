@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Testing.Platform.Extensions.Messages;
 using Moq;
 using Promatis.Net.Data;
 using Promatis.Net.Domain;
@@ -34,8 +35,19 @@ public class IntegrationDbContext(
 {
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        // Сначала вызываем базовое сканирование (оно пропустит TestNode благодаря фильтру !t.IsNested)
         base.OnModelCreating(modelBuilder);
-        modelBuilder.Entity<IntegrationEntity>();
+
+        // Если в текущем тестовом контексте используется TestNode, конфигурируем его изолированно
+        if (Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory")
+        {
+            modelBuilder.Entity<TestNode>(builder =>
+            {
+                // Явно задаем имя таблицы или дискриминатора, уникальное для этого файла тестов
+                builder.HasBaseType<ReferenceTreeBase>();
+                builder.HasDiscriminator<string>("Discriminator").HasValue("FullTriggerChain_TestNode");
+            });
+        }
     }
 }
 

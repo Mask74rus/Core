@@ -4,8 +4,9 @@ using Promatis.Net.Domain;
 namespace Promatis.Net.MES.Domain;
 
 // Валидатор операции (остается без изменений)
-public abstract class TechnologicalOperationBaseValidator<T> : ReferenceTreeBaseValidator<T>
+public abstract class TechnologicalOperationBaseValidator<T, TLink> : ReferenceTreeBaseValidator<T>
     where T : TechnologicalOperationBase
+    where TLink : TechnologicalOperationUnitBase
 {
     protected TechnologicalOperationBaseValidator()
     {
