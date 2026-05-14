@@ -1,19 +1,28 @@
 ﻿using FluentValidation;
 using Promatis.Net.Domain;
+using Promatis.Net.MES.Domain.Interface;
 
 namespace Promatis.Net.MES.Domain;
 
 /// <summary>
 /// Базовый валидатор связи
 /// </summary>
-/// <typeparam name="T"></typeparam>
-public abstract class TechnologicalOperationUnitBaseValidator<T> : DomainObjectValidator<T>
-    where T : TechnologicalOperationUnitBase
+public abstract class TechnologicalOperationUnitBaseValidator<T, TOperation> : DomainObjectValidator<T>
+    where T : TechnologicalOperationUnitBase<TOperation>
+    where TOperation : DomainObject, ITechnologicalOperation
 {
     protected TechnologicalOperationUnitBaseValidator()
     {
-        RuleFor(x => x.OperationId).NotEmpty();
-        RuleFor(x => x.UnitId).NotEmpty();
-        RuleFor(x => x.Priority).InclusiveBetween(1, 10);
+        RuleFor(x => x.OperationId)
+            .NotEmpty()
+            .WithMessage("Идентификатор операции обязателен.");
+
+        RuleFor(x => x.UnitId)
+            .NotEmpty()
+            .WithMessage("Идентификатор оборудования обязателен.");
+
+        RuleFor(x => x.Priority)
+            .InclusiveBetween(1, 10)
+            .WithMessage("Приоритет оборудования должен быть в диапазоне от 1 до 10.");
     }
 }

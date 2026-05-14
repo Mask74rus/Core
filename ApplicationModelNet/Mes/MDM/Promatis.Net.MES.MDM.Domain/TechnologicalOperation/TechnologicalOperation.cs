@@ -2,7 +2,7 @@
 
 namespace Promatis.Net.MES.MDM.Domain;
 
-public class TechnologicalOperation : TechnologicalOperationBase
+public class TechnologicalOperation : TechnologicalOperationBase<TechnologicalOperationUnit, TechnologicalOperationParameter>
 {
     
 }

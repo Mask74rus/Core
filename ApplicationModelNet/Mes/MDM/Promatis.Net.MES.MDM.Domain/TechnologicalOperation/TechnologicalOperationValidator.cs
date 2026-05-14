@@ -2,7 +2,7 @@
 
 namespace Promatis.Net.MES.MDM.Domain;
 
-public class TechnologicalOperationValidator : TechnologicalOperationBaseValidator<TechnologicalOperation, TechnologicalOperationUnit>
+public class TechnologicalOperationValidator : TechnologicalOperationBaseValidator<TechnologicalOperation>
 {
     
 }

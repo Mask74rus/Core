@@ -12,8 +12,8 @@ using Promatis.Net.Test.DCA.Data;
 namespace Promatis.Net.Test.DCA.DataInit.Migrations
 {
     [DbContext(typeof(DcaApplicationDbContext))]
-    [Migration("20260513081625_Init")]
-    partial class Init
+    [Migration("20260514072838_Test")]
+    partial class Test
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -21,7 +21,7 @@ namespace Promatis.Net.Test.DCA.DataInit.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasDefaultSchema("dca")
-                .HasAnnotation("ProductVersion", "10.0.7")
+                .HasAnnotation("ProductVersion", "10.0.8")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);

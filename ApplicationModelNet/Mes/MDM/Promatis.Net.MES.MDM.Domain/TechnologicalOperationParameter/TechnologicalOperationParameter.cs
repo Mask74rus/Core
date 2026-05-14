@@ -2,7 +2,4 @@
 
 namespace Promatis.Net.MES.MDM.Domain;
 
-public class TechnologicalOperationParameter : TechnologicalOperationParameterBase
-{
-    // Чистый класс для DbSet<TechnologicalOperationParameter>
-}
+public class TechnologicalOperationParameter : TechnologicalOperationParameterBase<TechnologicalOperation, TechnologicalParameter> { }

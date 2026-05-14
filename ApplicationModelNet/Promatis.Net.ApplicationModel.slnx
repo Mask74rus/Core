@@ -5,6 +5,8 @@
     <Project Path="App/DCA/Promatis.Net.Test.DCA.Data/Promatis.Net.Test.DCA.Data.csproj" Id="0e779e13-b3d3-4d37-bf00-127e5b48947d" />
     <Project Path="App/DCA/Promatis.Net.Test.DCA.DataInit/Promatis.Net.Test.DCA.DataInit.csproj" Id="6d7bbf96-2303-4c7b-8322-cb0e616e5145" />
     <Project Path="App/DCA/Promatis.Net.Test.DCA.Domain/Promatis.Net.Test.DCA.Domain.csproj" Id="db09efc1-fb33-4e56-b8ca-1336597b8419" />
+  </Folder>
+  <Folder Name="/App/DCA/_Launcher/">
     <Project Path="App/DCA/Promatis.Net.Test.DCA.Launcher.Web/Promatis.Net.Test.DCA.Launcher.Web.csproj" Id="08142deb-0efb-4331-9231-b3c022af2abc" />
   </Folder>
   <Folder Name="/App/DCA/_Unused/">
@@ -18,6 +20,8 @@
     <Project Path="App/MDM/Promatis.Net.Test.MDM.DataInit/Promatis.Net.Test.MDM.DataInit.csproj" Id="0d39f096-3dbd-443b-81ce-8430ad5457bf" />
     <Project Path="App/MDM/Promatis.Net.Test.MDM.Domain/Promatis.Net.Test.MDM.Domain.csproj" Id="ef07aa9b-01f2-414d-b3c8-39801cf2d9d7" />
     <Project Path="App/MDM/Promatis.Net.Test.MDM.Service/Promatis.Net.Test.MDM.Service.csproj" Id="c7663b03-5523-40e2-bbe7-5b464c84b1d7" />
+  </Folder>
+  <Folder Name="/App/MDM/_Launcher/">
     <Project Path="App/MDM/Promatis.Net.Test.MDM.Launcher.Web/Promatis.Net.Test.MDM.Launcher.Web.csproj" Id="e15dd3e8-7be3-4bd4-83e5-04f5c63bec2e" />
   </Folder>
   <Folder Name="/App/MDM/_Unused/">
@@ -38,10 +42,11 @@
     <Project Path="Launcher/Promatis.Net.Launcher.Web/Promatis.Net.Launcher.Web.csproj" Id="02f055d5-6a09-4f95-a3e6-3f5cf6afc609" />
   </Folder>
   <Folder Name="/Mes/" />
-  <Folder Name="/Mes/DCA/" />
+  <Folder Name="/Mes/DCA/">
+    <Project Path="Mes/DCA/Promatis.Net.MES.DCA.Data/Promatis.Net.MES.DCA.Data.csproj" Id="c8a1bfd8-d4e2-491e-bea4-6f7393d0de57" />
+  </Folder>
   <Folder Name="/Mes/DCA/_Unused/">
     <Project Path="Mes/DCA/Promatis.Net.MES.DCA.Configuration/Promatis.Net.MES.DCA.Configuration.csproj" Id="beb77a48-eac0-4d9a-8426-ffbcbe4502bf" />
-    <Project Path="Mes/DCA/Promatis.Net.MES.DCA.Data/Promatis.Net.MES.DCA.Data.csproj" Id="c8a1bfd8-d4e2-491e-bea4-6f7393d0de57" />
     <Project Path="Mes/DCA/Promatis.Net.MES.DCA.Domain.Interface/Promatis.Net.MES.DCA.Domain.Interface.csproj" Id="a49bbb57-bbd3-4b44-8aa8-9e30f7bee27e" />
     <Project Path="Mes/DCA/Promatis.Net.MES.DCA.Domain/Promatis.Net.MES.DCA.Domain.csproj" Id="d82299f4-68f7-4d79-a40e-7d6d1886c778" />
     <Project Path="Mes/DCA/Promatis.Net.MES.DCA.Service/Promatis.Net.MES.DCA.Service.csproj" Id="5f87d41c-29a8-42cf-8ef2-7f80a603e428" />

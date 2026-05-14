@@ -2,7 +2,7 @@
 
 namespace Promatis.Net.MES.MDM.Domain;
 
-public class TechnologicalOperationUnit : TechnologicalOperationUnitBase
+public class TechnologicalOperationUnit : TechnologicalOperationUnitBase<TechnologicalOperation>
 {
     /// <summary>
     /// Перекрываем базовое свойство СУБД строго типизированным свойством для бизнес-логики.

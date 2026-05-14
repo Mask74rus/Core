@@ -1,5 +1,6 @@
 ﻿using Promatis.Net.Domain;
 using Promatis.Net.Domain.Interface;
+using Promatis.Net.MES.Domain.Interface;
 
 namespace Promatis.Net.MES.Domain;
 
@@ -7,39 +8,41 @@ namespace Promatis.Net.MES.Domain;
 /// Связующая сущность «Многие-ко-многим» между технологическими операциями и их параметрами.
 /// Определяет требования к заполнению параметров для конкретной операции.
 /// </summary>
-public abstract class TechnologicalOperationParameterBase : DomainObject, ISoftDeletable
+public abstract class TechnologicalOperationParameterBase<TOperation, TParameter> : DomainObject, ISoftDeletable
+    where TOperation : DomainObject, ITechnologicalOperation
+    where TParameter : DomainObject, ITechnologicalParameter
 {
     public Guid OperationId { get; set; }
 
     /// <summary>
     /// Навигационное свойство к базовой операции.
     /// </summary>
-    public virtual TechnologicalOperationBase Operation { get; set; } = null!;
+    public virtual TOperation Operation { get; set; } = null!;
 
     public Guid ParameterId { get; set; }
 
     /// <summary>
     /// Навигационное свойство к базовому параметру.
     /// </summary>
-    public virtual TechnologicalParameterBase Parameter { get; set; } = null!;
+    public virtual TParameter Parameter { get; set; } = null!;
 
     /// <summary>
-    /// Признак того, что параметр обязателен для заполнения при выполнении данной операции.
+    /// Признак того, что параметр обязателен для заполнения.
     /// </summary>
     public bool IsRequired { get; set; } = false;
 
     /// <summary>
-    /// Номинальное значение параметра по умолчанию (в строковом виде для универсальности).
+    /// Номинальное значение параметра по умолчанию.
     /// </summary>
     public string? DefaultValue { get; set; }
 
     /// <summary>
-    /// Минимально допустимое значение (для числовых параметров).
+    /// Минимально допустимое значение.
     /// </summary>
     public double? MinValue { get; set; }
 
     /// <summary>
-    /// Максимально допустимое значение (для числовых параметров).
+    /// Максимально допустимое значение.
     /// </summary>
     public double? MaxValue { get; set; }
 

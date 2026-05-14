@@ -14,7 +14,7 @@ public class Configurator : IWebAppConfigurator
     public void ConfigureServices(IServiceCollection services, IConfiguration configuration)
     {
         // Регистрируем фабрику контекста
-        services.AddDbContextFactory<Data.DcaApplicationDbContext>((sp, options) =>
+        services.AddDbContextFactory<DcaApplicationDbContext>((sp, options) =>
         {
             string? baseConnString = configuration.GetConnectionString("DefaultConnection");
 
@@ -37,10 +37,10 @@ public class Configurator : IWebAppConfigurator
         // 2. Исправляем ошибку приведения: регистрируем фабрику для базового типа
         // Мы говорим DI: "Когда кто-то (например, AuditTrigger) просит фабрику базового контекста, 
         // возьми фабрику DCA и приведи созданный контекст к базовому типу".
-        services.AddScoped<IDbContextFactory<Net.Data.ApplicationDbContext>>(sp =>
+        services.AddScoped<IDbContextFactory<ApplicationDbContext>>(sp =>
         {
             // Получаем фабрику DCA
-            var factory = sp.GetRequiredService<IDbContextFactory<Data.DcaApplicationDbContext>>();
+            var factory = sp.GetRequiredService<IDbContextFactory<DcaApplicationDbContext>>();
 
             // Оборачиваем её в универсальный адаптер
             return new DbContextFactoryAdapter(factory);
@@ -57,9 +57,9 @@ public class Configurator : IWebAppConfigurator
         // Конфигурация промежуточного слоя
     }
 
-    private class DbContextFactoryAdapter(IDbContextFactory<Data.DcaApplicationDbContext> factory)
-        : IDbContextFactory<Net.Data.ApplicationDbContext>
+    private class DbContextFactoryAdapter(IDbContextFactory<DcaApplicationDbContext> factory)
+        : IDbContextFactory<ApplicationDbContext>
     {
-        public Net.Data.ApplicationDbContext CreateDbContext() => factory.CreateDbContext();
+        public ApplicationDbContext CreateDbContext() => factory.CreateDbContext();
     }
 }

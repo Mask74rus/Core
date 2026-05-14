@@ -1,13 +1,13 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using Promatis.Net.Data;
+using Promatis.Net.MES.DCA.Data;
 
 namespace Promatis.Net.Test.DCA.Data;
 
 public class DcaApplicationDbContext(
-    DbContextOptions<DcaApplicationDbContext> options,
+    DbContextOptions options,
     IConfiguration configuration)
-    : Net.Data.ApplicationDbContext(options, configuration)
+    : MesDcaApplicationDbContext(options, configuration)
 {
 
     // Указываем схему для этого конкретного контекста

@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Promatis.Net.Test.DCA.DataInit.Migrations
 {
     /// <inheritdoc />
-    public partial class Init : Migration
+    public partial class Test : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

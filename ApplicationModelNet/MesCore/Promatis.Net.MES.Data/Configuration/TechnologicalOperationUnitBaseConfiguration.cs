@@ -1,6 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Promatis.Net.Domain;
 using Promatis.Net.MES.Domain;
+using Promatis.Net.MES.Domain.Interface;
 
 namespace Promatis.Net.MES.Data;
 
@@ -8,18 +10,22 @@ namespace Promatis.Net.MES.Data;
 /// Конфигурация для базы связи
 /// </summary>
 /// <typeparam name="T"></typeparam>
-public abstract class TechnologicalOperationUnitBaseConfiguration<T> : IEntityTypeConfiguration<T>
-    where T : TechnologicalOperationUnitBase
+public abstract class TechnologicalOperationUnitBaseConfiguration<T, TOperation> : IEntityTypeConfiguration<T>
+    where T : TechnologicalOperationUnitBase<TOperation> // <--- Передаем тип операции
+    where TOperation : DomainObject, ITechnologicalOperation
 {
     public virtual void Configure(EntityTypeBuilder<T> builder)
     {
-        // Уникальный индекс на уровне базы (EF Core сам не догадается сделать его уникальным для ПАРЫ полей)
+        // 1. Уникальный индекс для пары полей (Предотвращает дублирование связей)
         builder.HasIndex(x => new { x.OperationId, x.UnitId })
             .IsUnique();
 
-        // 7. СИНХРОНИЗАЦИЯ QUERY FILTER (Решение проблемы валидации модели EF Core).
-        // Поскольку UnitBase имеет глобальный фильтр Soft Delete, мы обязаны отфильтровать и связи,
-        // чтобы система не упала на NullReferenceException при чтении связей удаленного оборудования.
-        builder.HasQueryFilter(x => EF.Property<DateTime?>(x.Unit, "DeletedAt") == null);
+        // 2. СИНХРОНИЗАЦИЯ QUERY FILTER (Исправление для Soft Delete)
+        // Фильтруем саму связующую сущность, если она помечена как удаленная,
+        // ИЛИ если удалено связанное с ней оборудование (Unit).
+        // Используем EF.Property для безопасного доступа к теневым/явным свойствам.
+        builder.HasQueryFilter(x =>
+            x.DeletedAt == null &&
+            EF.Property<DateTime?>(x.Unit, "DeletedAt") == null);
     }
 }

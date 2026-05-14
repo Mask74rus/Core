@@ -12,7 +12,7 @@ using Promatis.Net.Test.MDM.Data;
 namespace Promatis.Net.Test.MDM.DataInit.Migrations
 {
     [DbContext(typeof(MdmApplicationDbContext))]
-    [Migration("20260513080901_Init")]
+    [Migration("20260514063543_Init")]
     partial class Init
     {
         /// <inheritdoc />
@@ -21,7 +21,7 @@ namespace Promatis.Net.Test.MDM.DataInit.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasDefaultSchema("mdm")
-                .HasAnnotation("ProductVersion", "10.0.7")
+                .HasAnnotation("ProductVersion", "10.0.8")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -64,7 +64,7 @@ namespace Promatis.Net.Test.MDM.DataInit.Migrations
                     b.ToTable("AuditLogs", "mdm");
                 });
 
-            modelBuilder.Entity("Promatis.Net.MES.Domain.UnitBase", b =>
+            modelBuilder.Entity("Promatis.Net.Domain.ReferenceTreeBase", b =>
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
@@ -87,9 +87,6 @@ namespace Promatis.Net.Test.MDM.DataInit.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
 
-                    b.Property<int>("Kind")
-                        .HasColumnType("integer");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -98,29 +95,28 @@ namespace Promatis.Net.Test.MDM.DataInit.Migrations
                     b.Property<Guid?>("ParentId")
                         .HasColumnType("uuid");
 
-                    b.Property<int>("Type")
-                        .HasColumnType("integer");
-
                     b.HasKey("Id");
 
                     b.HasIndex("DeletedAt");
 
-                    b.ToTable("Units", "mdm");
+                    b.HasIndex("ParentId");
+
+                    b.ToTable("ReferenceTreeBase", "mdm");
 
                     b.UseTptMappingStrategy();
                 });
 
-            modelBuilder.Entity("Promatis.Net.MES.MDM.Domain.TechnologicalOperation", b =>
+            modelBuilder.Entity("Promatis.Net.MES.MDM.Domain.TechnologicalOperationParameter", b =>
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
-                    b.Property<string>("Code")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DefaultValue")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
@@ -129,26 +125,30 @@ namespace Promatis.Net.Test.MDM.DataInit.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
 
-                    b.Property<string>("Description")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<bool>("IsLeaf")
+                    b.Property<bool>("IsRequired")
                         .HasColumnType("boolean");
 
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
+                    b.Property<double?>("MaxValue")
+                        .HasColumnType("double precision");
 
-                    b.Property<Guid?>("ParentId")
+                    b.Property<double?>("MinValue")
+                        .HasColumnType("double precision");
+
+                    b.Property<Guid>("OperationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ParameterId")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
                     b.HasIndex("DeletedAt");
 
-                    b.ToTable("TechnologicalOperation", "mdm");
+                    b.HasIndex("OperationId");
+
+                    b.HasIndex("ParameterId");
+
+                    b.ToTable("TechnologicalOperationParameters", "mdm");
                 });
 
             modelBuilder.Entity("Promatis.Net.MES.MDM.Domain.TechnologicalOperationUnit", b =>
@@ -183,7 +183,75 @@ namespace Promatis.Net.Test.MDM.DataInit.Migrations
 
                     b.HasIndex("UnitId");
 
-                    b.ToTable("TechnologicalOperationUnit", "mdm");
+                    b.ToTable("TechnologicalOperationUnits", "mdm");
+                });
+
+            modelBuilder.Entity("Promatis.Net.MES.MDM.Domain.TechnologicalParameter", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DataType")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeletedBy")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("UnitOfMeasurement")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DeletedAt");
+
+                    b.ToTable("TechnologicalParameters", "mdm");
+                });
+
+            modelBuilder.Entity("Promatis.Net.MES.Domain.UnitBase", b =>
+                {
+                    b.HasBaseType("Promatis.Net.Domain.ReferenceTreeBase");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.ToTable("Units", "mdm");
+                });
+
+            modelBuilder.Entity("Promatis.Net.MES.MDM.Domain.TechnologicalOperation", b =>
+                {
+                    b.HasBaseType("Promatis.Net.Domain.ReferenceTreeBase");
+
+                    b.Property<bool>("IsLeaf")
+                        .HasColumnType("boolean");
+
+                    b.ToTable("TechnologicalOperations", "mdm");
                 });
 
             modelBuilder.Entity("Promatis.Net.Test.MDM.Domain.DepartmentUnit", b =>
@@ -221,10 +289,38 @@ namespace Promatis.Net.Test.MDM.DataInit.Migrations
                     b.ToTable("TransportUnits", "mdm");
                 });
 
+            modelBuilder.Entity("Promatis.Net.Domain.ReferenceTreeBase", b =>
+                {
+                    b.HasOne("Promatis.Net.Domain.ReferenceTreeBase", "Parent")
+                        .WithMany("Children")
+                        .HasForeignKey("ParentId");
+
+                    b.Navigation("Parent");
+                });
+
+            modelBuilder.Entity("Promatis.Net.MES.MDM.Domain.TechnologicalOperationParameter", b =>
+                {
+                    b.HasOne("Promatis.Net.MES.MDM.Domain.TechnologicalOperation", "Operation")
+                        .WithMany("ParameterLinks")
+                        .HasForeignKey("OperationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Promatis.Net.MES.MDM.Domain.TechnologicalParameter", "Parameter")
+                        .WithMany()
+                        .HasForeignKey("ParameterId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Operation");
+
+                    b.Navigation("Parameter");
+                });
+
             modelBuilder.Entity("Promatis.Net.MES.MDM.Domain.TechnologicalOperationUnit", b =>
                 {
                     b.HasOne("Promatis.Net.MES.MDM.Domain.TechnologicalOperation", "Operation")
-                        .WithMany()
+                        .WithMany("UnitLinks")
                         .HasForeignKey("OperationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -238,6 +334,15 @@ namespace Promatis.Net.Test.MDM.DataInit.Migrations
                     b.Navigation("Operation");
 
                     b.Navigation("Unit");
+                });
+
+            modelBuilder.Entity("Promatis.Net.MES.Domain.UnitBase", b =>
+                {
+                    b.HasOne("Promatis.Net.Domain.ReferenceTreeBase", null)
+                        .WithOne()
+                        .HasForeignKey("Promatis.Net.MES.Domain.UnitBase", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Promatis.Net.Test.MDM.Domain.DepartmentUnit", b =>
@@ -283,6 +388,18 @@ namespace Promatis.Net.Test.MDM.DataInit.Migrations
                         .HasForeignKey("Promatis.Net.Test.MDM.Domain.TransportUnit", "Id")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Promatis.Net.Domain.ReferenceTreeBase", b =>
+                {
+                    b.Navigation("Children");
+                });
+
+            modelBuilder.Entity("Promatis.Net.MES.MDM.Domain.TechnologicalOperation", b =>
+                {
+                    b.Navigation("ParameterLinks");
+
+                    b.Navigation("UnitLinks");
                 });
 #pragma warning restore 612, 618
         }

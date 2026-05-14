@@ -34,7 +34,45 @@ namespace Promatis.Net.Test.MDM.DataInit.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "TechnologicalOperation",
+                name: "ReferenceTreeBase",
+                schema: "mdm",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    ParentId = table.Column<Guid>(type: "uuid", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    Description = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    Code = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedBy = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ReferenceTreeBase", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ReferenceTreeBase_ReferenceTreeBase_ParentId",
+                        column: x => x.ParentId,
+                        principalSchema: "mdm",
+                        principalTable: "ReferenceTreeBase",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "TechnologicalOperations",
+                schema: "mdm",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    IsLeaf = table.Column<bool>(type: "boolean", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TechnologicalOperations", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "TechnologicalParameters",
                 schema: "mdm",
                 columns: table => new
                 {
@@ -45,12 +83,12 @@ namespace Promatis.Net.Test.MDM.DataInit.Migrations
                     Code = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
                     DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     DeletedBy = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
-                    ParentId = table.Column<Guid>(type: "uuid", nullable: true),
-                    IsLeaf = table.Column<bool>(type: "boolean", nullable: false)
+                    UnitOfMeasurement = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    DataType = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_TechnologicalOperation", x => x.Id);
+                    table.PrimaryKey("PK_TechnologicalParameters", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -60,18 +98,53 @@ namespace Promatis.Net.Test.MDM.DataInit.Migrations
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     Kind = table.Column<int>(type: "integer", nullable: false),
-                    Type = table.Column<int>(type: "integer", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    Name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
-                    Description = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
-                    Code = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
-                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeletedBy = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
-                    ParentId = table.Column<Guid>(type: "uuid", nullable: true)
+                    Type = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Units", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Units_ReferenceTreeBase_Id",
+                        column: x => x.Id,
+                        principalSchema: "mdm",
+                        principalTable: "ReferenceTreeBase",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "TechnologicalOperationParameters",
+                schema: "mdm",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    OperationId = table.Column<Guid>(type: "uuid", nullable: false),
+                    ParameterId = table.Column<Guid>(type: "uuid", nullable: false),
+                    IsRequired = table.Column<bool>(type: "boolean", nullable: false),
+                    DefaultValue = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    MinValue = table.Column<double>(type: "double precision", nullable: true),
+                    MaxValue = table.Column<double>(type: "double precision", nullable: true),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedBy = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TechnologicalOperationParameters", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_TechnologicalOperationParameters_TechnologicalOperations_Op~",
+                        column: x => x.OperationId,
+                        principalSchema: "mdm",
+                        principalTable: "TechnologicalOperations",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_TechnologicalOperationParameters_TechnologicalParameters_Pa~",
+                        column: x => x.ParameterId,
+                        principalSchema: "mdm",
+                        principalTable: "TechnologicalParameters",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -151,7 +224,7 @@ namespace Promatis.Net.Test.MDM.DataInit.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "TechnologicalOperationUnit",
+                name: "TechnologicalOperationUnits",
                 schema: "mdm",
                 columns: table => new
                 {
@@ -165,16 +238,16 @@ namespace Promatis.Net.Test.MDM.DataInit.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_TechnologicalOperationUnit", x => x.Id);
+                    table.PrimaryKey("PK_TechnologicalOperationUnits", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_TechnologicalOperationUnit_TechnologicalOperation_Operation~",
+                        name: "FK_TechnologicalOperationUnits_TechnologicalOperations_Operati~",
                         column: x => x.OperationId,
                         principalSchema: "mdm",
-                        principalTable: "TechnologicalOperation",
+                        principalTable: "TechnologicalOperations",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_TechnologicalOperationUnit_Units_UnitId",
+                        name: "FK_TechnologicalOperationUnits_Units_UnitId",
                         column: x => x.UnitId,
                         principalSchema: "mdm",
                         principalTable: "Units",
@@ -202,33 +275,57 @@ namespace Promatis.Net.Test.MDM.DataInit.Migrations
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_TechnologicalOperation_DeletedAt",
+                name: "IX_ReferenceTreeBase_DeletedAt",
                 schema: "mdm",
-                table: "TechnologicalOperation",
+                table: "ReferenceTreeBase",
                 column: "DeletedAt");
 
             migrationBuilder.CreateIndex(
-                name: "IX_TechnologicalOperationUnit_DeletedAt",
+                name: "IX_ReferenceTreeBase_ParentId",
                 schema: "mdm",
-                table: "TechnologicalOperationUnit",
+                table: "ReferenceTreeBase",
+                column: "ParentId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TechnologicalOperationParameters_DeletedAt",
+                schema: "mdm",
+                table: "TechnologicalOperationParameters",
                 column: "DeletedAt");
 
             migrationBuilder.CreateIndex(
-                name: "IX_TechnologicalOperationUnit_OperationId",
+                name: "IX_TechnologicalOperationParameters_OperationId",
                 schema: "mdm",
-                table: "TechnologicalOperationUnit",
+                table: "TechnologicalOperationParameters",
                 column: "OperationId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_TechnologicalOperationUnit_UnitId",
+                name: "IX_TechnologicalOperationParameters_ParameterId",
                 schema: "mdm",
-                table: "TechnologicalOperationUnit",
+                table: "TechnologicalOperationParameters",
+                column: "ParameterId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TechnologicalOperationUnits_DeletedAt",
+                schema: "mdm",
+                table: "TechnologicalOperationUnits",
+                column: "DeletedAt");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TechnologicalOperationUnits_OperationId",
+                schema: "mdm",
+                table: "TechnologicalOperationUnits",
+                column: "OperationId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TechnologicalOperationUnits_UnitId",
+                schema: "mdm",
+                table: "TechnologicalOperationUnits",
                 column: "UnitId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Units_DeletedAt",
+                name: "IX_TechnologicalParameters_DeletedAt",
                 schema: "mdm",
-                table: "Units",
+                table: "TechnologicalParameters",
                 column: "DeletedAt");
         }
 
@@ -256,7 +353,11 @@ namespace Promatis.Net.Test.MDM.DataInit.Migrations
                 schema: "mdm");
 
             migrationBuilder.DropTable(
-                name: "TechnologicalOperationUnit",
+                name: "TechnologicalOperationParameters",
+                schema: "mdm");
+
+            migrationBuilder.DropTable(
+                name: "TechnologicalOperationUnits",
                 schema: "mdm");
 
             migrationBuilder.DropTable(
@@ -264,11 +365,19 @@ namespace Promatis.Net.Test.MDM.DataInit.Migrations
                 schema: "mdm");
 
             migrationBuilder.DropTable(
-                name: "TechnologicalOperation",
+                name: "TechnologicalParameters",
+                schema: "mdm");
+
+            migrationBuilder.DropTable(
+                name: "TechnologicalOperations",
                 schema: "mdm");
 
             migrationBuilder.DropTable(
                 name: "Units",
+                schema: "mdm");
+
+            migrationBuilder.DropTable(
+                name: "ReferenceTreeBase",
                 schema: "mdm");
         }
     }

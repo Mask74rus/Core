@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Reflection;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Promatis.Net.Domain;
 
@@ -18,9 +19,8 @@ public class ApplicationDbContext(
         // Указываем общую схему
         modelBuilder.HasDefaultSchema(Schema);
 
-        // Вызываем наше расширение, передавая сборку текущего контекста
-        //modelBuilder.ApplyModuleConfigurations(GetType().Assembly);
-        modelBuilder.ApplyConfigurationsFromAssembly(GetType().Assembly, configType => !configType.IsAbstract);
+        // Получаем все загруженные в память сборки вашего проекта
+        modelBuilder.ApplyModuleConfigurations(this);
 
         // ГЛОБАЛЬНЫЕ ПРАВИЛА: Применяем индексы и настройки ключей через метод расширения
         modelBuilder.ApplyGlobalConventions();
