@@ -17,6 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\Core\Configuration.Web\Promatis.Net.Configuration.Web.csproj" />
     <ProjectReference Include="..\..\..\Mes\DCA\Promatis.Net.MES.DCA.UI\Promatis.Net.MES.DCA.UI.csproj" />
     <ProjectReference Include="..\Promatis.Net.Test.DCA.Service\Promatis.Net.Test.DCA.Service.csproj" />
   </ItemGroup>

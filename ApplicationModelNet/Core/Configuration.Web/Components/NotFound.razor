@@ -1,0 +1,17 @@
+﻿@page "/not-found"
+@layout MainLayout
+
+<PageTitle>404 - Страница не найдена</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="d-flex align-center justify-center" Style="height: 70vh;">
+    <MudPaper Elevation="3" Class="pa-8 text-center" Style="width: 100%;">
+        <MudIcon Icon="@Icons.Material.Filled.SearchOff" Color="Color.Error" Size="Size.Large" Class="mb-4" />
+        <MudText Typo="Typo.h5" Class="mb-2">Ошибка 404</MudText>
+        <MudText Typo="Typo.body2" Class="mud-text-secondary mb-6">
+            Извините, запрашиваемый адрес не существует, либо соответствующий модуль UI еще не загружен в систему.
+        </MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" href="/">
+            Вернуться на главную
+        </MudButton>
+    </MudPaper>
+</MudContainer>

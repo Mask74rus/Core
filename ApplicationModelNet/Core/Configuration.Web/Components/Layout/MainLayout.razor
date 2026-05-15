@@ -1,41 +1,67 @@
 ﻿@inherits LayoutComponentBase
+@using Promatis.Net.Ui.Theme
+@inject UiModuleService UiService
 
-<MudThemeProvider />
-<MudDialogProvider />
-<MudSnackbarProvider />
+@* Подключаем глобальную тему из базовой UI библиотеки *@
+<MudThemeProvider Theme="PromatisTheme.DefaultTheme" />
 <MudPopoverProvider />
 
-<MudLayout>
-    @* Верхняя панель приложения *@
-    <MudAppBar Elevation="1">
-        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@ToggleDrawer" />
-        <MudText Typo="Typo.h5" Class="ml-3">Promatis ERP</MudText>
-        <MudSpacer />
-        @* Сюда можно добавить профиль пользователя, уведомления и т.д. *@
-    </MudAppBar>
+@* Ваши жесткие настройки для системных и кастомных диалогов *@
+<MudDialogProvider FullWidth="false"
+                   MaxWidth="MaxWidth.False"
+                   CloseButton="false"
+                   BackdropClick="false"
+                   NoHeader="false"
+                   Position="DialogPosition.Center"
+                   CloseOnEscapeKey="true"
+                   BackgroundClass="my-custom-class" />
 
-    @* Боковое меню с динамической навигацией *@
-    <MudDrawer @bind-Open="_drawerOpen" Elevation="2" ClipMode="DrawerClipMode.Always">
-    <MudDrawerHeader>
-        <MudText Typo="Typo.subtitle1" Class="mud-text-secondary">Навигация по модулям</MudText>
-    </MudDrawerHeader>
-    @* Внедряем наш динамический компонент меню *@
-    <NavMenu />
-    </MudDrawer>
+<MudSnackbarProvider />
 
-    @* Основная рабочая область *@
-    <MudMainContent Class="pt-16 px-4">
-        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-6">
-            @Body
-        </MudContainer>
-    </MudMainContent>
-</MudLayout>
+<CascadingValue Value="this">
+    <MudLayout>
+        @* Верхняя панель приложения *@
+        <MudAppBar Color="Color.Primary" Elevation="1">
+            <MudIconButton Icon="@Icons.Material.Filled.Menu"
+                           Color="Color.Inherit"
+                           Edge="Edge.Start"
+                           Size="Size.Large"
+                           OnClick="ToggleDrawer" />
+            <MudStack Spacing="-1">
+                @* Динамически выводим имя первого активного модуля, либо дефолтное название *@
+                <MudText Typo="Typo.h6" Class="ml-2">
+                    @(UiService.Modules.FirstOrDefault()?.Name ?? "Promatis ERP")
+                </MudText>
+            </MudStack>
+        </MudAppBar>
+
+        @* Боковая панель с динамическим меню NavMenu *@
+        <MudDrawer @bind-Open="_drawerOpen"
+                   ClipMode="DrawerClipMode.Always"
+                   Variant="DrawerVariant.Persistent"
+                   Width="220px"
+                   Elevation="1">
+            <NavMenu />
+        </MudDrawer>
+
+        @* Основной контент приложения с предохранителем ошибок *@
+        <MudMainContent Style="padding-left: 20px; margin-top: 20px">
+            <ErrorBoundary>
+                <ChildContent>
+                    @Body
+                </ChildContent>
+                <ErrorContent Context="exception">
+                    <MudAlert Severity="Severity.Error" Class="my-4">
+                        Произошла критическая ошибка интерфейса: @exception.Message
+                    </MudAlert>
+                </ErrorContent>
+            </ErrorBoundary>
+        </MudMainContent>
+    </MudLayout>
+</CascadingValue>
 
 @code {
     private bool _drawerOpen = true;
 
-    private void ToggleDrawer()
-    {
-        _drawerOpen = !_drawerOpen;
-    }
+    private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
 }
