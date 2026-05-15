@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Promatis.Net.Domain.Interface;
 using System.Reflection;
 
 namespace Promatis.Net.Data;
@@ -52,20 +53,48 @@ public static class ModelBuilderExtensions
         }
 
         // 3. АВТО-ИГНОРИРОВАНИЕ «ОСИРОТЕВШИХ» АБСТРАКЦИЙ
-        // Сканируем все типы во всех сборках данных, находим абстрактные базовые классы (например, UnitBase)
         var allAbstractEntities = dataAssemblies
             .SelectMany(a => a.GetTypes())
             .Where(t => t is { IsClass: true, IsAbstract: true } && !t.IsGenericTypeDefinition);
 
         foreach (var abstractType in allAbstractEntities)
         {
-            // Если в текущем контексте нет ни одного DbSet для класса, унаследованного от этой абстракции,
-            // мы принудительно вырезаем эту абстракцию из модели EF Core, чтобы она не вызывала падений.
             bool isUsedInCurrentContext = contextDbSetTypes.Any(t => t == abstractType || t.IsSubclassOf(abstractType));
 
             if (!isUsedInCurrentContext)
             {
-                modelBuilder.Ignore(abstractType); // <--- Автоматический предохранитель!
+                modelBuilder.Ignore(abstractType);
+            }
+        }
+
+        // 4. АВТОМАТИЧЕСКАЯ НАСТРОЙКА ИЗОЛИРОВАННЫХ ДЕРЕВЬЕВ (ВАРИАНТ 1)
+        // Сканируем только те типы, которые EF Core успешно включил в модель метаданных
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            var clrType = entityType.ClrType;
+            if (clrType == null) continue;
+
+            // Ищем реализацию интерфейса ITreeNode<> (включая проверку у базовых классов)
+            var treeInterface = clrType.GetInterfaces()
+                .FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(ITreeNode<>));
+
+            if (treeInterface != null)
+            {
+                // Получаем целевой тип иерархии дерева, например: UnitBase или TechnologicalOperationBase<...>
+                var targetTreeType = treeInterface.GetGenericArguments()[0];
+
+                // Настройку связи производим строго на том типе, который объявил свойства Parent/Children,
+                // чтобы EF Core не дублировал Foreign Key для каждого дочернего класса в TPT/TPH.
+                if (clrType == targetTreeType)
+                {
+                    modelBuilder.Entity(clrType, builder =>
+                    {
+                        builder.HasOne("Parent")
+                               .WithMany("Children")
+                               .HasForeignKey("ParentId") // Свойство из общего класса ReferenceTreeBase
+                               .OnDelete(DeleteBehavior.Restrict);
+                    });
+                }
             }
         }
     }

@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Promatis.Net.Domain.Interface;
 using Promatis.Net.MES.Domain;
 using Promatis.Net.MES.Domain.Interface;
 using Promatis.Net.Service;
@@ -7,7 +8,7 @@ namespace Promatis.Net.MES.Service;
 
 public abstract class UnitBaseService<T, TContext>(IDbContextFactory<TContext> contextFactory)
     : ReferenceTreeService<T, TContext>(contextFactory), IUnitBaseService<T>
-    where T : UnitBase
+    where T : UnitBase, ITreeNode<T>
     where TContext : DbContext
 {
     public async Task<List<T>> GetByKindAsync(UnitKind kind)

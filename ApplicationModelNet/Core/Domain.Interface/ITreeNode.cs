@@ -4,9 +4,9 @@
 /// Интерфейс приведения типов родителя и потомков в дереве
 /// </summary>
 /// <typeparam name="T"></typeparam>
-public interface ITreeNode<out T> where T : class
+public interface ITreeNode<T> where T : class
 {
-    T? TypedParent { get; }
+    T? Parent { get; }
 
-    IEnumerable<T> TypedChildren { get; }
+    ICollection<T> Children { get; }
 }

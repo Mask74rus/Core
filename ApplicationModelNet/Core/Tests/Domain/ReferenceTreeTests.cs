@@ -1,12 +1,18 @@
 ﻿using FluentValidation.TestHelper;
 using Promatis.Net.Domain;
+using Promatis.Net.Domain.Interface;
 using Xunit;
 
 namespace Promatis.Net.ApplicationModel.Tests.Domain;
 
 public class ReferenceTreeTests
 {
-    private class TestNode : ReferenceTreeBase { }
+    private class TestNode : ReferenceTreeBase, ITreeNode<TestNode>
+    {
+        public virtual TestNode? Parent { get; set; }
+        public virtual ICollection<TestNode> Children { get; set; } = new List<TestNode>();
+    }
+
     private class TestNodeValidator : ReferenceTreeBaseValidator<TestNode> { }
 
     private readonly TestNodeValidator _validator = new();

@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Promatis.Net.Domain;
+using Promatis.Net.Domain.Interface;
 using Promatis.Net.MES.Domain;
 using Promatis.Net.MES.Domain.Interface;
 using Promatis.Net.Service;
@@ -8,7 +9,7 @@ namespace Promatis.Net.MES.Service;
 
 public abstract class TechnologicalOperationService<T, TLink, TContext>(IDbContextFactory<TContext> contextFactory)
     : ReferenceTreeService<T, TContext>(contextFactory), ITechnologicalOperationService<T, TLink>
-    where T : ReferenceTreeBase, ITechnologicalOperation
+    where T : ReferenceTreeBase, ITechnologicalOperation, ITreeNode<T>
     where TLink : TechnologicalOperationUnitBase<T> 
     where TContext : DbContext
 {

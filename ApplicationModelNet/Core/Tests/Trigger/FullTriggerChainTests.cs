@@ -32,16 +32,20 @@ public class IntegrationDbContext(
     IConfiguration configuration)
     : ApplicationDbContext(options, configuration)
 {
-    // Объявляем приватный тестовый узел прямо внутри контекста или файла тестов
-    private class TestNode : ReferenceTreeBase { }
+    // 1. ИСПРАВЛЕНИЕ: Делаем тестовый узел полноценным изолированным деревом
+    private class TestNode : ReferenceTreeBase, ITreeNode<TestNode>
+    {
+        // Добавляем строгие навигационные свойства, необходимые для работы ITreeNode и EF Core
+        public virtual TestNode? Parent { get; set; }
+        public virtual ICollection<TestNode> Children { get; set; } = new List<TestNode>();
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // 1. Запускаем базовый автоматический сканер Promatis
         base.OnModelCreating(modelBuilder);
 
-        // 2. ИСПРАВЛЕНИЕ: Для InMemory провайдера просто регистрируем сущность как самостоятельную.
-        // Больше никаких HasBaseType и дискриминаторов, так как ReferenceTreeBase глобально проигнорирован!
+        // 2. Настройка для InMemory провайдера
         if (Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory")
         {
             modelBuilder.Entity<TestNode>(builder =>
@@ -49,10 +53,12 @@ public class IntegrationDbContext(
                 // Задаем явное имя таблицы, чтобы InMemory изолировал её
                 builder.ToTable("FullTriggerChain_TestNodes");
 
-                // Явно указываем типы связей Родитель-Потомок через базовый класс дерева
-                builder.HasOne(typeof(ReferenceTreeBase), nameof(ReferenceTreeBase.Parent))
-                    .WithMany(nameof(ReferenceTreeBase.Children))
-                    .HasForeignKey(nameof(ReferenceTreeBase.ParentId));
+                // ИСПРАВЛЕНИЕ: Настраиваем связь строго на типе TestNode, 
+                // используя строго типизированные nameof от самого класса тест-ноды
+                builder.HasOne(x => x.Parent)
+                    .WithMany(x => x.Children)
+                    .HasForeignKey(x => x.ParentId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             // Также регистрируем саму тестовую интеграционную сущность
@@ -60,6 +66,7 @@ public class IntegrationDbContext(
         }
     }
 }
+
 public class FullTriggerChainTests
 {
     [Fact]

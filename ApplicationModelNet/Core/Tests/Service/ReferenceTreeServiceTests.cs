@@ -2,15 +2,22 @@
 using Microsoft.Testing.Platform.Extensions.Messages;
 using Promatis.Net.Data;
 using Promatis.Net.Domain;
+using Promatis.Net.Domain.Interface;
 using Promatis.Net.Service;
 using Xunit;
 using static Promatis.Net.ApplicationModel.Tests.Service.ReferenceTreeServiceTests;
 
 namespace Promatis.Net.ApplicationModel.Tests.Service;
 
+
 public class ReferenceTreeServiceTests : BaseServiceTests
 {
-    public class TestTreeEntity : ReferenceTreeBase { }
+    public class TestTreeEntity : ReferenceTreeBase, ITreeNode<TestTreeEntity>
+    {
+        // Настоящие свойства дерева для EF Core (как мы делали для UnitBase)
+        public virtual TestTreeEntity? Parent { get; set; }
+        public virtual ICollection<TestTreeEntity> Children { get; set; } = new List<TestTreeEntity>();
+    }
 
     // Добавляем ApplicationDbContext в сигнатуру
     public class TestTreeService(IDbContextFactory<ApplicationDbContext> f)

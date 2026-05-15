@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Internal;
 using Promatis.Net.Domain;
+using Promatis.Net.Domain.Interface;
 
 namespace Promatis.Net.Service;
 
@@ -12,7 +13,7 @@ namespace Promatis.Net.Service;
 /// <typeparam name="TContext">Контекст базы данных.</typeparam>
 public abstract class ReferenceTreeService<T, TContext>(IDbContextFactory<TContext> contextFactory)
     : ReferenceService<T, TContext>(contextFactory), IReferenceTreeService<T>
-    where T : ReferenceTreeBase
+    where T : ReferenceTreeBase, ITreeNode<T>
     where TContext : DbContext
 {
     public async Task<List<T>> GetRootsAsync()
@@ -84,20 +85,30 @@ public abstract class ReferenceTreeService<T, TContext>(IDbContextFactory<TConte
         return root;
     }
 
+    // Метод BuildTree теперь пишется БЕЗ ключевого слова where
     private void BuildTree(T parent, ILookup<Guid?, T> lookup)
     {
-        List<T> children = lookup[parent.Id].ToList();
+        // 1. Получаем список дочерних элементов для текущего родителя
+        // Свойство Id доступно из вашей базовой структуры ReferenceBase / ReferenceTreeBase
+        var children = lookup[parent.Id].ToList();
 
-        // Прямо очищаем и наполняем стандартную коллекцию Children.
-        // Благодаря отсутствию каскада дженериков нам больше не нужны обертки
+        // 2. Очищаем коллекцию (работает напрямую, так как T ограничен интерфейсом ITreeNode<T>)
         parent.Children.Clear();
 
+        // 3. Заполняем дерево и уходим в рекурсию
         foreach (T child in children)
         {
             parent.Children.Add(child);
-            child.Parent = parent; // Восстанавливаем прямую ссылку на родителя в графе объектов
 
-            // Продолжаем рекурсивную сборку для текущего потомка
+            // Так как у свойства Parent в интерфейсе нет сеттера (get-only),
+            // мы безопасно прописываем его через проверку реального свойства C#-класса
+            var parentProp = child.GetType().GetProperty(nameof(ITreeNode<T>.Parent));
+            if (parentProp is { CanWrite: true })
+            {
+                parentProp.SetValue(child, parent);
+            }
+
+            // Рекурсивно собираем поддерево для потомка
             BuildTree(child, lookup);
         }
     }
