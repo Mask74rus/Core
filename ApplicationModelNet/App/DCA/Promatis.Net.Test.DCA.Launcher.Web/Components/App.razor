@@ -1,14 +1,37 @@
 ﻿@using Promatis.Net.Configuration.Web.Components
 @using Promatis.Net.Configuration.Web.Components.Layout
+<!DOCTYPE html>
+<html lang="ru">
+
 <head>
-    ...
-    <HeadOutlet /> @* Убрали @rendermode *@
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    
+    @* Подключение шрифта Roboto *@
+    <link href="https://googleapis.com" rel="stylesheet" />
+    
+    @* Базовые стили MudBlazor *@
+    <link href="@Assets["_content/MudBlazor/MudBlazor.min.css"]" rel="stylesheet" />
+    <ResourcePreloader />
+    
+    @* Кастомные стили всей экосистемы из общей библиотеки Promatis.Net.Ui *@
+    <link rel="stylesheet" href="@Assets["_content/Promatis.Net.Ui/app.css"]" />
+    
+    @* Изолированные стили компонентов *@
+    <link rel="stylesheet" href="@Assets["Promatis.Net.Web.UI.styles.css"]" />
+    <ImportMap />
+    <HeadOutlet />
 </head>
 
 <body>
-<Routes />     @* Убрали @rendermode *@
+@* Назначаем интерактивность здесь. Это сделает живым весь интерфейс системы *@
+<Routes @rendermode="RenderMode.InteractiveServer" />
 <ReconnectModal />
 
-<script src="@Assets["_framework/blazor.web.js"]"></script>
+<script src="_framework/blazor.web.js"></script>
 <script src="@Assets["_content/MudBlazor/MudBlazor.min.js"]"></script>
 </body>
+
+</html>
+
