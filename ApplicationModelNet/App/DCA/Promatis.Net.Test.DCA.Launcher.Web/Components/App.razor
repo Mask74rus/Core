@@ -1,21 +1,14 @@
-﻿<!DOCTYPE html>
-<html lang="en">
-
+﻿@using Promatis.Net.Configuration.Web.Components
+@using Promatis.Net.Configuration.Web.Components.Layout
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <base href="/" />
-    <ResourcePreloader />
-    <link rel="stylesheet" href="@Assets["app.css"]" />
-    <link rel="stylesheet" href="@Assets["Promatis.Net.Test.DCA.Launcher.Web.styles.css"]" />
-    <ImportMap />
-    <HeadOutlet @rendermode="InteractiveServer" />
+    ...
+    <HeadOutlet /> @* Убрали @rendermode *@
 </head>
 
 <body>
-    <Routes @rendermode="InteractiveServer" />
-    <ReconnectModal />
-    <script src="@Assets["_framework/blazor.web.js"]"></script>
-</body>
+<Routes />     @* Убрали @rendermode *@
+<ReconnectModal />
 
-</html>
+<script src="@Assets["_framework/blazor.web.js"]"></script>
+<script src="@Assets["_content/MudBlazor/MudBlazor.min.js"]"></script>
+</body>

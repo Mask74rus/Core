@@ -1,6 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Promatis.Net.Domain.Interface;
 using System.Reflection;
+using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Promatis.Net.Data;
 
@@ -9,16 +11,16 @@ public static class ModelBuilderExtensions
     public static void ApplyModuleConfigurations(this ModelBuilder modelBuilder, DbContext context)
     {
         // 1. Сканируем только сборки данных проекта Promatis.*.Data
-        var dataAssemblies = AppDomain.CurrentDomain.GetAssemblies()
+        List<Assembly> dataAssemblies = AppDomain.CurrentDomain.GetAssemblies()
             .Where(a => {
-                var name = a.GetName().Name;
+                string? name = a.GetName().Name;
                 return name != null &&
                        name.StartsWith("Promatis.") &&
                        name.EndsWith(".Data");
             }).ToList();
 
         // 2. Получаем типы сущностей, которые явно объявлены в текущем контексте через DbSet<T>
-        var contextDbSetTypes = context.GetType()
+        HashSet<Type> contextDbSetTypes = context.GetType()
             .GetProperties(BindingFlags.Public | BindingFlags.Instance)
             .Where(p => p.PropertyType.IsGenericType && p.PropertyType.GetGenericTypeDefinition() == typeof(DbSet<>))
             .Select(p => p.PropertyType.GetGenericArguments()[0])
@@ -33,12 +35,12 @@ public static class ModelBuilderExtensions
                     return false;
 
                 // Находим интерфейс конфигурации и тип сущности, которую она настраивает
-                var configInterface = type.GetInterfaces()
+                Type? configInterface = type.GetInterfaces()
                     .FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEntityTypeConfiguration<>));
 
                 if (configInterface == null) return false;
 
-                var entityType = configInterface.GetGenericArguments()[0];
+                Type entityType = configInterface.GetGenericArguments()[0];
 
                 // КРИТИЧЕСКИЙ ФИЛЬТР: Если настраиваемая сущность абстрактна,
                 // проверяем, есть ли у неё хоть один живой наследник в текущем DbSet-пуле контекста
@@ -53,11 +55,11 @@ public static class ModelBuilderExtensions
         }
 
         // 3. АВТО-ИГНОРИРОВАНИЕ «ОСИРОТЕВШИХ» АБСТРАКЦИЙ
-        var allAbstractEntities = dataAssemblies
+        IEnumerable<Type> allAbstractEntities = dataAssemblies
             .SelectMany(a => a.GetTypes())
             .Where(t => t is { IsClass: true, IsAbstract: true } && !t.IsGenericTypeDefinition);
 
-        foreach (var abstractType in allAbstractEntities)
+        foreach (Type abstractType in allAbstractEntities)
         {
             bool isUsedInCurrentContext = contextDbSetTypes.Any(t => t == abstractType || t.IsSubclassOf(abstractType));
 
@@ -67,33 +69,35 @@ public static class ModelBuilderExtensions
             }
         }
 
-        // 4. АВТОМАТИЧЕСКАЯ НАСТРОЙКА ИЗОЛИРОВАННЫХ ДЕРЕВЬЕВ (ВАРИАНТ 1)
-        // Сканируем только те типы, которые EF Core успешно включил в модель метаданных
-        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        // 4. АВТОМАТИЧЕСКАЯ НАСТРОЙКА ИЗОЛИРОВАННЫХ ДЕРЕВЬЕВ И ИНДЕКСОВ
+        foreach (IMutableEntityType entityType in modelBuilder.Model.GetEntityTypes())
         {
-            var clrType = entityType.ClrType;
+            Type? clrType = entityType.ClrType;
             if (clrType == null) continue;
 
-            // Ищем реализацию интерфейса ITreeNode<> (включая проверку у базовых классов)
-            var treeInterface = clrType.GetInterfaces()
+            // Ищем реализацию интерфейса ITreeNode<>
+            Type? treeInterface = clrType.GetInterfaces()
                 .FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(ITreeNode<>));
 
             if (treeInterface != null)
             {
-                // Получаем целевой тип иерархии дерева, например: UnitBase или TechnologicalOperationBase<...>
-                var targetTreeType = treeInterface.GetGenericArguments()[0];
+                Type targetTreeType = treeInterface.GetGenericArguments()[0];
 
-                // Настройку связи производим строго на том типе, который объявил свойства Parent/Children,
-                // чтобы EF Core не дублировал Foreign Key для каждого дочернего класса в TPT/TPH.
+                // Настраиваем только на базовом уровне объявления свойств (чтобы избежать дублирования в TPT)
                 if (clrType == targetTreeType)
                 {
-                    modelBuilder.Entity(clrType, builder =>
-                    {
-                        builder.HasOne("Parent")
-                               .WithMany("Children")
-                               .HasForeignKey("ParentId") // Свойство из общего класса ReferenceTreeBase
-                               .OnDelete(DeleteBehavior.Restrict);
-                    });
+                    EntityTypeBuilder builder = modelBuilder.Entity(clrType);
+
+                    // 1. Настройка связи Родитель-Потомок
+                    builder.HasOne("Parent")
+                        .WithMany("Children")
+                        .HasForeignKey("ParentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    // 2. АВТО-ИНДЕКС: Создаем индекс для внешнего ключа ParentId
+                    // Это ускорит поиск элементов по ParentId при работе ILookup в сервисах
+                    builder.HasIndex("ParentId")
+                        .HasDatabaseName($"IX_{clrType.Name}_ParentId");
                 }
             }
         }

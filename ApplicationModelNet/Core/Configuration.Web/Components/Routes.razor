@@ -1,7 +1,7 @@
 ﻿@using System.Reflection
 @inject UiModuleService UiService
 
-<Router AppAssembly="@typeof(Routes).Assembly" 
+<Router AppAssembly="@typeof(Routes).Assembly"
         AdditionalAssemblies="@_moduleAssemblies">
     <Found Context="routeData">
         <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
@@ -19,7 +19,6 @@
 
     protected override void OnInitialized()
     {
-        // Извлекаем уникальные сборки из всех зарегистрированных UI-модулей
         _moduleAssemblies = UiService.Modules
             .Select(m => m.GetType().Assembly)
             .Distinct()

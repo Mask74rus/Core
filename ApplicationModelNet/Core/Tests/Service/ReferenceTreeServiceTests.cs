@@ -1,11 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.Testing.Platform.Extensions.Messages;
 using Promatis.Net.Data;
 using Promatis.Net.Domain;
 using Promatis.Net.Domain.Interface;
 using Promatis.Net.Service;
 using Xunit;
-using static Promatis.Net.ApplicationModel.Tests.Service.ReferenceTreeServiceTests;
 
 namespace Promatis.Net.ApplicationModel.Tests.Service;
 

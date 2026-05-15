@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\Mes\DCA\Promatis.Net.MES.DCA.Configuration\Promatis.Net.MES.DCA.Configuration.csproj" />
+    <ProjectReference Include="..\..\..\Mes\DCA\Promatis.Net.MES.DCA.UI\Promatis.Net.MES.DCA.UI.csproj" />
     <ProjectReference Include="..\Promatis.Net.Test.DCA.DataInit\Promatis.Net.Test.DCA.DataInit.csproj" />
     <ProjectReference Include="..\Promatis.Net.Test.DCA.Service\Promatis.Net.Test.DCA.Service.csproj" />
   </ItemGroup>

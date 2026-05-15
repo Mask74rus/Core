@@ -5,7 +5,37 @@
 <MudSnackbarProvider />
 <MudPopoverProvider />
 
-
 <MudLayout>
-    @* AppBar, Drawer, MainContent... *@
+    @* Верхняя панель приложения *@
+    <MudAppBar Elevation="1">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@ToggleDrawer" />
+        <MudText Typo="Typo.h5" Class="ml-3">Promatis ERP</MudText>
+        <MudSpacer />
+        @* Сюда можно добавить профиль пользователя, уведомления и т.д. *@
+    </MudAppBar>
+
+    @* Боковое меню с динамической навигацией *@
+    <MudDrawer @bind-Open="_drawerOpen" Elevation="2" ClipMode="DrawerClipMode.Always">
+    <MudDrawerHeader>
+        <MudText Typo="Typo.subtitle1" Class="mud-text-secondary">Навигация по модулям</MudText>
+    </MudDrawerHeader>
+    @* Внедряем наш динамический компонент меню *@
+    <NavMenu />
+    </MudDrawer>
+
+    @* Основная рабочая область *@
+    <MudMainContent Class="pt-16 px-4">
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-6">
+            @Body
+        </MudContainer>
+    </MudMainContent>
 </MudLayout>
+
+@code {
+    private bool _drawerOpen = true;
+
+    private void ToggleDrawer()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+}

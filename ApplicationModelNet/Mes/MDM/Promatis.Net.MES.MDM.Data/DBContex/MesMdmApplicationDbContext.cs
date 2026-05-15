@@ -1,6 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using Promatis.Net.Data;
 using Promatis.Net.MES.Data;
 using Promatis.Net.MES.MDM.Domain;
 

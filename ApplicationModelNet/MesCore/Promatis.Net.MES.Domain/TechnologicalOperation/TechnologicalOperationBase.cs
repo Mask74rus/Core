@@ -1,6 +1,5 @@
 ﻿using Promatis.Net.Domain;
 using Promatis.Net.Domain.Interface;
-using System.ComponentModel.DataAnnotations.Schema;
 using Promatis.Net.MES.Domain.Interface;
 
 namespace Promatis.Net.MES.Domain;

@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Configuration\Promatis.Net.Configuration.csproj" />
+    <ProjectReference Include="..\Promatis.Net.UI\Promatis.Net.UI.csproj" />
   </ItemGroup>
 
 </Project>

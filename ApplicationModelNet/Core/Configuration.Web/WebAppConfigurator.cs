@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Components;
+﻿using System.Reflection;
+using Microsoft.AspNetCore.Components;
 using MudBlazor.Services;
 
 namespace Promatis.Net.Configuration.Web;
@@ -44,13 +45,19 @@ public class WebAppConfigurator<TRootComponent> : AppConfigurator, IWebAppConfig
         app.UseStaticFiles();
         app.UseAntiforgery();
 
-        // Настройка маршрутизации Razor-компонентов. 
-        // TRootComponent передается из Bootstrapper-а (обычно это App.razor)
-        app.MapRazorComponents<TRootComponent>()
-            .AddInteractiveServerRenderMode();
+        // 1. Получаем зарегистрированные UI-сборки из DI-контейнера хоста
+        using IServiceScope scope = app.Services.CreateScope();
+        var uiService = scope.ServiceProvider.GetRequiredService<UiModuleService>();
 
-        // Маппинг статических ресурсов (в .NET 9+ для MudBlazor и RCL)
-        // app.MapStaticAssets(); 
+        Assembly[] moduleAssemblies = uiService.Modules
+            .Select(m => m.GetType().Assembly)
+            .Distinct()
+            .ToArray();
+
+        // 2. Регистрируем корневой компонент и сканируем страницы модулей на сервере
+        app.MapRazorComponents<TRootComponent>()
+            .AddInteractiveServerRenderMode()
+            .AddAdditionalAssemblies(moduleAssemblies); 
     }
 
     public override void ConfigureApp(IHost app)

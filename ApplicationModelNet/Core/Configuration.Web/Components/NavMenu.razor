@@ -1,0 +1,33 @@
+﻿@using Promatis.Net.UI
+@inject UiModuleService UiService
+
+<MudNavMenu>
+    @foreach (IUiModule module in UiService.Modules)
+    {
+        List<(string Title, string Href, string Icon)>? items = module.GetMenuItems()?.ToList();
+        
+        if (items == null || !items.Any())
+            continue;
+
+        @if (items.Count == 1)
+        {
+            @* Если у модуля всего один пункт, выводим его без группы *@
+            (string Title, string Href, string Icon) item = items.First();
+            <MudNavLink Href="@item.Href" Icon="@item.Icon" Match="NavLinkMatch.All">
+                @item.Title
+            </MudNavLink>
+        }
+        else
+        {
+            @* Если пунктов несколько, упаковываем их в раскрывающуюся группу модуля *@
+            <MudNavGroup Title="@module.Name" Icon="@Icons.Material.Filled.Folder" Expanded="true">
+                @foreach ((string title, string href, string icon) in items)
+                {
+                    <MudNavLink Href="@href" Icon="@icon" Match="NavLinkMatch.Prefix">
+                        @title
+                    </MudNavLink>
+                }
+            </MudNavGroup>
+        }
+    }
+</MudNavMenu>
