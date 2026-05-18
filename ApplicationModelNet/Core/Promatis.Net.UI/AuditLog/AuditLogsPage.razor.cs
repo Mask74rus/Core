@@ -2,16 +2,12 @@
 using MudBlazor;
 using Promatis.Net.Service;
 
-namespace Promatis.Net.UI.Contracts.AuditLog; // Укажите здесь ваше реальное пространство имен (namespace) для папки с компонентом
+namespace Promatis.Net.UI.AuditLog; // Укажите здесь ваше реальное пространство имен (namespace) для папки с компонентом
 
-public partial class AuditLogsPage : ComponentBase
+public partial class AuditLogsPage : BaseDataGrid<Domain.AuditLog>
 {
-    // Вместо @inject используем атрибут [Inject]
-    [Inject] protected IAuditLogService AuditLogService { get; set; } = null!;
-    [Inject] protected ISnackbar Snackbar { get; set; } = null!;
-
-    protected MudDataGrid<Domain.AuditLog> Grid { get; set; } = null!;
-    protected bool IsLoading;
+    [Inject]
+    protected IAuditLogService AuditLogService { get; set; } = null!;
 
     // В MudBlazor v9.4 DateRange иммутабелен, инициализируем через конструктор
     protected DateRange LogDateRange { get; set; } = new(DateTime.Today.AddDays(-7), DateTime.Today);
@@ -20,24 +16,24 @@ public partial class AuditLogsPage : ComponentBase
     protected string? SelectedAction;
     protected List<string> AvailableEntities = new();
 
-    // 1. Оставляем OnInitializedAsync абсолютно ПУСТЫМ или удаляем его.
-    // Это гарантирует, что при клике на меню страница откроется МГНОВЕННО.
-    protected override Task OnInitializedAsync()
+    // Сигнатура метода-моста теперь строго соответствует требованиям MudDataGrid ServerData делегата
+    protected async Task<GridData<GridRowModel<Domain.AuditLog>>> LoadGridDataAsyncInternal(
+        GridState<GridRowModel<Domain.AuditLog>> state,
+        CancellationToken token)
     {
-        return Task.CompletedTask;
+        // Передаем токен, сгенерированный компонентом MudDataGrid, дальше в базовый метод
+        return await LoadGridDataAsync(state, token);
     }
 
-    // 2. Используем OnAfterRenderAsync для тяжелых фоновых запросов
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        // Код выполнится ТОЛЬКО один раз, сразу ПОСЛЕ того, как пользователь 
-        // уже увидел форму логов на своем экране
         if (firstRender)
         {
             try
             {
-                // Загружаем фильтры сущностей, когда UI уже отзывчив
-                AvailableEntities = await AuditLogService.GetAvailableEntityNamesAsync();
+                // Загружаем фильтры сущностей, когда UI уже отзывчив (Мгновенное открытие страниц)
+                // Используем долгоживущий токен Cts.Token из базового класса BaseDataGrid
+                AvailableEntities = await AuditLogService.GetAvailableEntityNamesAsync(Cts.Token);
 
                 // Принудительно уведомляем Blazor, что данные фильтра обновились
                 StateHasChanged();
@@ -49,11 +45,13 @@ public partial class AuditLogsPage : ComponentBase
         }
     }
 
-    protected async Task<GridData<Domain.AuditLog>> LoadGridDataAsync(GridState<Domain.AuditLog> state, CancellationToken token)
+    protected override async Task<GridData<GridRowModel<Domain.AuditLog>>> LoadGridDataAsync(
+        GridState<GridRowModel<Domain.AuditLog>> state,
+        CancellationToken token)
     {
         if (LogDateRange.Start == null || LogDateRange.End == null)
         {
-            return new GridData<Domain.AuditLog> { Items = Array.Empty<Domain.AuditLog>(), TotalItems = 0 };
+            return new GridData<GridRowModel<Domain.AuditLog>> { Items = Array.Empty<GridRowModel<Domain.AuditLog>>(), TotalItems = 0 };
         }
 
         IsLoading = true;
@@ -65,7 +63,7 @@ public partial class AuditLogsPage : ComponentBase
             var localFrom = LogDateRange.Start.Value.Date;
             var localTo = LogDateRange.End.Value.Date.AddDays(1).AddTicks(-1);
 
-            // 2. ИСПРАВЛЕНИЕ: Принудительно конвертируем их в UTC перед отправкой в сервис/БД
+            // 2. Принудительно конвертируем их в UTC перед отправкой в сервис и PostgreSQL
             var utcFrom = DateTime.SpecifyKind(localFrom, DateTimeKind.Local).ToUniversalTime();
             var utcTo = DateTime.SpecifyKind(localTo, DateTimeKind.Local).ToUniversalTime();
 
@@ -78,22 +76,27 @@ public partial class AuditLogsPage : ComponentBase
                 PageSize: state.PageSize
             );
 
+            // Запрашиваем чистый список доменных объектов из сервиса, прокидывая токен отмены
             var result = await AuditLogService.SearchLogsAsync(request, token);
 
-            return new GridData<Domain.AuditLog>
+            // Оборачиваем доменные объекты в UI-модели на лету перед рендерингом (Околонулевой маппинг)
+            var mappedItems = result.Items.Select(x => new GridRowModel<Domain.AuditLog>(x)).ToList();
+
+            return new GridData<GridRowModel<Domain.AuditLog>>
             {
-                Items = result.Items,
+                Items = mappedItems,
                 TotalItems = result.TotalCount
             };
         }
         catch (OperationCanceledException)
         {
-            return new GridData<Domain.AuditLog> { Items = Array.Empty<Domain.AuditLog>(), TotalItems = 0 };
+            // Корректно обрабатываем отмену операции (например, при быстром переклике пагинации)
+            return new GridData<GridRowModel<Domain.AuditLog>> { Items = Array.Empty<GridRowModel<Domain.AuditLog>>(), TotalItems = 0 };
         }
         catch (Exception ex)
         {
             Snackbar.Add($"Ошибка при получении логов: {ex.Message}", Severity.Error);
-            return new GridData<Domain.AuditLog> { Items = Array.Empty<Domain.AuditLog>(), TotalItems = 0 };
+            return new GridData<GridRowModel<Domain.AuditLog>> { Items = Array.Empty<GridRowModel<Domain.AuditLog>>(), TotalItems = 0 };
         }
         finally
         {

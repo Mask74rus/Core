@@ -72,9 +72,9 @@
     <Project Path="MesCore/Promatis.Net.MES.Domain/Promatis.Net.MES.Domain.csproj" Id="e47b3f45-204f-4c04-a9f6-916219e97f20" />
     <Project Path="MesCore/Promatis.Net.MES.Tests/Promatis.Net.MES.Tests.csproj" Id="71571995-961b-4cff-95f7-e4f91b37b685" />
     <Project Path="MesCore/Promatis.Net.MES.Service/Promatis.Net.MES.Service.csproj" Id="cff63f69-9037-4d49-86fd-5c81c9429189" />
+    <Project Path="MesCore/Promatis.Net.MES.UI/Promatis.Net.MES.UI.csproj" Id="b19809ec-88e7-46e0-8ea7-bcd03043fca0" />
   </Folder>
   <Folder Name="/MesCore/_Unused/">
     <Project Path="MesCore/Promatis.Net.MES.Configuration/Promatis.Net.MES.Configuration.csproj" Id="8d157c76-eacc-4324-bcce-2f642b81ba42" />
-    <Project Path="MesCore/Promatis.Net.MES.UI/Promatis.Net.MES.UI.csproj" Id="b19809ec-88e7-46e0-8ea7-bcd03043fca0" />
   </Folder>
 </Solution>

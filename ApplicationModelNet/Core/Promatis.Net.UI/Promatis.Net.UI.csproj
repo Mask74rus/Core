@@ -17,6 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\MesCore\Promatis.Net.MES.Service\Promatis.Net.MES.Service.csproj" />
     <ProjectReference Include="..\Service\Promatis.Net.Service.csproj" />
   </ItemGroup>
 

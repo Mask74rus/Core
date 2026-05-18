@@ -1,7 +1,9 @@
 ﻿@page "/admin/audit-logs"
 
 @using Promatis.Net.Domain
+@using Promatis.Net.UI
 @using System.Text.Json
+@inherits Promatis.Net.UI.BaseDataGrid<Promatis.Net.Domain.AuditLog>
 
 <MudText Typo="Typo.h5" Class="mb-4">Журнал аудита системы</MudText>
 
@@ -41,21 +43,22 @@
 </MudPaper>
 
 <MudDataGrid @ref="Grid"
-             T="AuditLog"
-             ServerData="LoadGridDataAsync"
+             T="GridRowModel<AuditLog>"
+             ServerData="LoadGridDataAsyncInternal"
              Hover="true"
              Bordered="true"
              Striped="true"
              Loading="IsLoading">
     <Columns>
-        <HierarchyColumn T="AuditLog" ButtonPosition="HierarchyColumnButtonPosition.Left" />
-        <PropertyColumn Property="x => x.ChangedAt" Title="Дата/Время" Format="dd.MM.yyyy HH:mm:ss" Sortable="false" />
-        <PropertyColumn Property="x => x.ChangedBy" Title="Пользователь" Sortable="false" />
-        <PropertyColumn Property="x => x.EntityName" Title="Сущность" Sortable="false" />
-        <PropertyColumn Property="x => x.Action" Title="Действие" Sortable="false">
+        <HierarchyColumn T="GridRowModel<AuditLog>" ButtonPosition="HierarchyColumnButtonPosition.Left" />
+        <PropertyColumn Property="x => x.DomainEntity.ChangedAt" Title="Дата/Время" Format="dd.MM.yyyy HH:mm:ss" Sortable="false" />
+        <PropertyColumn Property="x => x.DomainEntity.ChangedBy" Title="Пользователь" Sortable="false" />
+        <PropertyColumn Property="x => x.DomainEntity.EntityName" Title="Сущность" Sortable="false" />
+        <PropertyColumn Property="x => x.DomainEntity.Action" Title="Действие" Sortable="false">
             <CellTemplate>
                 @{
-                    var color = context.Item.Action switch
+                    var action = context.Item.DomainEntity.Action;
+                    var color = action switch
                     {
                         "Added" => Color.Success,
                         "Modified" => Color.Info,
@@ -63,10 +66,10 @@
                         _ => Color.Default
                     };
                 }
-                <MudChip T="string" Color="color" Size="Size.Small" Variant="Variant.Text">@context.Item.Action</MudChip>
+                <MudChip T="string" Color="color" Size="Size.Small" Variant="Variant.Text">@action</MudChip>
             </CellTemplate>
         </PropertyColumn>
-        <PropertyColumn Property="x => x.EntityId" Title="ID Объекта" Sortable="false" />
+        <PropertyColumn Property="x => x.DomainEntity.EntityId" Title="ID Объекта" Sortable="false" />
     </Columns>
 
     <ChildRowContent>
@@ -75,14 +78,14 @@
                 <MudText Typo="Typo.subtitle2" Class="mb-2">Измененные свойства:</MudText>
                 @try
                 {
-                    using var doc = JsonDocument.Parse(context.Item.ChangesJson);
+                    using var doc = JsonDocument.Parse(context.Item.DomainEntity.ChangesJson);
                     if (doc.RootElement.ValueKind == JsonValueKind.Array)
                     {
                         <table class="mud-table-root" style="width: 100%; border-collapse: collapse;">
                             <thead>
                                 <tr style="border-bottom: 1px solid var(--mud-palette-divider);">
                                     <th style="padding: 8px; text-align: left;">Свойство</th>
-                                    @if (context.Item.Action == "Modified")
+                                    @if (context.Item.DomainEntity.Action == "Modified")
                                     {
                                         <th style="padding: 8px; text-align: left;">Старое значение</th>
                                     }
@@ -94,7 +97,7 @@
                                 {
                                     <tr style="border-bottom: 1px solid var(--mud-palette-table-lines);">
                                         <td style="padding: 8px; font-weight: 500;">@prop.GetProperty("PropertyName").GetString()</td>
-                                        @if (context.Item.Action == "Modified")
+                                        @if (context.Item.DomainEntity.Action == "Modified")
                                         {
                                             <td style="padding: 8px; color: var(--mud-palette-error);">
                                                 @(prop.TryGetProperty("OriginalValue", out var oldVal) ? oldVal.ToString() : "—")
@@ -109,20 +112,16 @@
                             </tbody>
                         </table>
                     }
-                    else if (doc.RootElement.TryGetProperty("Message", out var msg))
-                    {
-                        <MudText Color="Color.Error" Typo="Typo.body2">@msg.GetString()</MudText>
-                    }
                 }
                 catch
                 {
-                    <MudText Color="Color.Warning" Typo="Typo.caption">Ошибка парсинга данных: @context.Item.ChangesJson</MudText>
+                    <MudText Color="Color.Warning" Typo="Typo.caption">Ошибка парсинга данных: @context.Item.DomainEntity.ChangesJson</MudText>
                 }
             </MudCardContent>
         </MudCard>
     </ChildRowContent>
 
     <PagerContent>
-        <MudDataGridPager T="AuditLog" RowsPerPageString="Строк на странице:" InfoFormat="{first_item}-{last_item} из {all_items}" />
+        <MudDataGridPager T="GridRowModel<AuditLog>" RowsPerPageString="Строк на странице:" InfoFormat="{first_item}-{last_item} из {all_items}" />
     </PagerContent>
 </MudDataGrid>
