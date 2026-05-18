@@ -33,5 +33,7 @@ public static class WebScanningExtensions
         {
             Console.WriteLine($"[SCANNER] UI Модуль:  {module.Name}");
         }
+
+        Console.WriteLine("[SCANNER] Регистрация UI-компонентов завершена");
     }
 }

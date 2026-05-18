@@ -26,12 +26,6 @@ public class Configurator : IWebAppConfigurator
 
             options.UseNpgsql(builder.ConnectionString, x =>
                 x.MigrationsAssembly("Promatis.Net.Test.DCA.DataInit"));
-
-            if (!EF.IsDesignTime)
-            {
-                var interceptor = sp.GetRequiredService<DatabaseTriggerInterceptor>();
-                options.AddInterceptors(interceptor);
-            }
         });
 
         // 2. Исправляем ошибку приведения: регистрируем фабрику для базового типа

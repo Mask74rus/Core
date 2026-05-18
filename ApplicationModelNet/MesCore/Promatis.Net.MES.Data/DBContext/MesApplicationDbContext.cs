@@ -6,8 +6,9 @@ namespace Promatis.Net.MES.Data;
 
 public class MesApplicationDbContext(
     DbContextOptions options,
-    IConfiguration configuration)
-    : ApplicationDbContext(options, configuration)
+    IConfiguration configuration,
+    IServiceProvider? serviceProvider = null) 
+    : ApplicationDbContext(options, configuration, serviceProvider)
 {
     
 }

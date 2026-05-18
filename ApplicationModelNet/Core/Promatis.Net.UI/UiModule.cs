@@ -4,14 +4,17 @@ namespace Promatis.Net.UI;
 
 public class UiModule : IUiModule
 {
-    public string Name => "Управление НСИ (MDM)";
+    public string Name => GetType().Assembly.GetName().Name ?? "Unknown.Module";
 
-    public IEnumerable<(string Title, string Href, string Icon)> GetMenuItems()
+    public IEnumerable<(string Title, string Href, string Icon, string? Group)> GetMenuItems()
     {
-        return new List<(string Title, string Href, string Icon)>
+        return new List<(string Title, string Href, string Icon, string? Group)>
         {
-            // Корневая страница модуля
-            ("Главная MDM", "/", Icons.Material.Filled.Dashboard),
+            // Элемент верхнего уровня (вне папок)
+            ("Главная", "/", Icons.Material.Filled.Dashboard, null),
+            
+            // Раздел системного администрирования
+            ("Журнал аудита", "/admin/audit-logs", Icons.Material.Filled.History, "Администрирование")
         };
     }
 }

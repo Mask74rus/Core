@@ -7,8 +7,9 @@ namespace Promatis.Net.MES.MDM.Data;
 
 public class MesMdmApplicationDbContext(
     DbContextOptions options,
-    IConfiguration configuration)
-    : MesApplicationDbContext(options, configuration)
+    IConfiguration configuration,
+    IServiceProvider? serviceProvider = null) 
+    : MesApplicationDbContext(options, configuration, serviceProvider)
 {
     public DbSet<TechnologicalOperation> TechnologicalOperations => Set<TechnologicalOperation>();
     public DbSet<TechnologicalOperationUnit> TechnologicalOperationUnits => Set<TechnologicalOperationUnit>();

@@ -1,9 +1,19 @@
 ﻿namespace Promatis.Net.UI;
 
-// Интерфейс для модулей, которые хотят добавить свои пункты меню
+/// <summary>
+/// Контракт для динамических модулей пользовательского интерфейса.
+/// </summary>
 public interface IUiModule
 {
+    /// <summary>
+    /// Отображаемое имя модуля в системе (используется для сканера).
+    /// </summary>
     string Name { get; }
-    // Метод возвращает пункты меню (Название, Ссылка, Иконка)
-    IEnumerable<(string Title, string Href, string Icon)> GetMenuItems();
+
+    /// <summary>
+    /// Возвращает список элементов навигации для бокового меню MudDrawer.
+    /// Четвертый параметр отвечает за 2-уровневую группировку элементов.
+    /// </summary>
+    /// <returns>Коллекция кортежей: (Название, Ссылка, Иконка, НазваниеГруппы)</returns>
+    IEnumerable<(string Title, string Href, string Icon, string? Group)> GetMenuItems();
 }

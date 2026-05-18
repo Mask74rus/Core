@@ -8,8 +8,9 @@ namespace Promatis.Net.Test.MDM.Data;
 
 public class MdmApplicationDbContext(
     DbContextOptions options,
-    IConfiguration configuration)
-    : MesMdmApplicationDbContext(options, configuration)
+    IConfiguration configuration,
+    IServiceProvider? serviceProvider = null) // Принимаем опциональный параметр
+    : MesMdmApplicationDbContext(options, configuration, serviceProvider)
 {
 
     // Указываем схему для этого конкретного контекста

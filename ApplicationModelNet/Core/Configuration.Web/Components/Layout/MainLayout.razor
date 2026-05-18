@@ -28,9 +28,9 @@
                            Size="Size.Large"
                            OnClick="ToggleDrawer" />
             <MudStack Spacing="-1">
-                @* Динамически выводим имя первого активного модуля, либо дефолтное название *@
+                @* Дефолтное название *@
                 <MudText Typo="Typo.h6" Class="ml-2">
-                    @(UiService.Modules.FirstOrDefault()?.Name ?? "Promatis ERP")
+                    @("Тестовый проект Promatis Net")
                 </MudText>
             </MudStack>
         </MudAppBar>

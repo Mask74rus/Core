@@ -6,8 +6,9 @@ namespace Promatis.Net.Test.DCA.Data;
 
 public class DcaApplicationDbContext(
     DbContextOptions options,
-    IConfiguration configuration)
-    : MesDcaApplicationDbContext(options, configuration)
+    IConfiguration configuration,
+    IServiceProvider? serviceProvider = null) // Принимаем опциональный параметр
+    : MesDcaApplicationDbContext(options, configuration, serviceProvider)
 {
 
     // Указываем схему для этого конкретного контекста
