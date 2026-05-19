@@ -1,56 +1,52 @@
 ﻿@using Promatis.Net.UI.Components.BaseWorkspace
 @typeparam TEntity where TEntity : class
 
-<!-- Спускаем контекст под двумя типами для гибкости перехвата потомками -->
-<CascadingValue Value="@_gridContext" IsFixed="true">
-    <CascadingValue Value="@((WorkspaceActionContext)_gridContext)" IsFixed="true">
+<!-- Спускаем переданный сверху (или дефолтный) контекст -->
+<CascadingValue Value="@ActionContext" IsFixed="true">
+    <CascadingValue Value="@((WorkspaceActionContext)ActionContext)" IsFixed="true">
 
-        <BaseWorkspacePage PageTitle="@_gridContext.PageTitle"
-                             Position="@_gridContext.Position"
-                             ToolbarContent="@GetGridToolbarFragment()"
-                             BodyContent="@ChildContent" />
+        <BaseWorkspacePage ToolbarContent="@GetGridToolbarFragment()"
+                           BodyContent="@ChildContent" />
 
     </CascadingValue>
 </CascadingValue>
 
 @code {
-    /// <summary>
-    /// Слот для размещения самой таблицы (например, MudDataGrid)
-    /// </summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
-
-    /// <summary>
-    /// Слот, с помощью которого конечные страницы добавляют свои уникальные кнопки к базовым
-    /// </summary>
     [Parameter] public RenderFragment? AdditionalToolbarContent { get; set; }
 
-    // Каскадные события для обработки действий на конечной странице
+    /// <summary>
+    /// ЕДИНСТВЕННЫЙ источник правды для управления тулбаром. Передается с конечной страницы.
+    /// </summary>
+    [Parameter] public GridActionContext ActionContext { get; set; } = null!;
+
     [Parameter] public EventCallback OnCreateTriggered { get; set; }
     [Parameter] public EventCallback OnDeleteTriggered { get; set; }
-
-    private readonly GridActionContext _gridContext = new();
 
     protected override void OnInitialized()
     {
         base.OnInitialized();
-        _gridContext.PageTitle = "Реестр данных";
-        _gridContext.Position = ToolbarPosition.Top;
-        _gridContext.OnContextUpdated = StateHasChanged; // Перерисовка при изменении флагов
+
+        // Защита: если конечная страница не передала контекст, создаем дефолтный
+        ActionContext ??= new GridActionContext();
+
+        // Подписываемся на обновление тулбара
+        ActionContext.OnContextUpdated = StateHasChanged;
     }
 
     private RenderFragment GetGridToolbarFragment() => __builder =>
     {
-        @if (_gridContext.IsCreateVisible)
+        @if (ActionContext.IsCreateVisible)
         {
             <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
-                       Disabled="@(!_gridContext.IsCreateEnabled)" OnClick="OnCreateClick">
+                       Disabled="@(!ActionContext.IsCreateEnabled)" OnClick="OnCreateClick">
                 Создать
             </MudButton>
         }
-        @if (_gridContext.IsDeleteVisible)
+        @if (ActionContext.IsDeleteVisible)
         {
             <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small"
-                       Disabled="@(!_gridContext.IsDeleteEnabled)" OnClick="OnDeleteClick">
+                       Disabled="@(!ActionContext.IsDeleteEnabled)" OnClick="OnDeleteClick">
                 Удалить
             </MudButton>
         }
@@ -61,13 +57,6 @@
         }
     };
 
-    private async Task OnCreateClick()
-    {
-        if (OnCreateTriggered.HasDelegate) await OnCreateTriggered.InvokeAsync();
-    }
-
-    private async Task OnDeleteClick()
-    {
-        if (OnDeleteTriggered.HasDelegate) await OnDeleteTriggered.InvokeAsync();
-    }
+    private async Task OnCreateClick() { if (OnCreateTriggered.HasDelegate) await OnCreateTriggered.InvokeAsync(); }
+    private async Task OnDeleteClick() { if (OnDeleteTriggered.HasDelegate) await OnDeleteTriggered.InvokeAsync(); }
 }

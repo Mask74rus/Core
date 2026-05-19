@@ -1,27 +1,29 @@
 ﻿@inherits LayoutComponentBase
 @using Promatis.Net.Ui.Theme
-@inject UiModuleService UiService
 
-@* Подключаем глобальную тему из базовой UI библиотеки *@
-<MudThemeProvider Theme="PromatisTheme.DefaultTheme" />
+@inject UiModuleService UiService
+@inject TabNavigationService TabService
+@implements IDisposable
+
+@* ИСПРАВЛЕНО: Связываем провайдер темы с флагом тёмного режима *@
+<MudThemeProvider Theme="PromatisTheme.DefaultTheme" @bind-IsDarkMode="_isDarkMode" />
 <MudPopoverProvider />
 
-@* Ваши жесткие настройки для системных и кастомных диалогов *@
 <MudDialogProvider FullWidth="false"
                    MaxWidth="MaxWidth.False"
                    CloseButton="false"
                    BackdropClick="false"
                    NoHeader="false"
                    Position="DialogPosition.Center"
-                   CloseOnEscapeKey="true"
-                   BackgroundClass="my-custom-class" />
+                   CloseOnEscapeKey="true" />
 
 <MudSnackbarProvider />
 
 <CascadingValue Value="this">
     <MudLayout>
         @* Верхняя панель приложения *@
-        <MudAppBar Color="Color.Primary" Elevation="1">
+        <MudAppBar Color="Color.Default" Elevation="1">
+            @* ИСПРАВЛЕНО: Заменено Color.Primary на Color.Default *@
             <MudIconButton Icon="@Icons.Material.Filled.Menu"
                            Color="Color.Inherit"
                            Edge="Edge.Start"
@@ -30,25 +32,75 @@
             <MudStack Spacing="-1">
                 @* Дефолтное название *@
                 <MudText Typo="Typo.h6" Class="ml-2">
-                    @("Тестовый проект Promatis Net")
+                    Тестовый проект Promatis Net
                 </MudText>
             </MudStack>
-        </MudAppBar>
 
-        @* Боковая панель с динамическим меню NavMenu *@
-        <MudDrawer @bind-Open="_drawerOpen"
-                   ClipMode="DrawerClipMode.Always"
-                   Variant="DrawerVariant.Persistent"
-                   Width="220px"
-                   Elevation="1">
+            <MudSpacer />
+
+            <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
+                           Color="Color.Inherit"
+                           OnClick="ToggleDarkMode" />
+        </MudAppBar>
+        
+        @* Панель меню *@
+        <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Variant="DrawerVariant.Temporary" Overlay="true" OverlayAutoClose="true" Width="220px" Elevation="1">
             <NavMenu />
         </MudDrawer>
 
-        @* Основной контент приложения с предохранителем ошибок *@
+        @* Стили фона теперь адаптивны и автоматически подстраиваются под цвета темы MudBlazor *@
         <MudMainContent Style="padding-left: 20px; margin-top: 20px">
             <ErrorBoundary>
                 <ChildContent>
-                    @Body
+
+                    @if (TabService.OpenTabs.Count == 0)
+                    {
+                        @Body
+                    }
+                    else
+                    {
+                        <MudTabs @bind-ActivePanelIndex="TabService.ActiveTabIndex"
+                                 Position="Position.Top"
+                                 Color="Color.Default"
+                                 SliderColor="Color.Primary"
+                                 Class="mdi-tabs-container"
+                                 PanelClass="pa-0"
+                                 ApplyEffectsToPanels="true"
+                                 TabHeaderClass="rounded-t-lg shadow-sm"
+                                 Box="true">
+
+                            @for (int i = 0; i < TabService.OpenTabs.Count; i++)
+                            {
+                                int localIndex = i;
+                                TabItem tab = TabService.OpenTabs[i];
+
+                                <MudTabPanel @key="tab" ID="@localIndex">
+                                    <TabContent>
+                                        <div class="d-flex align-center gap-2" style="cursor: pointer;">
+                                            @if (!string.IsNullOrEmpty(tab.Icon))
+                                            {
+                                                <MudIcon Icon="@tab.Icon" Size="Size.Small" />
+                                            }
+                                            <MudText Typo="Typo.body2" Class="font-weight-medium">@tab.Title</MudText>
+
+                                            <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                                           Size="Size.Small"
+                                                           Color="Color.Default"
+                                                           Class="pa-0 ms-1"
+                                                           Style="width: 16px; height: 16px; min-width: 16px;"
+                                                           OnClick="@((e) => TabService.CloseTabByIndex(localIndex))" />
+                                        </div>
+                                    </TabContent>
+                                    <ChildContent>
+                                        <div class="pa-2 rounded-b-lg mt-1" style="min-height: 600px;">
+                                            <DynamicComponent Type="@tab.ComponentType" />
+                                        </div>
+                                    </ChildContent>
+                                </MudTabPanel>
+                            }
+                        </MudTabs>
+                    }
+
                 </ChildContent>
                 <ErrorContent Context="exception">
                     <MudAlert Severity="Severity.Error" Class="my-4">
@@ -62,6 +114,32 @@
 
 @code {
     private bool _drawerOpen = true;
+    private bool _isDarkMode; // По умолчанию приложение запускается в светлой теме
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        TabService.OnTabsChanged += HandleTabsChanged;
+        _drawerOpen = false;
+    }
 
     private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
+
+    /// <summary>
+    /// Переключает флаг тёмного режима и заставляет MudThemeProvider мгновенно перерисовать CSS-переменные цвета
+    /// </summary>
+    private void ToggleDarkMode() => _isDarkMode = !_isDarkMode;
+
+    private void HandleTabsChanged() => InvokeAsync(StateHasChanged);
+
+    public void CloseDrawer()
+    {
+        if (_drawerOpen)
+        {
+            _drawerOpen = false;
+            StateHasChanged();
+        }
+    }
+
+    public void Dispose() => TabService.OnTabsChanged -= HandleTabsChanged;
 }

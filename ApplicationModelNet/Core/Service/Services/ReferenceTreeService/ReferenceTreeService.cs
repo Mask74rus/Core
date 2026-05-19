@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Reflection;
+using Microsoft.EntityFrameworkCore;
 using Promatis.Net.Domain;
 using Promatis.Net.Domain.Interface;
 
@@ -89,7 +90,7 @@ public abstract class ReferenceTreeService<T, TContext>(IDbContextFactory<TConte
     {
         // 1. Получаем список дочерних элементов для текущего родителя
         // Свойство Id доступно из вашей базовой структуры ReferenceBase / ReferenceTreeBase
-        var children = lookup[parent.Id].ToList();
+        List<T> children = lookup[parent.Id].ToList();
 
         // 2. Очищаем коллекцию (работает напрямую, так как T ограничен интерфейсом ITreeNode<T>)
         parent.Children.Clear();
@@ -101,7 +102,7 @@ public abstract class ReferenceTreeService<T, TContext>(IDbContextFactory<TConte
 
             // Так как у свойства Parent в интерфейсе нет сеттера (get-only),
             // мы безопасно прописываем его через проверку реального свойства C#-класса
-            var parentProp = child.GetType().GetProperty(nameof(ITreeNode<T>.Parent));
+            PropertyInfo? parentProp = child.GetType().GetProperty(nameof(ITreeNode<T>.Parent));
             if (parentProp is { CanWrite: true })
             {
                 parentProp.SetValue(child, parent);

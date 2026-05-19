@@ -1,62 +1,56 @@
 ﻿@using Promatis.Net.UI.Components.BaseWorkspace
 @typeparam TEntity where TEntity : class
 
-<CascadingValue Value="@_treeContext" IsFixed="true">
-    <CascadingValue Value="@((WorkspaceActionContext)_treeContext)" IsFixed="true">
+<CascadingValue Value="@ActionContext" IsFixed="true">
+    <CascadingValue Value="@((WorkspaceActionContext)ActionContext)" IsFixed="true">
 
-        <BaseWorkspacePage PageTitle="@_treeContext.PageTitle"
-                             Position="@_treeContext.Position"
-                             ToolbarContent="@GetTreeToolbarFragment()"
-                             BodyContent="@ChildContent" />
+        <BaseWorkspacePage ToolbarContent="@GetTreeToolbarFragment()"
+                           BodyContent="@ChildContent" />
 
     </CascadingValue>
 </CascadingValue>
 
 @code {
-    /// <summary>
-    /// Слот для размещения самого дерева (например, MudTreeView)
-    /// </summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public RenderFragment? AdditionalToolbarContent { get; set; }
 
     /// <summary>
-    /// Слот расширения кнопок панели для конечного модуля
+    /// ЕДИНСТВЕННЫЙ источник правды для дерева.
     /// </summary>
-    [Parameter] public RenderFragment? AdditionalToolbarContent { get; set; }
+    [Parameter] public TreeActionContext ActionContext { get; set; } = null!;
 
     [Parameter] public EventCallback OnCreateRootTriggered { get; set; }
     [Parameter] public EventCallback OnCreateChildTriggered { get; set; }
     [Parameter] public EventCallback OnDeleteNodeTriggered { get; set; }
 
-    private readonly TreeActionContext _treeContext = new();
-
     protected override void OnInitialized()
     {
         base.OnInitialized();
-        _treeContext.PageTitle = "Иерархическая структура";
-        _treeContext.Position = ToolbarPosition.Top;
-        _treeContext.OnContextUpdated = StateHasChanged;
+
+        ActionContext ??= new TreeActionContext();
+        ActionContext.OnContextUpdated = StateHasChanged;
     }
 
     private RenderFragment GetTreeToolbarFragment() => __builder =>
     {
-        @if (_treeContext.IsCreateRootVisible)
+        @if (ActionContext.IsCreateRootVisible)
         {
             <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
-                       Disabled="@(!_treeContext.IsCreateRootEnabled)" OnClick="OnCreateRootClick">
+                       Disabled="@(!ActionContext.IsCreateRootEnabled)" OnClick="OnCreateRootClick">
                 Добавить корень
             </MudButton>
         }
-        @if (_treeContext.IsCreateChildVisible)
+        @if (ActionContext.IsCreateChildVisible)
         {
             <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
-                       Disabled="@(!_treeContext.IsCreateChildEnabled)" OnClick="OnCreateChildClick">
+                       Disabled="@(!ActionContext.IsCreateChildEnabled)" OnClick="OnCreateChildClick">
                 Добавить подузел
             </MudButton>
         }
-        @if (_treeContext.IsDeleteNodeVisible)
+        @if (ActionContext.IsDeleteNodeVisible)
         {
             <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small"
-                       Disabled="@(!_treeContext.IsDeleteNodeEnabled)" OnClick="OnDeleteNodeClick">
+                       Disabled="@(!ActionContext.IsDeleteNodeEnabled)" OnClick="OnDeleteNodeClick">
                 Удалить узел
             </MudButton>
         }

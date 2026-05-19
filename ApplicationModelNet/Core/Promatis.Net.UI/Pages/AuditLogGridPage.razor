@@ -1,0 +1,68 @@
+﻿@page "/audit-logs"
+@using Promatis.Net.Domain
+@using Promatis.Net.UI.Components.BaseGrid
+
+@inherits ComponentBase
+
+
+<!-- Инверсия управления: передаем готовый контекст в базовый грид -->
+<BaseGridPage TEntity="AuditLog" ActionContext="@_context">
+    <AdditionalToolbarContent>
+        <div class="d-flex align-center gap-3">
+            <MudDateRangePicker Label="Период логов"
+                                DateRange="@_dateRange"
+                                DateRangeChanged="OnDateRangeChanged"
+                                Margin="Margin.Dense"
+                                Style="width: 260px;"
+                                Clearable="false" />
+
+            <MudDivider Vertical="true" FlexItem="true" Class="mx-1" />
+
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Success"
+                       Size="Size.Small"
+                       StartIcon="@Icons.Material.Filled.Download"
+                       OnClick="ExportToExcelAsync"
+                       Disabled="_isExporting">
+                @if (_isExporting)
+                {
+                    <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                    <MudText Class="ms-2">Экспорт...</MudText>
+                }
+                else
+                {
+                    <MudText>Выгрузить в Excel</MudText>
+                }
+            </MudButton>
+        </div>
+    </AdditionalToolbarContent>
+
+    <ChildContent>
+        <MudDataGrid T="AuditLog"
+                     ServerData="@LoadServerData"
+                     @ref="_grid"
+                     Hover="true"
+                     Dense="true"
+                     Striped="true"
+                     Bordered="true"
+                     Elevation="0">
+            <Columns>
+                <PropertyColumn Property="x => x.ChangedAt" Title="Дата и время" Format="dd.MM.yyyy HH:mm:ss" Width="180px" />
+                <PropertyColumn Property="x => x.EntityName" Title="Сущность" Width="200px" />
+                <PropertyColumn Property="x => x.Action" Title="Действие" Width="120px">
+                    <CellTemplate>
+                        <MudChip T="string" Color="@GetActionColor(context.Item.Action)" Size="Size.Small" Variant="Variant.Text">
+                            @context.Item.Action
+                        </MudChip>
+                    </CellTemplate>
+                </PropertyColumn>
+                <PropertyColumn Property="x => x.ChangedBy" Title="Пользователь" Width="180px" />
+                <PropertyColumn Property="x => x.EntityId" Title="ID Объекта" Width="320px" Class="font-monospace" />
+                <PropertyColumn Property="x => x.ChangesJson" Title="Изменения (JSON)" CellClass="text-truncate" />
+            </Columns>
+            <PagerContent>
+                <MudDataGridPager T="AuditLog" InfoFormat="{first_item}-{last_item} из {all_items}" RowsPerPageString="Строк на странице:" />
+            </PagerContent>
+        </MudDataGrid>
+    </ChildContent>
+</BaseGridPage>

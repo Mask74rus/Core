@@ -18,6 +18,10 @@ public class WebAppConfigurator<TRootComponent> : AppConfigurator, IWebAppConfig
         // 2. UI инфраструктура (Поиск IUiModule в сборках, навигация)
         services.AddWebInfrastructure(projectPrefix: "Promatis.");
 
+        // СИСТЕМА ВКЛАДОК (MDI): Регистрируем инфраструктуру многовкладочного интерфейса
+        services.AddSingleton<ComponentRegistry>();
+        services.AddScoped<TabNavigationService>();
+
         // 3. Специфика Blazor (Interactive Server)
         services.AddRazorComponents()
             .AddInteractiveServerComponents();
@@ -54,10 +58,14 @@ public class WebAppConfigurator<TRootComponent> : AppConfigurator, IWebAppConfig
             .Distinct()
             .ToArray();
 
+        // ИНИЦИАЛИЗАЦИЯ КАРТЫ ВКЛАДОК: Наполняем реестр роутов компонентами из плагинов
+        var componentRegistry = scope.ServiceProvider.GetRequiredService<ComponentRegistry>();
+        componentRegistry.RegisterModules(moduleAssemblies);
+
         // 2. Регистрируем корневой компонент и сканируем страницы модулей на сервере
         app.MapRazorComponents<TRootComponent>()
             .AddInteractiveServerRenderMode()
-            .AddAdditionalAssemblies(moduleAssemblies); 
+            .AddAdditionalAssemblies(moduleAssemblies);
     }
 
     public override void ConfigureApp(IHost app)

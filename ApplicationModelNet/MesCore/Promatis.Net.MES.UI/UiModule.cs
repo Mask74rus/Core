@@ -11,9 +11,6 @@ public class UiModule : IUiModule
     {
         return new List<(string Title, string Href, string Icon, string? Group)>
         {
-
-            ("Вся структура ERP", "/mdm/all-units", Icons.Material.Filled.AccountTree, "Справочники")
-
         };
     }
 }

@@ -1,35 +1,37 @@
-﻿@inject UiModuleService UiService
+﻿@using System.Reflection
+@inject UiModuleService UiService
+@inject TabNavigationService TabService
+@inject ComponentRegistry Registry
 
 <MudNavMenu>
     @{
-        // 1. Извлекаем абсолютно все элементы навигации изо всех загруженных модулей
         List<(string Title, string Href, string Icon, string? Group)> allItems = UiService.Modules
             .SelectMany(m => m.GetMenuItems())
             .ToList();
 
-        // 2. Отрисовываем элементы верхнего уровня (у которых Group пустой или null)
+        // Отрисовываем элементы верхнего уровня
         IEnumerable<(string Title, string Href, string Icon, string? Group)> topLevelItems = allItems.Where(i => string.IsNullOrWhiteSpace(i.Group));
         foreach ((string Title, string Href, string Icon, string? Group) item in topLevelItems)
         {
-            <MudNavLink Href="@item.Href" Icon="@item.Icon" Match="NavLinkMatch.All">
+            <!-- ИСПРАВЛЕНО: Вместо Href используем OnClick для открытия вкладок без перезагрузки -->
+            <MudNavLink Icon="@item.Icon" OnClick="@(() => OpenMenuAsTab(item.Title, item.Href, item.Icon))">
                 @item.Title
             </MudNavLink>
         }
 
-        // 3. Группируем оставшиеся элементы по текстовому названию категории
+        // Группируем элементы по категориям
         IOrderedEnumerable<IGrouping<string, (string Title, string Href, string Icon, string? Group)>> pooledGroups = allItems
             .Where(i => !string.IsNullOrWhiteSpace(i.Group))
             .GroupBy(i => i.Group!)
-            .OrderBy(g => g.Key); // Сортируем папки по алфавиту
+            .OrderBy(g => g.Key);
 
         foreach (IGrouping<string, (string Title, string Href, string Icon, string? Group)> group in pooledGroups)
         {
-            // Expanded="false" для сворачивания разделов по умолчанию
             <MudNavGroup Title="@group.Key" Icon="@Icons.Material.Filled.Folder" Expanded="false">
                 @foreach ((string Title, string Href, string Icon, string? Group) item in group)
                 {
-                    // Корректное обращение к переменной итератора item
-                    <MudNavLink Href="@item.Href" Icon="@item.Icon" Match="NavLinkMatch.Prefix">
+                    <!-- ИСПРАВЛЕНО: Убран Href, добавлен OnClick -->
+                    <MudNavLink Icon="@item.Icon" OnClick="@(() => OpenMenuAsTab(item.Title, item.Href, item.Icon))">
                         @item.Title
                     </MudNavLink>
                 }
@@ -37,3 +39,36 @@
         }
     }
 </MudNavMenu>
+
+@code {
+    /// <summary>
+    /// Перехватываем сквозной экземпляр родительского макета
+    /// </summary>
+    [CascadingParameter]
+    protected MainLayout? MainLayoutInstance { get; set; }
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        IEnumerable<Assembly> assemblies = UiService.Modules.Select(m => m.GetType().Assembly).Distinct();
+        Registry.RegisterModules(assemblies);
+    }
+
+    private void OpenMenuAsTab(string title, string href, string icon)
+    {
+        Type? componentType = Registry.GetComponentTypeByRoute(href);
+
+        if (componentType != null)
+        {
+            // Открываем вкладку
+            TabService.OpenTab(title, href, icon, componentType);
+
+            // Автоматически закрываем боковое меню поверх окна после клика
+            MainLayoutInstance?.CloseDrawer();
+        }
+        else
+        {
+            System.Diagnostics.Debug.WriteLine($"Путь {href} не зарегистрирован в компонентах модулей.");
+        }
+    }
+}

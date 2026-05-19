@@ -4,14 +4,12 @@
 -->
 @if (ToolbarContent == null)
 {
-    <!-- ОПТИМИЗАЦИЯ: Если кнопок нет вообще, контент занимает 100% пространства MudPaper -->
     <MudPaper Elevation="1" Class="pa-4 font-sans" Style="width: 100%; min-height: 550px;">
         @_renderBody
     </MudPaper>
 }
 else
 {
-    <!-- Геометрия контейнера вычисляется динамически на основе данных из контекста -->
     <MudPaper Elevation="1"
               Class="@($"pa-4 font-sans d-flex gap-4 {GetMainContainerClass()}")"
               Style="width: 100%; min-height: 550px;">
@@ -42,24 +40,12 @@ else
 }
 
 @code {
-    /// <summary>
-    /// Перехватываем сквозной контекст управления макетом.
-    /// Он спускается из промежуточных форм BaseGridPage / BaseTreePage.
-    /// </summary>
     [CascadingParameter]
     protected WorkspaceActionContext? ActionContext { get; set; }
 
-    /// <summary>
-    /// Слот для строки кнопок действия
-    /// </summary>
     [Parameter] public RenderFragment? ToolbarContent { get; set; }
-
-    /// <summary>
-    /// Слот для основного содержимого (Дерево, Грид, Сплиттер)
-    /// </summary>
     [Parameter] public RenderFragment? BodyContent { get; set; }
 
-    // Хелперы безопасного извлечения данных из контекста (с защитой от null-reference)
     private ToolbarPosition CurrentPosition => ActionContext?.Position ?? ToolbarPosition.Top;
     private string CurrentTitle => ActionContext?.PageTitle ?? "Рабочая область";
 
@@ -69,7 +55,6 @@ else
         _ => "flex-column"
     };
 
-    // 1. ГОРИЗОНТАЛЬНАЯ ПАНЕЛЬ ИНСТРУМЕНТОВ
     private RenderFragment _renderToolbar => __builder =>
     {
         <div class="d-flex align-center justify-space-between bg-light pa-2 rounded shadow-sm w-100">
@@ -82,7 +67,6 @@ else
         </div>
     };
 
-    // 2. ВЕРТИКАЛЬНАЯ БОКОВАЯ ПАНЕЛЬ ИНСТРУМЕНТОВ
     private RenderFragment _renderVerticalToolbar => __builder =>
     {
         <div class="d-flex flex-column align-stretch justify-space-between bg-light pa-3 rounded shadow-sm"
@@ -96,7 +80,6 @@ else
         </div>
     };
 
-    // 3. РЕНДЕР ОСНОВНОГО КОНТЕНТА
     private RenderFragment _renderBody => __builder =>
     {
         <div class="workspace-main-container flex-grow-1 w-100">

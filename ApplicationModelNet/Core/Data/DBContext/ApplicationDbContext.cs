@@ -46,7 +46,7 @@ public class ApplicationDbContext(
                 if (scopeFactory != null)
                 {
                     // Создаем временную область видимости
-                    using var scope = scopeFactory.CreateScope();
+                    using IServiceScope scope = scopeFactory.CreateScope();
                     interceptor = scope.ServiceProvider.GetService(typeof(DatabaseTriggerInterceptor)) as DatabaseTriggerInterceptor;
                 }
             }
