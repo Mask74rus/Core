@@ -21,4 +21,10 @@
     <ProjectReference Include="..\Service\Promatis.Net.Service.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="AuditLog\" />
+    <Folder Include="Interfaces\" />
+    <Folder Include="Models\" />
+  </ItemGroup>
+
 </Project>

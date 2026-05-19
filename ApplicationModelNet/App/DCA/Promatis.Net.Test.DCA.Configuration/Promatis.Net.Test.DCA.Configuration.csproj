@@ -11,6 +11,7 @@
     <ProjectReference Include="..\..\..\Mes\DCA\Promatis.Net.MES.DCA.UI\Promatis.Net.MES.DCA.UI.csproj" />
     <ProjectReference Include="..\Promatis.Net.Test.DCA.DataInit\Promatis.Net.Test.DCA.DataInit.csproj" />
     <ProjectReference Include="..\Promatis.Net.Test.DCA.Service\Promatis.Net.Test.DCA.Service.csproj" />
+    <ProjectReference Include="..\Promatis.Net.Test.DCA.UI\Promatis.Net.Test.DCA.UI.csproj" />
   </ItemGroup>
 
 </Project>

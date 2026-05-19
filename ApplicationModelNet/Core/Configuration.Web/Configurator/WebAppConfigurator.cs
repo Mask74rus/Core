@@ -32,8 +32,8 @@ public class WebAppConfigurator<TRootComponent> : AppConfigurator, IWebAppConfig
             config.SnackbarConfiguration.VisibleStateDuration = 5000;
         });
 
-        // 5. Провайдер пользователя для Web (Blazor)
-        // services.AddScoped<IUserProvider, WebUserProvider>();
+        // 5. Шина UI-событий
+        services.AddScoped<IUiCommandBus, UiCommandBus>();
     }
 
     /// <summary>

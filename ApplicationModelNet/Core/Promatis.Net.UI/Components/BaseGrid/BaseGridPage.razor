@@ -1,0 +1,73 @@
+﻿@using Promatis.Net.UI.Components.BaseWorkspace
+@typeparam TEntity where TEntity : class
+
+<!-- Спускаем контекст под двумя типами для гибкости перехвата потомками -->
+<CascadingValue Value="@_gridContext" IsFixed="true">
+    <CascadingValue Value="@((WorkspaceActionContext)_gridContext)" IsFixed="true">
+
+        <BaseWorkspacePage PageTitle="@_gridContext.PageTitle"
+                             Position="@_gridContext.Position"
+                             ToolbarContent="@GetGridToolbarFragment()"
+                             BodyContent="@ChildContent" />
+
+    </CascadingValue>
+</CascadingValue>
+
+@code {
+    /// <summary>
+    /// Слот для размещения самой таблицы (например, MudDataGrid)
+    /// </summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>
+    /// Слот, с помощью которого конечные страницы добавляют свои уникальные кнопки к базовым
+    /// </summary>
+    [Parameter] public RenderFragment? AdditionalToolbarContent { get; set; }
+
+    // Каскадные события для обработки действий на конечной странице
+    [Parameter] public EventCallback OnCreateTriggered { get; set; }
+    [Parameter] public EventCallback OnDeleteTriggered { get; set; }
+
+    private readonly GridActionContext _gridContext = new();
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        _gridContext.PageTitle = "Реестр данных";
+        _gridContext.Position = ToolbarPosition.Top;
+        _gridContext.OnContextUpdated = StateHasChanged; // Перерисовка при изменении флагов
+    }
+
+    private RenderFragment GetGridToolbarFragment() => __builder =>
+    {
+        @if (_gridContext.IsCreateVisible)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                       Disabled="@(!_gridContext.IsCreateEnabled)" OnClick="OnCreateClick">
+                Создать
+            </MudButton>
+        }
+        @if (_gridContext.IsDeleteVisible)
+        {
+            <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small"
+                       Disabled="@(!_gridContext.IsDeleteEnabled)" OnClick="OnDeleteClick">
+                Удалить
+            </MudButton>
+        }
+        @if (AdditionalToolbarContent != null)
+        {
+            <MudDivider Vertical="true" FlexItem="true" Class="mx-2" />
+            @AdditionalToolbarContent
+        }
+    };
+
+    private async Task OnCreateClick()
+    {
+        if (OnCreateTriggered.HasDelegate) await OnCreateTriggered.InvokeAsync();
+    }
+
+    private async Task OnDeleteClick()
+    {
+        if (OnDeleteTriggered.HasDelegate) await OnDeleteTriggered.InvokeAsync();
+    }
+}

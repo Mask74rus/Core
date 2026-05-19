@@ -11,6 +11,7 @@
     <ProjectReference Include="..\..\..\Mes\MDM\Promatis.Net.MES.MDM.UI\Promatis.Net.MES.MDM.UI.csproj" />
     <ProjectReference Include="..\Promatis.Net.Test.MDM.DataInit\Promatis.Net.Test.MDM.DataInit.csproj" />
     <ProjectReference Include="..\Promatis.Net.Test.MDM.Service\Promatis.Net.Test.MDM.Service.csproj" />
+    <ProjectReference Include="..\Promatis.Net.Test.MDM.UI\Promatis.Net.Test.MDM.UI.csproj" />
   </ItemGroup>
 
 </Project>

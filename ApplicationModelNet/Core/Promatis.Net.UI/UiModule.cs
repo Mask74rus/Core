@@ -14,7 +14,9 @@ public class UiModule : IUiModule
             ("Главная", "/", Icons.Material.Filled.Dashboard, null),
             
             // Раздел системного администрирования
-            ("Журнал аудита", "/admin/audit-logs", Icons.Material.Filled.History, "Администрирование")
+            ("Журнал аудита", "/admin/audit-logs", Icons.Material.Filled.History, "Администрирование"),
+
+            ("Тест", "/mdm/all-units", Icons.Material.Filled.Dashboard, null),
         };
     }
 }

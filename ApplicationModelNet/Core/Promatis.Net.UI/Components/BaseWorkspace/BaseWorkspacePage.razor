@@ -1,0 +1,109 @@
+﻿<!--
+    Класс контейнера меняется: flex-row для боковых панелей (Left/Right)
+    и flex-column для стандартных (Top/Bottom)
+-->
+@if (ToolbarContent == null)
+{
+    <!-- ОПТИМИЗАЦИЯ: Если кнопок нет вообще, контент занимает 100% пространства MudPaper -->
+    <MudPaper Elevation="1" Class="pa-4 font-sans" Style="width: 100%; min-height: 550px;">
+        @_renderBody
+    </MudPaper>
+}
+else
+{
+    <!-- Геометрия контейнера вычисляется динамически на основе данных из контекста -->
+    <MudPaper Elevation="1"
+              Class="@($"pa-4 font-sans d-flex gap-4 {GetMainContainerClass()}")"
+              Style="width: 100%; min-height: 550px;">
+
+        @switch (CurrentPosition)
+        {
+            case ToolbarPosition.Top:
+                @_renderToolbar
+                @_renderBody
+                break;
+
+            case ToolbarPosition.Bottom:
+                @_renderBody
+                @_renderToolbar
+                break;
+
+            case ToolbarPosition.Left:
+                @_renderVerticalToolbar
+                @_renderBody
+                break;
+
+            case ToolbarPosition.Right:
+                @_renderBody
+                @_renderVerticalToolbar
+                break;
+        }
+    </MudPaper>
+}
+
+@code {
+    /// <summary>
+    /// Перехватываем сквозной контекст управления макетом.
+    /// Он спускается из промежуточных форм BaseGridPage / BaseTreePage.
+    /// </summary>
+    [CascadingParameter]
+    protected WorkspaceActionContext? ActionContext { get; set; }
+
+    /// <summary>
+    /// Слот для строки кнопок действия
+    /// </summary>
+    [Parameter] public RenderFragment? ToolbarContent { get; set; }
+
+    /// <summary>
+    /// Слот для основного содержимого (Дерево, Грид, Сплиттер)
+    /// </summary>
+    [Parameter] public RenderFragment? BodyContent { get; set; }
+
+    // Хелперы безопасного извлечения данных из контекста (с защитой от null-reference)
+    private ToolbarPosition CurrentPosition => ActionContext?.Position ?? ToolbarPosition.Top;
+    private string CurrentTitle => ActionContext?.PageTitle ?? "Рабочая область";
+
+    private string GetMainContainerClass() => CurrentPosition switch
+    {
+        ToolbarPosition.Left or ToolbarPosition.Right => "flex-row align-stretch",
+        _ => "flex-column"
+    };
+
+    // 1. ГОРИЗОНТАЛЬНАЯ ПАНЕЛЬ ИНСТРУМЕНТОВ
+    private RenderFragment _renderToolbar => __builder =>
+    {
+        <div class="d-flex align-center justify-space-between bg-light pa-2 rounded shadow-sm w-100">
+            <div class="d-flex align-center gap-2 flex-wrap">
+                @ToolbarContent
+            </div>
+            <div class="d-flex align-center">
+                <MudText Typo="Typo.subtitle1" Class="font-weight-bold px-2">@CurrentTitle</MudText>
+            </div>
+        </div>
+    };
+
+    // 2. ВЕРТИКАЛЬНАЯ БОКОВАЯ ПАНЕЛЬ ИНСТРУМЕНТОВ
+    private RenderFragment _renderVerticalToolbar => __builder =>
+    {
+        <div class="d-flex flex-column align-stretch justify-space-between bg-light pa-3 rounded shadow-sm"
+             style="min-width: 180px; max-width: 240px;">
+            <div class="d-flex flex-column gap-2">
+                <MudText Typo="Typo.subtitle2" Class="font-weight-bold text-center border-bottom pb-2 mb-2">
+                    @CurrentTitle
+                </MudText>
+                @ToolbarContent
+            </div>
+        </div>
+    };
+
+    // 3. РЕНДЕР ОСНОВНОГО КОНТЕНТА
+    private RenderFragment _renderBody => __builder =>
+    {
+        <div class="workspace-main-container flex-grow-1 w-100">
+            @if (BodyContent != null)
+            {
+                @BodyContent
+            }
+        </div>
+    };
+}
