@@ -47,17 +47,17 @@
                      Bordered="true"
                      Elevation="0">
             <Columns>
-                <PropertyColumn Property="x => x.ChangedAt" Title="Дата и время" Format="dd.MM.yyyy HH:mm:ss" Width="180px" />
-                <PropertyColumn Property="x => x.EntityName" Title="Сущность" Width="200px" />
-                <PropertyColumn Property="x => x.Action" Title="Действие" Width="120px">
+                <PropertyColumn Property="x => x.ChangedAt" Title="Дата и время" Format="dd.MM.yyyy HH:mm:ss" Style="width: 180px;" />
+                <PropertyColumn Property="x => x.EntityName" Title="Сущность" Style="width: 200px;" />
+                <PropertyColumn Property="x => x.Action" Title="Действие" Style="width: 120px;">
                     <CellTemplate>
                         <MudChip T="string" Color="@GetActionColor(context.Item.Action)" Size="Size.Small" Variant="Variant.Text">
                             @context.Item.Action
                         </MudChip>
                     </CellTemplate>
                 </PropertyColumn>
-                <PropertyColumn Property="x => x.ChangedBy" Title="Пользователь" Width="180px" />
-                <PropertyColumn Property="x => x.EntityId" Title="ID Объекта" Width="320px" Class="font-monospace" />
+                <PropertyColumn Property="x => x.ChangedBy" Title="Пользователь" Style="width: 180px;" />
+                <PropertyColumn Property="x => x.EntityId" Title="ID Объекта" Style="width: 320px;" Class="font-monospace" />
                 <PropertyColumn Property="x => x.ChangesJson" Title="Изменения (JSON)" CellClass="text-truncate" />
             </Columns>
             <PagerContent>

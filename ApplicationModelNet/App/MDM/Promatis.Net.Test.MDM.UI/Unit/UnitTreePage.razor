@@ -1,0 +1,60 @@
+﻿@page "/mdm/units"
+
+@using Promatis.Net.MES.Domain
+@using Promatis.Net.MES.Domain.Interface
+@using Promatis.Net.UI.Components.BaseTree
+@inherits Microsoft.AspNetCore.Components.ComponentBase
+
+<BaseTreePage TEntity="UnitBase"
+              ActionContext="@Context"
+              OnCreateRootTriggered="@CreateRootNodeAsync"
+              OnCreateChildTriggered="@CreateChildNodeAsync"
+              OnDeleteNodeTriggered="@DeleteNodeAsync">
+    <ChildContent>
+        @if (_isInitialLoading)
+        {
+            <div class="d-flex justify-center align-center h-100" style="min-height: 400px;">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+            </div>
+        }
+        else if (!_rootNodes.Any())
+        {
+            <div class="d-flex flex-column align-center justify-center my-8" style="min-height: 400px;">
+                <MudIcon Icon="@Icons.Material.Filled.AccountTree" Color="Color.Default" Class="mud-text-disabled" Style="font-size: 4rem;" />
+                <MudText Typo="Typo.h6" Color="Color.Secondary" Class="mt-4">Структура предприятия пуста</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Default" Class="mud-text-disabled">Добавьте первый корневой элемент на панели инструментов</MudText>
+            </div>
+        }
+        else
+        {
+            <MudTreeView T="UnitBase" 
+                         Items="@_rootNodes" 
+                         ServerData="@LoadChildrenAsync"
+                         SelectedValue="@_selectedNode"
+                         SelectedValueChanged="@OnNodeSelected"
+                         Hover="true"
+                         Dense="true">
+                <ItemTemplate Context="item">
+                    @* ИСПРАВЛЕНО: Добавлен оператор '!', так как мы гарантированно заполнили Value в .cs файле *@
+                    <MudTreeViewItem Value="@item.Value"
+                                     Icon="@GetNodeIcon(item.Value!.Kind)"
+                                     CanExpand="@(item.Value!.Kind != UnitKind.Position)"
+                                     LoadingIcon="@Icons.Material.Filled.Refresh">
+                        <div class="d-flex align-center gap-2 w-100 pr-4 py-1">
+                            <MudIcon Icon="@GetNodeIcon(item.Value.Kind)" Size="Size.Small" Color="Color.Primary" />
+                            <div class="d-flex flex-column flex-grow-1">
+                                <MudText Typo="Typo.body2" Class="font-weight-medium">@item.Value.Name</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@item.Value.Code (@GetTranslate(item.Value.Type))</MudText>
+                            </div>
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                           Size="Size.Small"
+                                           Color="Color.Default"
+                                           Class="pa-1"
+                                           OnClick="@(() => EditNodeAsync(item.Value))" />
+                        </div>
+                    </MudTreeViewItem>
+                </ItemTemplate>
+            </MudTreeView>
+        }
+    </ChildContent>
+</BaseTreePage>

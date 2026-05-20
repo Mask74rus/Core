@@ -7,11 +7,8 @@ using Promatis.Net.Domain.Interface;
 
 namespace Promatis.Net.Data;
 
-public class DatabaseTriggerInterceptor(
-    IDatabaseTriggerService triggerService,
-    IServiceProvider serviceProvider) : SaveChangesInterceptor
+public class DatabaseTriggerInterceptor(IServiceScopeFactory scopeFactory) : SaveChangesInterceptor
 {
-    // Хранилище для передачи данных между Saving и Saved в рамках одного потока/контекста
     private readonly ConcurrentDictionary<Guid, List<ChangeEntryModel>> _capturedChanges = new();
 
     public override async ValueTask<InterceptionResult<int>> SavingChangesAsync(
@@ -19,29 +16,30 @@ public class DatabaseTriggerInterceptor(
     {
         if (eventData.Context == null) return result;
 
-        string? userName = await GetUserNameAsync();
+        // ИСПРАВЛЕНО: Создаем локальный гарантированно живой Scope для фазыSaving
+        using IServiceScope scope = scopeFactory.CreateScope();
+
+        // Разрешаем зависимости из свежего, изолированного контейнера
+        var triggerService = scope.ServiceProvider.GetRequiredService<IDatabaseTriggerService>();
+        string? userName = await GetUserNameInternalAsync(scope.ServiceProvider);
 
         // Предварительная обработка Soft Delete
         IEnumerable<EntityEntry<ISoftDeletable>> entries = eventData.Context.ChangeTracker.Entries<ISoftDeletable>()
             .Where(e => e.State == EntityState.Deleted);
 
-        // Изменения должны быть до CaptureChanges
         foreach (EntityEntry<ISoftDeletable> entry in entries)
         {
-            // Переключаем EF в режим обновления вместо удаления
             entry.State = EntityState.Modified;
             entry.Entity.DeletedAt = DateTime.UtcNow;
             entry.Entity.DeletedBy = userName;
         }
 
-        // ВАЖНО для InMemory и тяжелых операций:
         eventData.Context.ChangeTracker.DetectChanges();
 
-        // Захват изменений (теперь CaptureChanges определит SoftDelete)
         List<ChangeEntryModel> captured = CaptureChanges(eventData.Context, userName);
         _capturedChanges[eventData.Context.ContextId.InstanceId] = captured;
 
-        // Валидация (BeforeSave)
+        // Валидация (BeforeSave) через живой triggerService
         foreach (ChangeEntryModel item in captured)
         {
             await triggerService.ValidateAsync(item.Entity, item.State, item.Changes, eventData.Context);
@@ -55,9 +53,12 @@ public class DatabaseTriggerInterceptor(
     {
         if (eventData.Context != null && _capturedChanges.TryRemove(eventData.Context.ContextId.InstanceId, out List<ChangeEntryModel>? entries))
         {
+            // ИСПРАВЛЕНО: Создаем локальный гарантированно живой Scope для фазы Saved
+            using IServiceScope scope = scopeFactory.CreateScope();
+            var triggerService = scope.ServiceProvider.GetRequiredService<IDatabaseTriggerService>();
+
             foreach (ChangeEntryModel item in entries)
             {
-                // Передаем захваченные метаданные в уведомления
                 await triggerService.NotifyAsync(item.Entity, item.State, item.Changes, item.ChangedBy, item.ChangedAt);
             }
         }
@@ -74,7 +75,6 @@ public class DatabaseTriggerInterceptor(
 
     private List<ChangeEntryModel> CaptureChanges(DbContext context, string? userName)
     {
-        // Захватываем всё, кроме таблицы логов
         List<EntityEntry> entries = context.ChangeTracker.Entries()
             .Where(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
             .Where(e => !e.Entity.GetType().Name.Contains("AuditLog"))
@@ -86,7 +86,6 @@ public class DatabaseTriggerInterceptor(
         {
             EntityStateChangeEnum state = MapState(e.State);
 
-            // Обработка Soft Delete
             if (e.Entity is ISoftDeletable soft)
             {
                 PropertyEntry prop = e.Property(nameof(ISoftDeletable.DeletedAt));
@@ -98,7 +97,6 @@ public class DatabaseTriggerInterceptor(
             if (state == EntityStateChangeEnum.Added)
             {
                 changes = e.Properties
-                    //.Where(p => p.CurrentValue != null)
                     .Select(p => new PropertyChangeInfo
                     {
                         PropertyName = p.Metadata.Name,
@@ -108,7 +106,6 @@ public class DatabaseTriggerInterceptor(
             }
             else if (state is EntityStateChangeEnum.Modified or EntityStateChangeEnum.SoftDeleted)
             {
-                // Используем OriginalValues из памяти — это НЕ создает запросов к БД
                 PropertyValues originalValues = e.OriginalValues;
 
                 foreach (PropertyEntry p in e.Properties.Where(p => p.IsModified))
@@ -117,7 +114,6 @@ public class DatabaseTriggerInterceptor(
                     object? originalValue = originalValues[propertyName];
                     object? currentValue = p.CurrentValue;
 
-                    // Сравниваем значения, чтобы исключить ложные срабатывания (когда свойство помечено как IsModified, но значение то же)
                     if (!Equals(originalValue, currentValue))
                     {
                         changes.Add(new PropertyChangeInfo
@@ -130,7 +126,6 @@ public class DatabaseTriggerInterceptor(
                 }
             }
 
-            // Пропускаем "пустые" обновления
             if (state == EntityStateChangeEnum.Modified && changes.Count == 0)
                 continue;
 
@@ -147,14 +142,12 @@ public class DatabaseTriggerInterceptor(
         return result;
     }
 
-    private async Task<string?> GetUserNameAsync()
+    // ИСПРАВЛЕНО: Принимаем уже развернутый провайдер живого контекста
+    private async Task<string?> GetUserNameInternalAsync(IServiceProvider provider)
     {
         try
         {
-            // Пытаемся получить наш абстрактный провайдер
-            using IServiceScope scope = serviceProvider.CreateScope();
-            var userProvider = scope.ServiceProvider.GetService<IUserProvider>();
-
+            var userProvider = provider.GetService<IUserProvider>();
             if (userProvider != null)
             {
                 return await userProvider.GetCurrentUserNameAsync();
@@ -174,5 +167,4 @@ public class DatabaseTriggerInterceptor(
         EntityState.Deleted => EntityStateChangeEnum.Deleted,
         _ => EntityStateChangeEnum.Modified
     };
-
 }

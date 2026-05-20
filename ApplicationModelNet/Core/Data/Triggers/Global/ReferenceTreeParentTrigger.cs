@@ -1,6 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Internal;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Promatis.Net.Domain;
 using Promatis.Net.Domain.Interface;
+using System.Reflection;
 
 namespace Promatis.Net.Data;
 
@@ -10,6 +13,19 @@ namespace Promatis.Net.Data;
 /// </summary>
 public class ReferenceTreeParentTrigger : IBeforeSaveTrigger<IDomainObjectHasKey<Guid>>
 {
+    // Кэшируем шаблоны методов на уровне класса для максимальной производительности
+    private static readonly MethodInfo DbContextSetMethod = typeof(DbContext)
+        .GetMethods(BindingFlags.Public | BindingFlags.Instance)
+        .First(m => m.Name == nameof(DbContext.Set) && m.IsGenericMethod && m.GetParameters().Length == 0);
+
+    private static readonly MethodInfo AsNoTrackingMethod = typeof(EntityFrameworkQueryableExtensions)
+        .GetMethods(BindingFlags.Public | BindingFlags.Static)
+        .First(m => m.Name == nameof(EntityFrameworkQueryableExtensions.AsNoTracking) && m.IsGenericMethod);
+
+    private static readonly MethodInfo IgnoreQueryFiltersMethod = typeof(EntityFrameworkQueryableExtensions)
+        .GetMethods(BindingFlags.Public | BindingFlags.Static)
+        .First(m => m.Name == nameof(EntityFrameworkQueryableExtensions.IgnoreQueryFilters) && m.IsGenericMethod);
+
     public async Task HandleAsync(EntityCancelEventArgs<IDomainObjectHasKey<Guid>> args)
     {
         // Проверяем, относится ли сохраняемая сущность к древовидным структурам Promatis
@@ -28,7 +44,7 @@ public class ReferenceTreeParentTrigger : IBeforeSaveTrigger<IDomainObjectHasKey
 
         if (parentId.HasValue && parentId.Value != Guid.Empty)
         {
-            // Сначала ищем родительский узел среди тех, кто прямо сейчас находится в памяти (ChangeTracker).
+            // Сначала ищем родительский узел среди тех, кто прямо сейчас находится в памяти (ChangeTracker)
             ReferenceTreeBase? localParent = args.Context.ChangeTracker.Entries<ReferenceTreeBase>()
                 .FirstOrDefault(e => e.Entity.Id == parentId.Value)?.Entity;
 
@@ -42,8 +58,27 @@ public class ReferenceTreeParentTrigger : IBeforeSaveTrigger<IDomainObjectHasKey
             }
             else
             {
-                // Если в оперативной памяти объекта нет, делаем точечный и безопасный запрос к СУБД
-                var dbParent = await args.Context.FindAsync(treeEntity.GetType(), parentId.Value) as ReferenceTreeBase;
+                // Вычисляем реальный корневой тип модели (например, UnitBase)
+                IEntityType? entityTypeInModel = args.Context.Model.FindEntityType(treeEntity.GetType());
+                Type rootClrType = entityTypeInModel?.GetRootType()?.ClrType ?? treeEntity.GetType();
+
+                // ИСПРАВЛЕНО ДЛЯ .NET 10: Собираем строго типизированную цепочку вызовов через Reflection
+                // Шаг А: Вызов context.Set<rootClrType>()
+                object? rawSet = DbContextSetMethod.MakeGenericMethod(rootClrType).Invoke(args.Context, null);
+
+                // Шаг Б: Вызов EntityFrameworkQueryableExtensions.AsNoTracking<rootClrType>(query)
+                object? noTrackingQuery = AsNoTrackingMethod.MakeGenericMethod(rootClrType).Invoke(null, [rawSet]);
+
+                // Шаг В: Вызов EntityFrameworkQueryableExtensions.IgnoreQueryFilters<rootClrType>(query)
+                object? ignoreFiltersQuery = IgnoreQueryFiltersMethod.MakeGenericMethod(rootClrType).Invoke(null,
+                    [noTrackingQuery]);
+
+                // Преобразуем результат в IQueryable<object> через стандартный не-дженерик интерфейс IQueryable
+                IQueryable<object> query = ((IQueryable)ignoreFiltersQuery!).Cast<object>();
+
+                // Ищем объект по динамическому свойству "Id" СУБД
+                object? dbParentObj = await query.FirstOrDefaultAsync(x => EF.Property<Guid>(x, "Id") == parentId.Value);
+                var dbParent = dbParentObj as ReferenceTreeBase;
 
                 exists = dbParent != null;
                 isDeleted = dbParent?.DeletedAt != null;
@@ -66,13 +101,11 @@ public class ReferenceTreeParentTrigger : IBeforeSaveTrigger<IDomainObjectHasKey
             }
 
             // 4. ГЛУБОКАЯ ЗАЩИТА ОТ ЦИКЛОВ (Поиск петель любой глубины: A -> B -> C -> A)
-            // Начинаем подъем от нового родителя вверх к корню дерева
             Guid? currentCheckId = parentId;
-            var visitedIds = new HashSet<Guid>(); // Страховка от бесконечного зацикливания самого алгоритма
+            var visitedIds = new HashSet<Guid>(); // Страховка от бесконечного зацикливания
 
             while (currentCheckId.HasValue && currentCheckId.Value != Guid.Empty)
             {
-                // Если на пути вверх мы встретили Id текущей сущности — обнаружена петля
                 if (currentCheckId == treeEntity.Id)
                 {
                     args.Cancel = true;
@@ -80,11 +113,10 @@ public class ReferenceTreeParentTrigger : IBeforeSaveTrigger<IDomainObjectHasKey
                     return;
                 }
 
-                // Страховка от уже существующих битых данных в БД
                 if (!visitedIds.Add(currentCheckId.Value))
                     break;
 
-                // Ищем элемент цепочки сначала в ChangeTracker (вдруг родителя тоже параллельно модифицируют)
+                // Ищем элемент цепочки сначала в ChangeTracker
                 ReferenceTreeBase? nextLocalElement = args.Context.ChangeTracker.Entries<ReferenceTreeBase>()
                     .FirstOrDefault(e => e.Entity.Id == currentCheckId.Value)?.Entity;
 
@@ -95,12 +127,20 @@ public class ReferenceTreeParentTrigger : IBeforeSaveTrigger<IDomainObjectHasKey
                 else
                 {
                     Guid? id = currentCheckId;
-                    currentCheckId = await args.Context.Set<ReferenceTreeBase>()
-                        .AsNoTracking()
-                        .IgnoreQueryFilters() // Видим узлы, даже если они мягко удалены
-                        .Where(x => x.Id == id.Value)
-                        .Select(x => x.ParentId)
-                        .FirstOrDefaultAsync();
+
+                    IEntityType? loopEntityTypeInModel = args.Context.Model.FindEntityType(treeEntity.GetType());
+                    Type loopRootClrType = loopEntityTypeInModel?.GetRootType()?.ClrType ?? treeEntity.GetType();
+
+                    // Аналогичная Reflection-цепочка вызовов внутри цикла защиты от петель
+                    object? loopRawSet = DbContextSetMethod.MakeGenericMethod(loopRootClrType).Invoke(args.Context, null);
+                    object? loopNoTrackingQuery = AsNoTrackingMethod.MakeGenericMethod(loopRootClrType).Invoke(null, [loopRawSet]);
+                    object? loopIgnoreFiltersQuery = IgnoreQueryFiltersMethod.MakeGenericMethod(loopRootClrType).Invoke(null, [loopNoTrackingQuery]);
+
+                    IQueryable<object> loopQuery = ((IQueryable)loopIgnoreFiltersQuery!).Cast<object>();
+
+                    object? parentNodeObj = await loopQuery.FirstOrDefaultAsync(x => EF.Property<Guid>(x, "Id") == id.Value);
+
+                    currentCheckId = (parentNodeObj as ReferenceTreeBase)?.ParentId;
                 }
             }
         }

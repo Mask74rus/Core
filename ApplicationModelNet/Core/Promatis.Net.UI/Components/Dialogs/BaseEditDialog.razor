@@ -1,0 +1,57 @@
+﻿@using FluentValidation
+@using ValidationResult = FluentValidation.Results.ValidationResult
+
+@inherits Microsoft.AspNetCore.Components.ComponentBase
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@(IsNew ? Icons.Material.Filled.Add : Icons.Material.Filled.Edit)" Class="mr-2 mb-n1" />
+            @Title
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        @* MudForm работает с базовым Model как с object, а валидацию мы запускаем через не-дженерик контекст *@
+        <MudForm @ref="_form" 
+                 Model="@Model" 
+                 Validation="@(async (object m) => { 
+                                 // ИСПРАВЛЕНО: Запускаем FluentValidation ТОЛЬКО если MudForm передала саму модель (DomainObject).
+                                 // Если пришла строка из MudTextField — игнорируем, её проверит сам инпут.
+                                 if (m is not Promatis.Net.Domain.DomainObject)
+                                     return Array.Empty<string>();
+
+                                 var context = new ValidationContext<object>(m); 
+                                 ValidationResult? result = await Validator.ValidateAsync(context); 
+                                 return result.IsValid ? Array.Empty<string>() : result.Errors.Select(e => e.ErrorMessage); 
+                             })" 
+                 ValidationDelay="200">
+            
+            <div class="d-flex flex-column gap-4 pt-2">
+                @if (_isProcessing)
+                {
+                    <div class="d-flex justify-center my-4">
+                        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+                    </div>
+                }
+                else
+                {
+                    @FormContent
+                }
+            </div>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="Cancel" Disabled="_isProcessing">Отмена</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Submit" Disabled="_isProcessing">
+            @if (_isProcessing)
+            {
+                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                <MudText Class="ms-2">Сохранение...</MudText>
+            }
+            else
+            {
+                <MudText>Сохранить</MudText>
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>

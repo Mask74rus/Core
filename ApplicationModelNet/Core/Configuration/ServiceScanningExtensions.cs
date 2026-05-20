@@ -1,9 +1,10 @@
 ﻿using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 using Promatis.Net.Data;
+using Promatis.Net.Domain;
+using Promatis.Net.Service;
 using System.Reflection;
 using System.Runtime.Loader;
-using Promatis.Net.Service;
 
 namespace Promatis.Net.Configuration;
 
@@ -14,7 +15,7 @@ public static class ServiceScanningExtensions
         Console.WriteLine();
         Console.WriteLine("[SCANNER] Запуск автоматической регистрации в DI...");
 
-        // 1. ПРИНУДИТЕЛЬНАЯ ЗАГРУЗКА
+        // 1. ПРИНУДИТЕЛЬНАЯ ЗАГРУЗКА СБОРОК
         string? path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
         if (path != null)
         {
@@ -22,12 +23,10 @@ public static class ServiceScanningExtensions
             {
                 try
                 {
-                    // Просто загружаем. Этого достаточно, чтобы сборка попала в контекст
                     AssemblyLoadContext.Default.LoadFromAssemblyPath(file);
                 }
                 catch (Exception ex)
                 {
-                    // Логируем ошибку загрузки конкретной DLL
                     string fileName = Path.GetFileName(file);
                     Console.ForegroundColor = ConsoleColor.Red;
                     Console.WriteLine($"[SCANNER][ERROR] Не удалось загрузить сборку {fileName}: {ex.Message}");
@@ -36,7 +35,7 @@ public static class ServiceScanningExtensions
             }
         }
 
-        // Берем все загруженные сборки с префиксом
+        // Берем все загруженные сборки с вашим системным префиксом
         Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies()
             .Where(a => a.FullName != null && a.FullName.StartsWith(projectPrefix))
             .Distinct()
@@ -44,107 +43,120 @@ public static class ServiceScanningExtensions
 
         int countBefore = services.Count;
 
-        services.Scan(scan => scan
-            .FromAssemblies(assemblies)
+        // 2. АВТОМАТИЧЕСКОЕ СКАНИРОВАНИЕ И РЕГИСТРАЦИЯ ЧЕРЕЗ SCRUTOR
+        services.Scan(scan =>
+        {
+            // Локальная функция для рекурсивной проверки всей цепочки наследования открытых generic-типов
+            bool IsSubclassOfRawGeneric(Type generic, Type? toCheck)
+            {
+                while (toCheck != null && toCheck != typeof(object))
+                {
+                    Type cur = toCheck.IsGenericType ? toCheck.GetGenericTypeDefinition() : toCheck;
+                    if (generic == cur) return true;
+                    toCheck = toCheck.BaseType;
+                }
+                return false;
+            }
 
-            // Регистрация СЕРВИСОВ
-            // Ищем всех наследников BaseService<,> (например, OrderService)
-            .AddClasses(c => c.AssignableTo(typeof(BaseService<,,>)).Where(t => !t.IsAbstract))
-            .AsSelfWithInterfaces()
-            .WithScopedLifetime()
+            scan.FromAssemblies(assemblies)
+                // ИСПРАВЛЕНО: Регистрация СЕРВИСОВ с поддержкой глубокого наследования (BaseService<,,>)
+                .AddClasses(classes => classes.Where(type =>
+                    !type.IsAbstract &&
+                    !type.IsGenericTypeDefinition &&
+                    IsSubclassOfRawGeneric(typeof(BaseService<,,>), type)))
+                .AsSelf()
+                .AsImplementedInterfaces()
+                .WithScopedLifetime()
 
-            // Регистрация ВАЛИДАТОРОВ
-            .AddClasses(c => c.AssignableTo(typeof(IValidator<>)).Where(t => !t.IsAbstract))
-            .AsImplementedInterfaces()
-            .WithTransientLifetime()
+                // Регистрация ВАЛИДАТОРОВ (FluentValidation)
+                .AddClasses(c => c.AssignableTo(typeof(IValidator<>))
+                    .Where(t => !t.IsAbstract && !t.IsGenericTypeDefinition))
+                .AsImplementedInterfaces()
+                .WithTransientLifetime()
 
-            // Регистрация ТРИГГЕРОВ
-            .AddClasses(c => c.AssignableToAny(typeof(IBeforeSaveTrigger<>), typeof(IAfterSaveTrigger<>)).Where(t => !t.IsAbstract))
-            .AsSelfWithInterfaces()
-            .WithScopedLifetime()
-        );
+                // Регистрация ТРИГГЕРОВ (Before/After Save)
+                .AddClasses(c => c.AssignableToAny(typeof(IBeforeSaveTrigger<>), typeof(IAfterSaveTrigger<>)).Where(t => !t.IsAbstract))
+                .AsSelfWithInterfaces()
+                .WithScopedLifetime();
+        });
 
-        // 3. ЛОГИРОВАНИЕ
+        // --- РЕГИСТРАЦИЯ ГЛОБАЛЬНОГО ПОЛИМОРФНОГО ВАЛИДАТОРА ЯДРА ---
+        // Регистрируем как открытый дженерик. Теперь при запросе IValidator<ЛюбойБазовыйКласс> 
+        // DI-контейнер .NET 10 гарантированно отдаст наш полиморфный диспетчер
+        services.AddScoped(typeof(IValidator<>), typeof(GlobalPolymorphicValidator<>));
+
+        // 3. ИСПРАВЛЕННОЕ И НАДЕЖНОЕ ЛОГИРОВАНИЕ РЕЗУЛЬТАТОВ
         List<ServiceDescriptor> newRegistrations = services.Skip(countBefore).ToList();
         var loggedTypes = new HashSet<string>();
 
         foreach (ServiceDescriptor reg in newRegistrations)
         {
-            // 1. Проверка на валидатор
+            // Берем реальный тип реализации (в приоритете из ImplementationType, иначе из инстанса/фабрики)
+            Type? implType = reg.ImplementationType ?? reg.ImplementationInstance?.GetType();
+
+            if (implType == null) continue;
+
+            // --- АНАЛИЗ ВАЛИДАТОРОВ ---
             bool isValidator = reg.ServiceType.IsGenericType &&
                                reg.ServiceType.GetGenericTypeDefinition() == typeof(IValidator<>);
 
-            if (isValidator)
+            if (isValidator && loggedTypes.Add($"Val:{implType.FullName}"))
             {
                 var inheritanceChain = new List<string>();
-                Type? currentType = reg.ImplementationType;
+                Type? currentType = implType;
 
                 while (currentType != null && currentType != typeof(object))
                 {
-                    string typeName = currentType.Name.Contains('`')
-                        ? currentType.Name.Split('`')[0]
-                        : currentType.Name;
-
+                    string typeName = currentType.Name.Contains('`') ? currentType.Name.Split('`')[0] : currentType.Name;
                     inheritanceChain.Add(typeName);
                     currentType = currentType.BaseType;
-
                     if (typeName == "AbstractValidator") break;
                 }
 
                 string chainDisplay = string.Join(" -> ", inheritanceChain);
-                string logKey = $"Val:{reg.ImplementationType?.FullName}";
-
-                if (loggedTypes.Add(logKey))
-                {
-                    // Теперь в консоли: CategoryValidator -> ... : IValidator<Category>
-                    Console.WriteLine($"[SCANNER] Валидатор: {chainDisplay} : IValidator");
-                }
+                Console.WriteLine($"[SCANNER] Валидатор: {chainDisplay} : IValidator");
+                continue; // Лог для этой записи выведен, идем к следующей
             }
 
-            // 2. Проверка на сервис (наследники BaseService)
-            if (reg.ImplementationType != null && reg.ServiceType == reg.ImplementationType)
+            // --- АНАЛИЗ СЕРВИСОВ (Наследников BaseService) ---
+            // ИСПРАВЛЕНО: Убрано жесткое условие reg.ServiceType == reg.ImplementationType, 
+            // так как сервисы теперь регистрируются парами Класс + Интерфейс
+            bool isService = false;
+            var serviceChain = new List<string>();
+            Type? currentServiceType = implType;
+
+            while (currentServiceType != null && currentServiceType != typeof(object))
             {
-                bool isService = false;
-                var inheritanceChain = new List<string>();
-                Type? currentType = reg.ImplementationType;
+                string typeName = currentServiceType.Name.Contains('`') ? currentServiceType.Name.Split('`')[0] : currentServiceType.Name;
+                serviceChain.Add(typeName);
 
-                while (currentType != null && currentType != typeof(object))
+                if (currentServiceType.IsGenericType && currentServiceType.GetGenericTypeDefinition() == typeof(BaseService<,,>))
                 {
-                    // Очищаем имя от служебных символов `1 или `2
-                    string typeName = currentType.Name.Contains('`')
-                        ? currentType.Name.Split('`')[0]
-                        : currentType.Name;
-
-                    inheritanceChain.Add(typeName);
-
-                    // Если дошли до корня BaseService<,>, значит это наш сервис
-                    if (currentType.IsGenericType && currentType.GetGenericTypeDefinition() == typeof(BaseService<,,>))
-                    {
-                        isService = true;
-                        break;
-                    }
-                    currentType = currentType.BaseType;
+                    isService = true;
+                    break;
                 }
+                currentServiceType = currentServiceType.BaseType;
+            }
 
-                if (isService && loggedTypes.Add($"Srv:{reg.ImplementationType.FullName}"))
-                {
-                    string chainDisplay = string.Join(" -> ", inheritanceChain);
-                    // Выводим красивую цепочку: OrderService -> ReferenceService -> BaseService
-                    Console.WriteLine($"[SCANNER] Сервис:    {chainDisplay}");
-                }
+            if (isService && loggedTypes.Add($"Srv:{implType.FullName}"))
+            {
+                string chainDisplay = string.Join(" -> ", serviceChain);
+                Console.WriteLine($"[SCANNER] Сервис:    {chainDisplay}");
+                continue;
+            }
 
-                // 3. Проверка на триггер (остается без изменений)
-                bool isTrigger = reg.ServiceType.GetInterfaces().Any(i => i.IsGenericType &&
-                                                                          (i.GetGenericTypeDefinition() == typeof(IBeforeSaveTrigger<>) ||
-                                                                           i.GetGenericTypeDefinition() == typeof(IAfterSaveTrigger<>)));
+            // --- АНАЛИЗ ТРИГГЕРОВ ---
+            bool isTrigger = implType.GetInterfaces().Any(i => i.IsGenericType &&
+                (i.GetGenericTypeDefinition() == typeof(IBeforeSaveTrigger<>) ||
+                 i.GetGenericTypeDefinition() == typeof(IAfterSaveTrigger<>)));
 
-                if (isTrigger && loggedTypes.Add($"Tri:{reg.ImplementationType.Name}"))
-                {
-                    Console.WriteLine($"[SCANNER] Триггер:   {reg.ImplementationType.Name}");
-                }
+            if (isTrigger && loggedTypes.Add($"Tri:{implType.FullName}"))
+            {
+                Console.WriteLine($"[SCANNER] Триггер:   {implType.Name}");
             }
         }
-        Console.WriteLine("[SCANNER] Завершено.");
+
+        Console.WriteLine("[SCANNER] Автоматическая регистрация успешно завершена.");
         Console.WriteLine();
     }
 

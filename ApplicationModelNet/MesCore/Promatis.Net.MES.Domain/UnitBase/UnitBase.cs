@@ -7,7 +7,7 @@ namespace Promatis.Net.MES.Domain;
 /// <summary>
 /// Абстрактная база для всех организационных и производственных единиц.
 /// </summary>
-public abstract class UnitBase : ReferenceTreeBase, ITreeNode<UnitBase>
+public abstract class UnitBase : ReferenceTreeBase, ITreeNode<UnitBase>, IAudit
 {
     public UnitKind Kind { get; init; }
     public required UnitType Type { get; set; }

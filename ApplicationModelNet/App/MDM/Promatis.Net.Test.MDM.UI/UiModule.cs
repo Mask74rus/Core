@@ -1,4 +1,5 @@
-﻿using Promatis.Net.UI;
+﻿using MudBlazor;
+using Promatis.Net.UI;
 
 namespace Promatis.Net.Test.MDM.UI;
 
@@ -10,6 +11,8 @@ public class UiModule : IUiModule
     {
         return new List<(string Title, string Href, string Icon, string? Group)>
         {
+            // Интерактивное дерево оргструктуры и оборудования MES
+            ("Структура предприятия", "/mdm/units", Icons.Material.Filled.AccountTree, "Справочники")
         };
     }
 }
