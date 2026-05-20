@@ -48,66 +48,87 @@
             <NavMenu />
         </MudDrawer>
 
-        @* Стили фона теперь адаптивны и автоматически подстраиваются под цвета темы MudBlazor *@
-        <MudMainContent Style="padding-left: 20px; margin-top: 20px">
-            <ErrorBoundary>
-                <ChildContent>
+        <MudMainContent Class="pt-16 px-4 pb-4 d-flex flex-column"
+                        Style="height: calc(100vh - 8px); min-height: calc(100vh - 8px); margin-top: 10px; display: flex; flex-direction: column; flex-grow: 1; overflow: hidden;">
 
-                    @if (TabService.OpenTabs.Count == 0)
+            @* ИСПРАВЛЕНО: Глобальный ErrorBoundary убран с верхнего уровня. Стили Flexbox теперь каскадируют напрямую! *@
+            @if (TabService.OpenTabs.Count == 0)
+            {
+                <div class="flex-grow-1 overflow-auto">
+                    <ErrorBoundary>
+                        <ChildContent>
+                            @Body
+                        </ChildContent>
+                        <ErrorContent Context="exception">
+                            <MudAlert Severity="Severity.Error" Class="my-4">
+                                Произошла критическая ошибка интерфейса: @exception.Message
+                            </MudAlert>
+                        </ErrorContent>
+                    </ErrorBoundary>
+                </div>
+            }
+            else
+            {
+                <MudTabs @bind-ActivePanelIndex="TabService.ActiveTabIndex"
+                         Position="Position.Top"
+                         Color="Color.Default"
+                         SliderColor="Color.Primary"
+                         Class="mdi-tabs-container w-100 flex-grow-1 d-flex flex-column"
+                         Style="height: 100%; max-height: 100%; min-height: 0; display: flex; flex-direction: column; flex-grow: 1;"
+                         TabPanelsClass="pa-0 flex-grow-1 d-flex flex-column overflow-hidden"
+                         ApplyEffectsToContainer="true"
+                         TabButtonsClass="rounded-t-lg shadow-sm"
+                         Outlined="true">
+
+                    @for (int i = 0; i < TabService.OpenTabs.Count; i++)
                     {
-                        @Body
+                        int localIndex = i;
+                        TabItem tab = TabService.OpenTabs[i];
+
+                        @* ИСПРАВЛЕНО: Добавлена flex-структура для самого таб-панеля, чтобы пробить внутренний рендеринг MudBlazor *@
+                        <MudTabPanel @key="tab" ID="@localIndex" Class="h-100 d-flex flex-column">
+                            <TabContent>
+                                <div class="d-flex align-center gap-2" style="cursor: pointer;">
+                                    @if (!string.IsNullOrEmpty(tab.Icon))
+                                    {
+                                        <MudIcon Icon="@tab.Icon" Size="Size.Small" />
+                                    }
+                                    <MudText Typo="Typo.body2" Class="font-weight-medium">@tab.Title</MudText>
+
+                                    <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                                   Size="Size.Small"
+                                                   Color="Color.Default"
+                                                   Class="pa-0 ms-1"
+                                                   Style="width: 16px; height: 16px; min-width: 16px;"
+                                                   OnClick="@((e) => TabService.CloseTabByIndex(localIndex))" />
+                                </div>
+                            </TabContent>
+                            <ChildContent>
+                                @* Этот контейнер жестко занимает 100% высоты вкладки и является Flex-колонкой *@
+                                <div class="pa-2 rounded-b-lg w-100 d-flex flex-column flex-grow-1"
+                                     Style="height: 100%; max-height: 100%; min-height: 0; overflow: hidden;">
+
+                                    <ErrorBoundary>
+                                        <ChildContent>
+                                            @* ИСПРАВЛЕНО: Мы оборачиваем DynamicComponent в финальный Flex-контейнер, *@
+                                            @* который силой вытягивает страницу нашего дерева на все 100% доступной высоты! *@
+                                            <div class="d-flex flex-column flex-grow-1 w-100" style="height: 100%; min-height: 0;">
+                                                <DynamicComponent Type="@tab.ComponentType" />
+                                            </div>
+                                        </ChildContent>
+                                        <ErrorContent Context="exception">
+                                            <MudAlert Severity="Severity.Error" Class="my-4">
+                                                Произошла критическая ошибка интерфейса вкладки: @exception.Message
+                                            </MudAlert>
+                                        </ErrorContent>
+                                    </ErrorBoundary>
+
+                                </div>
+                            </ChildContent>
+                        </MudTabPanel>
                     }
-                    else
-                    {
-                        <MudTabs @bind-ActivePanelIndex="TabService.ActiveTabIndex"
-                                 Position="Position.Top"
-                                 Color="Color.Default"
-                                 SliderColor="Color.Primary"
-                                 Class="mdi-tabs-container"
-                                 TabPanelsClass="pa-0"
-                                 ApplyEffectsToContainer="true"
-                                 TabButtonsClass="rounded-t-lg shadow-sm"
-                                 Outlined="true">
-
-                            @for (int i = 0; i < TabService.OpenTabs.Count; i++)
-                            {
-                                int localIndex = i;
-                                TabItem tab = TabService.OpenTabs[i];
-
-                                <MudTabPanel @key="tab" ID="@localIndex">
-                                    <TabContent>
-                                        <div class="d-flex align-center gap-2" style="cursor: pointer;">
-                                            @if (!string.IsNullOrEmpty(tab.Icon))
-                                            {
-                                                <MudIcon Icon="@tab.Icon" Size="Size.Small" />
-                                            }
-                                            <MudText Typo="Typo.body2" Class="font-weight-medium">@tab.Title</MudText>
-
-                                            <MudIconButton Icon="@Icons.Material.Filled.Close"
-                                                           Size="Size.Small"
-                                                           Color="Color.Default"
-                                                           Class="pa-0 ms-1"
-                                                           Style="width: 16px; height: 16px; min-width: 16px;"
-                                                           OnClick="@((e) => TabService.CloseTabByIndex(localIndex))" />
-                                        </div>
-                                    </TabContent>
-                                    <ChildContent>
-                                        <div class="pa-2 rounded-b-lg mt-1" style="min-height: 600px;">
-                                            <DynamicComponent Type="@tab.ComponentType" />
-                                        </div>
-                                    </ChildContent>
-                                </MudTabPanel>
-                            }
-                        </MudTabs>
-                    }
-
-                </ChildContent>
-                <ErrorContent Context="exception">
-                    <MudAlert Severity="Severity.Error" Class="my-4">
-                        Произошла критическая ошибка интерфейса: @exception.Message
-                    </MudAlert>
-                </ErrorContent>
-            </ErrorBoundary>
+                </MudTabs>
+            }
         </MudMainContent>
     </MudLayout>
 </CascadingValue>

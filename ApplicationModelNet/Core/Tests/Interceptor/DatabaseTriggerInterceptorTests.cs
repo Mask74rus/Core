@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Promatis.Net.Data;
 using Promatis.Net.Domain;
@@ -38,6 +39,9 @@ public class DatabaseTriggerInterceptorTests
     private readonly Mock<IServiceProvider> _serviceProviderMock = new();
     private readonly IConfiguration _configuration;
 
+    private readonly Mock<IServiceScopeFactory> _scopeFactoryMock;
+    private readonly Mock<IServiceScope> _serviceScopeMock;
+
 
     // 2. Переписанный конструктор
     public DatabaseTriggerInterceptorTests()
@@ -55,16 +59,33 @@ public class DatabaseTriggerInterceptorTests
             .Setup(sp => sp.GetService(typeof(IDatabaseTriggerService)))
             .Returns(_triggerServiceMock.Object);
 
-        // Блок настройки _triggerServiceMock полностью удален.
-        // Благодаря MockBehavior.Loose, Moq сам перехватит любой внутренний вызов интерцептора
-        // (будь то GetTriggers, ExecuteAsync или HandleTriggers) и вернет пустой результат/успешный Task,
-        // что предотвратит падение цепочки интерцептора в тесте.
+        _triggerServiceMock = new Mock<IDatabaseTriggerService>();
+        _serviceProviderMock = new Mock<IServiceProvider>();
+
+        // ИСПРАВЛЕНО ДЛЯ .NET 10: Инициализируем моки инфраструктуры Scope
+        _scopeFactoryMock = new Mock<IServiceScopeFactory>();
+        _serviceScopeMock = new Mock<IServiceScope>();
+
+        // Связываем: scope.ServiceProvider возвращает наш настроенный _serviceProviderMock
+        _serviceScopeMock
+            .Setup(s => s.ServiceProvider)
+            .Returns(_serviceProviderMock.Object);
+
+        // Связываем: scopeFactory.CreateScope() возвращает настроенный scope
+        _scopeFactoryMock
+            .Setup(f => f.CreateScope())
+            .Returns(_serviceScopeMock.Object);
+
+        // Настраиваем сам провайдер, чтобы при запросе IDatabaseTriggerService он отдавал ваш _triggerServiceMock
+        _serviceProviderMock
+            .Setup(sp => sp.GetService(typeof(IDatabaseTriggerService)))
+            .Returns(_triggerServiceMock.Object);
     }
 
     private TestDbContext GetContext()
     {
-        // Создаем реальный интерцептор, передавая моки зависимостей
-        var interceptor = new DatabaseTriggerInterceptor(_triggerServiceMock.Object, _serviceProviderMock.Object);
+        // ИСПРАВЛЕНО: Передаем в конструктор интерцептора один аргумент — мок фабрики scope
+        var interceptor = new DatabaseTriggerInterceptor(_scopeFactoryMock.Object);
 
         DbContextOptions<ApplicationDbContext> options = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())

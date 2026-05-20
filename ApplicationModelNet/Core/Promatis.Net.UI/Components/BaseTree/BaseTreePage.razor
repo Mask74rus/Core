@@ -21,6 +21,7 @@
 
     [Parameter] public EventCallback OnCreateRootTriggered { get; set; }
     [Parameter] public EventCallback OnCreateChildTriggered { get; set; }
+    [Parameter] public EventCallback OnEditNodeTriggered { get; set; }
     [Parameter] public EventCallback OnDeleteNodeTriggered { get; set; }
 
     protected override void OnInitialized()
@@ -47,6 +48,13 @@
                 Добавить подузел
             </MudButton>
         }
+        @if (ActionContext.IsEditNodeVisible)
+        {
+            <MudButton Variant="Variant.Outlined" Color="Color.Info" Size="Size.Small"
+                       Disabled="@(!ActionContext.IsEditNodeEnabled)" OnClick="OnEditNodeClick">
+                Изменить
+            </MudButton>
+        }
         @if (ActionContext.IsDeleteNodeVisible)
         {
             <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small"
@@ -63,5 +71,6 @@
 
     private async Task OnCreateRootClick() { if (OnCreateRootTriggered.HasDelegate) await OnCreateRootTriggered.InvokeAsync(); }
     private async Task OnCreateChildClick() { if (OnCreateChildTriggered.HasDelegate) await OnCreateChildTriggered.InvokeAsync(); }
+    private async Task OnEditNodeClick() { if (OnEditNodeTriggered.HasDelegate) await OnEditNodeTriggered.InvokeAsync(); }
     private async Task OnDeleteNodeClick() { if (OnDeleteNodeTriggered.HasDelegate) await OnDeleteNodeTriggered.InvokeAsync(); }
 }

@@ -67,11 +67,13 @@ public abstract class BaseServiceTests
             .Returns(() =>
             {
                 IServiceScope scope = ServiceProvider.CreateScope();
-                var triggerService = scope.ServiceProvider.GetRequiredService<IDatabaseTriggerService>();
+
+                // ИСПРАВЛЕНО: Извлекаем фабрику Scope из текущего scope.ServiceProvider
+                var scopeFactory = scope.ServiceProvider.GetRequiredService<IServiceScopeFactory>();
 
                 DbContextOptions<ApplicationDbContext> interceptorOptions = new DbContextOptionsBuilder<ApplicationDbContext>()
                     .UseInMemoryDatabase(dbName)
-                    .AddInterceptors(new DatabaseTriggerInterceptor(triggerService, scope.ServiceProvider))
+                    .AddInterceptors(new DatabaseTriggerInterceptor(scopeFactory)) // ИСПРАВЛЕНО: Передаем только scopeFactory
                     .Options;
 
                 return Task.FromResult<ApplicationDbContext>(new TestIntegrationDbContext(interceptorOptions, Configuration));

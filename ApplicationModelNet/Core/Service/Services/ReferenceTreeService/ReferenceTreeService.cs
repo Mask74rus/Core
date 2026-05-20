@@ -144,4 +144,25 @@ public abstract class ReferenceTreeService<T, TContext>(IDbContextFactory<TConte
         // Сохранение инициирует IBeforeSaveTrigger (UnitBaseHierarchyTrigger / ReferenceTreeParentTrigger)
         await context.SaveChangesAsync(ct);
     }
+
+    public override async Task UpdateAsync(T entity)
+    {
+        await using TContext context = await ContextFactory.CreateDbContextAsync();
+
+        // 1. Загружаем чистую, актуальную запись С ТРЕКИНГОМ напрямую из базы данных по Id
+        T? dbEntity = await context.Set<T>().FirstOrDefaultAsync(x => x.Id == entity.Id);
+
+        if (dbEntity == null)
+            throw new Exception($"Сущность {typeof(T).Name} с ID {entity.Id} не найдена для обновления.");
+
+        // 2. Накатываем новые значения, пришедшие с UI-карточки, на объект из базы.
+        // Это заставит EF Core сравнить старые данные из БД и новые с UI, 
+        // выставит IsModified = true ТОЛЬКО для реально изменившихся полей 
+        // и сохранит настоящие OriginalValues в ChangeTracker!
+        context.Entry(dbEntity).CurrentValues.SetValues(entity);
+
+        // 3. Сохраняем изменения. Теперь ваш оригинальный интерцептор (CaptureChanges) 
+        // идеально поймает разницу между старым и новым, а AuditLog запишет честную дельту!
+        await context.SaveChangesAsync();
+    }
 }

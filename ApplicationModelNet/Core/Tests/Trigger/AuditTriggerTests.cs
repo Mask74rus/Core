@@ -82,7 +82,12 @@ public class AuditTriggerTests
         triggerService.Register<DomainObject, AuditTrigger>();
 
         // Перехватчик
-        var interceptor = new DatabaseTriggerInterceptor(triggerService, sp);
+        // ИСПРАВЛЕНО ДЛЯ .NET 10: Извлекаем фабрику Scope из тестового контейнера зависимостей
+        var scopeFactory = sp.GetRequiredService<IServiceScopeFactory>();
+
+        // ИСПРАВЛЕНО: Создаем интерцептор, передавая ему только ОДИН аргумент — scopeFactory
+        var interceptor = new DatabaseTriggerInterceptor(scopeFactory);
+
         DbContextOptions<ApplicationDbContext> mainOptions = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(dbName)
             .AddInterceptors(interceptor)

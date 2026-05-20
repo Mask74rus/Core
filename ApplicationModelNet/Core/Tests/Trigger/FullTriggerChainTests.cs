@@ -116,10 +116,16 @@ public class FullTriggerChainTests
         // Привязываем FluentValidationTrigger ко всем сущностям с Guid-ключом
         triggerService.Register<IDomainObjectHasKey<Guid>, FluentValidationTrigger>();
 
-        // Настройка опций БД с перехватчиком
+        // Привязываем FluentValidationTrigger ко всем сущностям с Guid-ключом
+        triggerService.Register<IDomainObjectHasKey<Guid>, FluentValidationTrigger>();
+
+        // ИСПРАВЛЕНО ДЛЯ .NET 10: Извлекаем фабрику Scope из тестового провайдера
+        var scopeFactory = sp.GetRequiredService<IServiceScopeFactory>();
+
+        // Настройка опций БД с исправленным перехватчиком (передаем только фабрику)
         DbContextOptions<ApplicationDbContext> options = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .AddInterceptors(new DatabaseTriggerInterceptor(triggerService, sp))
+            .AddInterceptors(new DatabaseTriggerInterceptor(scopeFactory)) // ИСПРАВЛЕНО: Один аргумент
             .Options;
 
         // Создаем контекст, передавая опции и конфиг

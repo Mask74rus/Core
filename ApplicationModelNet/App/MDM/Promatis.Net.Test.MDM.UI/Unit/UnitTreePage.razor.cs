@@ -21,12 +21,26 @@ public partial class UnitTreePage : ComponentBase
     private UnitBase? _selectedNode;
     private bool _isInitialLoading = true;
 
-    protected override async Task OnInitializedAsync()
+    // ИСПРАВЛЕНО: OnInitializedAsync теперь выполняется МГНОВЕННО, 
+    // не порождая никаких тяжелых ожиданий базы данных
+    protected override Task OnInitializedAsync()
     {
         Context.PageTitle = "Структура предприятия и оборудования";
         Context.Position = ToolbarPosition.Top;
 
-        await RefreshTreeAsync();
+        // Возвращаем выполненную таску сразу, чтобы каркас формы мгновенно отрендерился
+        return Task.CompletedTask;
+    }
+
+    // ИСПРАВЛЕНО: Тяжелый запрос к PostgreSQL запускается СТРОГО ПОСЛЕ того, 
+    // как пользователь уже увидел открывшуюся вкладку и лоадер на экране!
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Запускаем загрузку корней дерева из базы данных
+            await RefreshTreeAsync();
+        }
     }
 
     private async Task RefreshTreeAsync()
@@ -83,11 +97,13 @@ public partial class UnitTreePage : ComponentBase
         if (node == null)
         {
             Context.IsCreateChildEnabled = false;
+            Context.IsEditNodeEnabled = false;
             Context.IsDeleteNodeEnabled = false;
         }
         else
         {
             Context.IsCreateChildEnabled = node.Kind != UnitKind.Position;
+            Context.IsEditNodeEnabled = true;
             Context.IsDeleteNodeEnabled = true;
         }
 
@@ -170,6 +186,14 @@ public partial class UnitTreePage : ComponentBase
 
             await RefreshTreeAsync();
         }
+    }
+
+    protected async Task EditSelectedNodeAsync()
+    {
+        if (_selectedNode == null) return;
+
+        // Перенаправляем выполнение в наш готовый метод открытия диалога
+        await EditNodeAsync(_selectedNode);
     }
 
     protected async Task EditNodeAsync(UnitBase node)

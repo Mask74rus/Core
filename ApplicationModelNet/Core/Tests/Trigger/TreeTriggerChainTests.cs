@@ -76,9 +76,13 @@ public class TreeTriggerChainTests
         var triggerService = sp.GetRequiredService<DatabaseTriggerService>();
         triggerService.Register<IDomainObjectHasKey<Guid>, ReferenceTreeParentTrigger>();
 
+        // ИСПРАВЛЕНО ДЛЯ .NET 10: Извлекаем фабрику Scope из тестового провайдера
+        var scopeFactory = sp.GetRequiredService<IServiceScopeFactory>();
+
+        // ИСПРАВЛЕНО: Передаем в интерцептор только один аргумент — scopeFactory
         DbContextOptions<ApplicationDbContext> options = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .AddInterceptors(new DatabaseTriggerInterceptor(triggerService, sp))
+            .AddInterceptors(new DatabaseTriggerInterceptor(scopeFactory))
             .Options;
 
         // Передаем опции и конфиг
@@ -120,9 +124,13 @@ public class TreeTriggerChainTests
         var triggerService = sp.GetRequiredService<DatabaseTriggerService>();
         triggerService.Register<IDomainObjectHasKey<Guid>, ReferenceTreeParentTrigger>();
 
+        // ИСПРАВЛЕНО ДЛЯ .NET 10: Извлекаем фабрику Scope из тестового провайдера
+        var scopeFactory = sp.GetRequiredService<IServiceScopeFactory>();
+
+        // ИСПРАВЛЕНО: Передаем в интерцептор только один аргумент — scopeFactory
         DbContextOptions<ApplicationDbContext> options = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .AddInterceptors(new DatabaseTriggerInterceptor(triggerService, sp))
+            .AddInterceptors(new DatabaseTriggerInterceptor(scopeFactory))
             .Options;
 
         await using var context = new TreeTestDbContext(options, configuration);

@@ -9,6 +9,7 @@
               ActionContext="@Context"
               OnCreateRootTriggered="@CreateRootNodeAsync"
               OnCreateChildTriggered="@CreateChildNodeAsync"
+              OnEditNodeTriggered="@EditSelectedNodeAsync"
               OnDeleteNodeTriggered="@DeleteNodeAsync">
     <ChildContent>
         @if (_isInitialLoading)
@@ -35,11 +36,14 @@
                          Hover="true"
                          Dense="true">
                 <ItemTemplate Context="item">
-                    @* ИСПРАВЛЕНО: Добавлен оператор '!', так как мы гарантированно заполнили Value в .cs файле *@
+                    @* ИСПРАВЛЕНО: Явно задаем параметр Text, чтобы MudBlazor не вызывал .ToString() на классе! *@
                     <MudTreeViewItem Value="@item.Value"
+                                     Text="@item.Value!.Name"
                                      Icon="@GetNodeIcon(item.Value!.Kind)"
                                      CanExpand="@(item.Value!.Kind != UnitKind.Position)"
                                      LoadingIcon="@Icons.Material.Filled.Refresh">
+
+                        @* Наш кастомный макет строки с иконками и кодом внутри тега продолжит работать идеально *@
                         <div class="d-flex align-center gap-2 w-100 pr-4 py-1">
                             <MudIcon Icon="@GetNodeIcon(item.Value.Kind)" Size="Size.Small" Color="Color.Primary" />
                             <div class="d-flex flex-column flex-grow-1">

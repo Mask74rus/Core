@@ -7,14 +7,21 @@ using System.Text.Json;
 namespace Promatis.Net.Data;
 
 public class AuditTrigger(
-    IServiceProvider serviceProvider,
+    IServiceScopeFactory scopeFactory, 
     JsonSerializerOptions jsonOptions)
     : IAfterSaveTrigger<DomainObject>
 {
     public async Task HandleAsync(EntityChangedEventArgs<DomainObject> args)
     {
+        // Очищаем рантайм-тип от возможной динамической прокси-оболочки EF Core (TPT-стратегия)
+        Type entityType = args.Entity.GetType();
+        if (entityType.Namespace == "Castle.Proxies" && entityType.BaseType != null)
+        {
+            entityType = entityType.BaseType;
+        }
+
         // 1. Фильтр: логируем только те сущности, которые помечены IAudit
-        if (args.Entity.GetType().GetInterfaces().All(i => i.Name != nameof(IAudit)))
+        if (entityType.GetInterfaces().All(i => i.Name != nameof(IAudit)))
             return;
 
         // 2. Формируем данные для JSON
@@ -42,7 +49,7 @@ public class AuditTrigger(
         var auditLog = new AuditLog
         {
             Id = Guid.NewGuid(),
-            EntityName = args.Entity.GetType().Name,
+            EntityName = entityType.Name, // ИСПРАВЛЕНО: Пишем чистое имя класса оргструктуры
             EntityId = args.Entity.Id,
             Action = args.State.ToString(),
             ChangedAt = args.ChangedAt,
@@ -50,11 +57,10 @@ public class AuditTrigger(
             ChangesJson = JsonSerializer.Serialize(changesToSerialize, jsonOptions)
         };
 
-        // 4. Сохранение в БД через "ленивое" получение фабрики
-        // Создаем Scope, чтобы корректно получить фабрику, зарегистрированную в текущем модуле
-        using IServiceScope scope = serviceProvider.CreateScope();
+        // 4. ИСПРАВЛЕНО: Безопасное сохранение в БД через выделенный, гарантированно живой Scope
+        using IServiceScope scope = scopeFactory.CreateScope();
 
-        // Ищем фабрику базового контекста (которую мы "подменили" адаптером в MDM)
+        // Ищем фабрику базового контекста через провайдер локального Scope
         var factory = scope.ServiceProvider.GetService<IDbContextFactory<ApplicationDbContext>>();
 
         if (factory != null)
@@ -65,7 +71,6 @@ public class AuditTrigger(
         }
         else
         {
-            // Логирование ошибки, если база не настроена
             Console.WriteLine("[AuditTrigger][Error] Не удалось найти IDbContextFactory<ApplicationDbContext>");
         }
     }

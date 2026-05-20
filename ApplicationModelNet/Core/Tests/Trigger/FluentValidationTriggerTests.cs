@@ -1,4 +1,5 @@
 ﻿using FluentValidation;
+using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Promatis.Net.Data;
 using Promatis.Net.Domain;
@@ -11,6 +12,10 @@ public class FluentValidationTriggerTests
 {
     private class TestEntity : DomainObject { public string Name { get; set; } = ""; }
 
+    private readonly Mock<IServiceProvider> _serviceProviderMock;
+    private readonly Mock<IServiceScopeFactory> _scopeFactoryMock;
+    private readonly Mock<IServiceScope> _serviceScopeMock;
+
     private class TestEntityValidator : AbstractValidator<TestEntity>
     {
         public TestEntityValidator()
@@ -19,12 +24,20 @@ public class FluentValidationTriggerTests
         }
     }
 
-    private readonly Mock<IServiceProvider> _serviceProviderMock;
-
     public FluentValidationTriggerTests()
     {
-        // Теперь нам нужен только провайдер
         _serviceProviderMock = new Mock<IServiceProvider>();
+        _scopeFactoryMock = new Mock<IServiceScopeFactory>();
+        _serviceScopeMock = new Mock<IServiceScope>();
+
+        // Настраиваем цепочку: Фабрика создает Scope -> Scope возвращает ServiceProvider
+        _serviceScopeMock
+            .Setup(s => s.ServiceProvider)
+            .Returns(_serviceProviderMock.Object);
+
+        _scopeFactoryMock
+            .Setup(f => f.CreateScope())
+            .Returns(_serviceScopeMock.Object);
     }
 
     [Fact]
@@ -39,7 +52,7 @@ public class FluentValidationTriggerTests
             .Returns(validator);
 
         // Внедряем провайдер напрямую в триггер
-        var trigger = new FluentValidationTrigger(_serviceProviderMock.Object);
+        var trigger = new FluentValidationTrigger(_scopeFactoryMock.Object);
         var args = new EntityCancelEventArgs<IDomainObjectHasKey<Guid>>(
             entity, EntityStateChangeEnum.Added, [], null!);
 
@@ -62,7 +75,7 @@ public class FluentValidationTriggerTests
             .Setup(sp => sp.GetService(typeof(IValidator<TestEntity>)))
             .Returns(validator);
 
-        var trigger = new FluentValidationTrigger(_serviceProviderMock.Object);
+        var trigger = new FluentValidationTrigger(_scopeFactoryMock.Object);
         var args = new EntityCancelEventArgs<IDomainObjectHasKey<Guid>>(
             entity, EntityStateChangeEnum.Added, [], null!);
 
@@ -82,7 +95,7 @@ public class FluentValidationTriggerTests
             .Setup(sp => sp.GetService(It.IsAny<Type>()))
             .Returns(null!);
 
-        var trigger = new FluentValidationTrigger(_serviceProviderMock.Object);
+        var trigger = new FluentValidationTrigger(_scopeFactoryMock.Object);
         var args = new EntityCancelEventArgs<IDomainObjectHasKey<Guid>>(
             new TestEntity(), EntityStateChangeEnum.Added, [], null!);
 
