@@ -15,4 +15,5 @@ public class MesMdmApplicationDbContext(
     public DbSet<TechnologicalOperationUnit> TechnologicalOperationUnits => Set<TechnologicalOperationUnit>();
     public DbSet<TechnologicalParameter> TechnologicalParameters => Set<TechnologicalParameter>();
     public DbSet<TechnologicalOperationParameter> TechnologicalOperationParameters => Set<TechnologicalOperationParameter>();
+    public DbSet<TechnologicalParameterCalcMethod> TechnologicalParameterCalcMethods => Set<TechnologicalParameterCalcMethod>();
 }

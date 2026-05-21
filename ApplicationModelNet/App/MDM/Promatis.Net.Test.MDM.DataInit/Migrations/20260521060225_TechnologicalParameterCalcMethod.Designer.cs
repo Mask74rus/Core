@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Promatis.Net.Test.MDM.Data;
@@ -11,9 +12,11 @@ using Promatis.Net.Test.MDM.Data;
 namespace Promatis.Net.Test.MDM.DataInit.Migrations
 {
     [DbContext(typeof(MdmApplicationDbContext))]
-    partial class MdmApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260521060225_TechnologicalParameterCalcMethod")]
+    partial class TechnologicalParameterCalcMethod
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
