@@ -21,6 +21,7 @@
     [Parameter] public GridActionContext ActionContext { get; set; } = null!;
 
     [Parameter] public EventCallback OnCreateTriggered { get; set; }
+    [Parameter] public EventCallback OnEditTriggered { get; set; }
     [Parameter] public EventCallback OnDeleteTriggered { get; set; }
 
     protected override void OnInitialized()
@@ -43,6 +44,13 @@
                 Создать
             </MudButton>
         }
+        @if (ActionContext.IsEditVisible)
+        {
+            <MudButton Variant="Variant.Outlined" Color="Color.Info" Size="Size.Small"
+                       Disabled="@(!ActionContext.IsEditEnabled)" OnClick="OnEditNodeClick">
+                Изменить
+            </MudButton>
+        }
         @if (ActionContext.IsDeleteVisible)
         {
             <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small"
@@ -58,5 +66,6 @@
     };
 
     private async Task OnCreateClick() { if (OnCreateTriggered.HasDelegate) await OnCreateTriggered.InvokeAsync(); }
+    private async Task OnEditNodeClick() { if (OnEditTriggered.HasDelegate) await OnEditTriggered.InvokeAsync(); }
     private async Task OnDeleteClick() { if (OnDeleteTriggered.HasDelegate) await OnDeleteTriggered.InvokeAsync(); }
 }

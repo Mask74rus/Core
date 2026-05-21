@@ -3,8 +3,10 @@
 public class GridActionContext : WorkspaceActionContext
 {
     public bool IsCreateEnabled { get; set; } = true;
+    public bool IsEditEnabled { get; set; } = false;
     public bool IsDeleteEnabled { get; set; } = false;
 
     public bool IsCreateVisible { get; set; } = true;
     public bool IsDeleteVisible { get; set; } = true;
+    public bool IsEditVisible { get; set; } = true;
 }

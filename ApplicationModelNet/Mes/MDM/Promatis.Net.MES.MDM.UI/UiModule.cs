@@ -11,6 +11,8 @@ public class UiModule : IUiModule
     {
         return new List<(string Title, string Href, string Icon, string? Group)>
         {
+            // Плоский справочник технологических параметров в модуле MesMDM
+            ("Технологические параметры", "/mes/mdm/technological-parameters", Icons.Material.Filled.SettingsInputComponent, "Справочники")
         };
     }
 }

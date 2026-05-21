@@ -1,0 +1,48 @@
+﻿@inherits Microsoft.AspNetCore.Components.ComponentBase
+
+<BaseEditDialog Title="@(IsNew ? "Создание технологического параметра" : "Редактирование технологического параметра")"
+                IsNew="@IsNew"
+                Model="@Model"
+                Validator="@Validator"
+                OnSaveAction="@SaveParameterAsync"
+                Snackbar="@Snackbar">
+    <FormContent>
+        <MudTextField @bind-Value="Model.Code"
+                      For="@(() => Model.Code)"
+                      Validation="@(_parameterValidator.ValidateValue)"
+                      Immediate="true"
+                      Label="Код параметра (только латиница в верхнем регистре, цифры, _)"
+                      Variant="Variant.Outlined" />
+
+        <MudTextField @bind-Value="Model.Name"
+                      For="@(() => Model.Name)"
+                      Validation="@(_parameterValidator.ValidateValue)"
+                      Immediate="true"
+                      Label="Наименование"
+                      Variant="Variant.Outlined" />
+
+        <MudSelect @bind-Value="Model.DataType"
+                   For="@(() => Model.DataType)"
+                   Validation="@(_parameterValidator.ValidateValue)"
+                   Label="Тип данных"
+                   Variant="Variant.Outlined">
+            <MudSelectItem Value="@("Numeric")">Числовой (Numeric)</MudSelectItem>
+            <MudSelectItem Value="@("String")">Строковый (String)</MudSelectItem>
+            <MudSelectItem Value="@("Boolean")">Логический (Boolean)</MudSelectItem>
+            <MudSelectItem Value="@("DateTime")">Дата/Время (DateTime)</MudSelectItem>
+        </MudSelect>
+
+        <MudTextField @bind-Value="Model.UnitOfMeasurement"
+                      For="@(() => Model.UnitOfMeasurement)"
+                      Validation="@(_parameterValidator.ValidateValue)"
+                      Immediate="true"
+                      Label="Единица измерения"
+                      Variant="Variant.Outlined" />
+
+        <MudTextField @bind-Value="Model.Description"
+                      For="@(() => Model.Description)"
+                      Label="Описание"
+                      Variant="Variant.Outlined"
+                      Lines="3" />
+    </FormContent>
+</BaseEditDialog>
