@@ -58,13 +58,13 @@
   <Folder Name="/Mes/MDM/">
     <Project Path="Mes/MDM/Promatis.Net.MES.MDM.Data/Promatis.Net.MES.MDM.Data.csproj" Id="4bb79588-fb9e-4623-b7c1-4fe6df4305ac" />
     <Project Path="Mes/MDM/Promatis.Net.MES.MDM.Domain/Promatis.Net.MES.MDM.Domain.csproj" Id="5df08213-601a-4614-b344-ceee8a63703d" />
+    <Project Path="Mes/MDM/Promatis.Net.MES.MDM.Service/Promatis.Net.MES.MDM.Service.csproj" Id="3cc5bb5b-e3f2-4fc1-8b44-0e0a3147177e" />
     <Project Path="Mes/MDM/Promatis.Net.MES.MDM.Tests/Promatis.Net.MES.MDM.Tests.csproj" Id="b5db8d9f-d5c2-4abe-83b3-fe36f2005792" />
     <Project Path="Mes/MDM/Promatis.Net.MES.MDM.UI/Promatis.Net.MES.MDM.UI.csproj" Id="51fbc92d-ac12-4fd6-aed8-8cc08a7a80e7" />
   </Folder>
   <Folder Name="/Mes/MDM/_Unused/">
     <Project Path="Mes/MDM/Promatis.Net.MES.MDM.Configuration/Promatis.Net.MES.MDM.Configuration.csproj" Id="fabb31a7-ac25-4694-a70a-82328fde24dc" />
     <Project Path="Mes/MDM/Promatis.Net.MES.MDM.Domain.Interface/Promatis.Net.MES.MDM.Domain.Interface.csproj" Id="bf564800-49af-4e40-9028-ff38731f55df" />
-    <Project Path="Mes/MDM/Promatis.Net.MES.MDM.Service/Promatis.Net.MES.MDM.Service.csproj" Id="3cc5bb5b-e3f2-4fc1-8b44-0e0a3147177e" />
   </Folder>
   <Folder Name="/MesCore/">
     <Project Path="MesCore/Promatis.Net.MES.Data/Promatis.Net.MES.Data.csproj" Id="3153a32a-71d0-4e5e-8ed0-6470315ce1df" />

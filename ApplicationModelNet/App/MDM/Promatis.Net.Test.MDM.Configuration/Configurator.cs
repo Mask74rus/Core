@@ -5,6 +5,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Promatis.Net.Configuration.Web;
 using Promatis.Net.Data;
+using Promatis.Net.MES.Data;
+using Promatis.Net.MES.MDM.Data;
 using Promatis.Net.Test.MDM.Data;
 
 namespace Promatis.Net.Test.MDM.Configuration;
@@ -13,7 +15,7 @@ public class Configurator : IWebAppConfigurator
 {
     public void ConfigureServices(IServiceCollection services, IConfiguration configuration)
     {
-        // Регистрируем фабрику контекста
+        // 1. Регистрация единственной реальной фабрики БД
         services.AddDbContextFactory<MdmApplicationDbContext>((sp, options) =>
         {
             string? baseConnString = configuration.GetConnectionString("DefaultConnection");
@@ -28,29 +30,49 @@ public class Configurator : IWebAppConfigurator
                 x.MigrationsAssembly("Promatis.Net.Test.MDM.DataInit"));
         });
 
-    // 2. Исправляем ошибку приведения: регистрируем фабрику для базового типа
-    // Мы говорим DI: "Когда кто-то (например, AuditTrigger) просит фабрику базового контекста, 
-    // возьми фабрику MDM и приведи созданный контекст к базовому типу".
-    services.AddScoped<IDbContextFactory<ApplicationDbContext>>(sp => 
-    {
-        // Получаем фабрику MDM
-        var factory = sp.GetRequiredService<IDbContextFactory<MdmApplicationDbContext>>();
-        
-        // Оборачиваем её в универсальный адаптер
-        return new DbContextFactoryAdapter(factory);
-    });
+        // 2. Адаптер для слоя MesMDM (IDbContextFactory<MesMdmApplicationDbContext>)
+        services.AddScoped<IDbContextFactory<MesMdmApplicationDbContext>>(sp =>
+        {
+            var factory = sp.GetRequiredService<IDbContextFactory<MdmApplicationDbContext>>();
+            return new MesMdmDbContextFactoryAdapter(factory);
+        });
+
+        // 3. АДАПТЕР ДЛЯ СЛОЯ Mes (IDbContextFactory<MesApplicationDbContext>)
+        services.AddScoped<IDbContextFactory<MesApplicationDbContext>>(sp =>
+        {
+            var factory = sp.GetRequiredService<IDbContextFactory<MdmApplicationDbContext>>();
+            return new MesDbContextFactoryAdapter(factory);
+        });
+
+        // 4. Адаптер для самого базового слоя Core (IDbContextFactory<ApplicationDbContext>)
+        services.AddScoped<IDbContextFactory<ApplicationDbContext>>(sp =>
+        {
+            var factory = sp.GetRequiredService<IDbContextFactory<MdmApplicationDbContext>>();
+            return new DbContextFactoryAdapter(factory);
+        });
     }
 
-    public void ConfigureApp(IHost app)
+    public void ConfigureApp(IHost app) { }
+
+    public void ConfigureMiddleware(WebApplication app) { }
+
+    // --- КЛАССЫ АДАПТЕРОВ ---
+
+    // Адаптер для MesMDM
+    private class MesMdmDbContextFactoryAdapter(IDbContextFactory<MdmApplicationDbContext> factory)
+        : IDbContextFactory<MesMdmApplicationDbContext>
     {
-        // Например, проверка начальных данных для MDM
+        public MesMdmApplicationDbContext CreateDbContext() => factory.CreateDbContext();
     }
 
-    public void ConfigureMiddleware(WebApplication app)
+    // Адаптер для Mes
+    private class MesDbContextFactoryAdapter(IDbContextFactory<MdmApplicationDbContext> factory)
+        : IDbContextFactory<MesApplicationDbContext>
     {
-        // Конфигурация промежуточного слоя
+        public MesApplicationDbContext CreateDbContext() => factory.CreateDbContext();
     }
 
+    // Адаптер для Core
     private class DbContextFactoryAdapter(IDbContextFactory<MdmApplicationDbContext> factory)
         : IDbContextFactory<ApplicationDbContext>
     {

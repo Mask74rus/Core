@@ -5,6 +5,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Promatis.Net.Configuration.Web;
 using Promatis.Net.Data;
+using Promatis.Net.MES.Data;
+using Promatis.Net.MES.DCA.Data;
 using Promatis.Net.Test.DCA.Data;
 
 namespace Promatis.Net.Test.DCA.Configuration;
@@ -13,7 +15,7 @@ public class Configurator : IWebAppConfigurator
 {
     public void ConfigureServices(IServiceCollection services, IConfiguration configuration)
     {
-        // Регистрируем фабрику контекста
+        // 1. Регистрация единственной реальной фабрики БД
         services.AddDbContextFactory<DcaApplicationDbContext>((sp, options) =>
         {
             string? baseConnString = configuration.GetConnectionString("DefaultConnection");
@@ -28,15 +30,24 @@ public class Configurator : IWebAppConfigurator
                 x.MigrationsAssembly("Promatis.Net.Test.DCA.DataInit"));
         });
 
-        // 2. Исправляем ошибку приведения: регистрируем фабрику для базового типа
-        // Мы говорим DI: "Когда кто-то (например, AuditTrigger) просит фабрику базового контекста, 
-        // возьми фабрику DCA и приведи созданный контекст к базовому типу".
+        // 2. Адаптер для слоя MesDCA (IDbContextFactory<MesDcaApplicationDbContext>)
+        services.AddScoped<IDbContextFactory<MesDcaApplicationDbContext>>(sp =>
+        {
+            var factory = sp.GetRequiredService<IDbContextFactory<DcaApplicationDbContext>>();
+            return new MesDcaDbContextFactoryAdapter(factory);
+        });
+
+        // 3. АДАПТЕР ДЛЯ СЛОЯ Mes (IDbContextFactory<MesApplicationDbContext>)
+        services.AddScoped<IDbContextFactory<MesApplicationDbContext>>(sp =>
+        {
+            var factory = sp.GetRequiredService<IDbContextFactory<DcaApplicationDbContext>>();
+            return new MesDbContextFactoryAdapter(factory);
+        });
+
+        // 4. Адаптер для самого базового слоя Core (IDbContextFactory<ApplicationDbContext>)
         services.AddScoped<IDbContextFactory<ApplicationDbContext>>(sp =>
         {
-            // Получаем фабрику DCA
             var factory = sp.GetRequiredService<IDbContextFactory<DcaApplicationDbContext>>();
-
-            // Оборачиваем её в универсальный адаптер
             return new DbContextFactoryAdapter(factory);
         });
     }
@@ -51,6 +62,23 @@ public class Configurator : IWebAppConfigurator
         // Конфигурация промежуточного слоя
     }
 
+    // --- КЛАССЫ АДАПТЕРОВ ---
+
+    // Адаптер для MesMDM
+    private class MesDcaDbContextFactoryAdapter(IDbContextFactory<DcaApplicationDbContext> factory)
+        : IDbContextFactory<MesDcaApplicationDbContext>
+    {
+        public MesDcaApplicationDbContext CreateDbContext() => factory.CreateDbContext();
+    }
+
+    // Адаптер для Mes
+    private class MesDbContextFactoryAdapter(IDbContextFactory<DcaApplicationDbContext> factory)
+        : IDbContextFactory<MesApplicationDbContext>
+    {
+        public MesApplicationDbContext CreateDbContext() => factory.CreateDbContext();
+    }
+
+    // Адаптер для Core
     private class DbContextFactoryAdapter(IDbContextFactory<DcaApplicationDbContext> factory)
         : IDbContextFactory<ApplicationDbContext>
     {
