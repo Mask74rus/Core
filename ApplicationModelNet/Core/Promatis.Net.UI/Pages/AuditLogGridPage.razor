@@ -10,7 +10,8 @@
 <BaseGridPage TEntity="AuditLog"
               @ref="_baseGrid"
               ActionContext="@_context"
-              ServerData="@LoadServerData">
+              ServerData="@LoadServerData"
+              OnDataChangedRefreshRequested="@OnGlobalDataChangedAsync">
 
     <AdditionalToolbarContent>
         <div class="d-flex align-center gap-3">

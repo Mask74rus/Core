@@ -1,7 +1,5 @@
-﻿<!--
-    Класс контейнера меняется: flex-row для боковых панелей (Left/Right)
-    и flex-column для стандартных (Top/Bottom)
--->
+﻿@inherits ComponentBase
+
 <MudPaper Elevation="@GetPaperElevation()"
           Class="@GetPaperClass()"
           Style="@($"width: 100%; min-height: {GetWorkspaceHeight()}; overflow: hidden;")">
@@ -50,31 +48,3 @@
     }
 
 </MudPaper>
-
-@code {
-#nullable enable
-
-    [CascadingParameter] protected WorkspaceActionContext? ActionContext { get; set; }
-
-    [Parameter] public RenderFragment? BodyContent { get; set; }
-    [Parameter] public RenderFragment? TopContent { get; set; }
-    [Parameter] public RenderFragment? BottomContent { get; set; }
-    [Parameter] public RenderFragment? LeftContent { get; set; }
-    [Parameter] public RenderFragment? RightContent { get; set; }
-
-    // Визуальные настройки подложки с безопасным откатом на дефолты платформы
-    private int GetPaperElevation() => ActionContext?.PaperElevation ?? 1;
-    private string GetPaperClass() => ActionContext?.PaperClass ?? "pa-4 d-flex flex-column flex-grow-1 w-100 h-100";
-
-    // Геометрия каркаса
-    private string GetWorkspaceHeight() => ActionContext?.WorkspaceHeight ?? "100%";
-    private string GetTopHeight() => ActionContext?.TopZoneHeight ?? "auto";
-    private string GetBottomHeight() => ActionContext?.BottomZoneHeight ?? "auto";
-    private string GetLeftWidth() => ActionContext?.LeftZoneWidth ?? "250px";
-    private string GetRightWidth() => ActionContext?.RightZoneWidth ?? "300px";
-
-    private bool IsTopCollapsed() => ActionContext?.IsTopZoneCollapsed ?? false;
-    private bool IsBottomCollapsed() => ActionContext?.IsBottomZoneCollapsed ?? false;
-    private bool IsLeftCollapsed() => ActionContext?.IsLeftZoneCollapsed ?? false;
-    private bool IsRightCollapsed() => ActionContext?.IsRightZoneCollapsed ?? false;
-}

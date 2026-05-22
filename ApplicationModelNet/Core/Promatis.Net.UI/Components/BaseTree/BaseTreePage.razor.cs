@@ -3,13 +3,11 @@ using MudBlazor;
 
 namespace Promatis.Net.UI.Components.BaseTree;
 
-public partial class BaseTreePage<TEntity> : ComponentBase where TEntity : class
+public partial class BaseTreePage<TEntity> : ComponentBase, IDisposable where TEntity : class
 {
-    // ИСПРАВЛЕНО: Декларируем новые параметры строго внутри .razor для мгновенной видимости компилятором
     [Parameter] public Func<TEntity, string>? ItemIconFunc { get; set; }
     [Parameter] public Func<TEntity, Color>? ItemIconColorFunc { get; set; }
 
-    // В MudBlazor 9 тип коллекции для дерева обернут в TreeItemData
     [Parameter] public List<TreeItemData<TEntity>>? Items { get; set; }
     [Parameter] public Func<TEntity, Task<IReadOnlyCollection<TreeItemData<TEntity>>>>? ServerData { get; set; }
     [Parameter] public bool IsLoading { get; set; } = false;
@@ -20,7 +18,6 @@ public partial class BaseTreePage<TEntity> : ComponentBase where TEntity : class
 
     [Parameter] public TreeActionContext<TEntity> ActionContext { get; set; } = null!;
 
-    // Функции обратного вызова для гибкой конфигурации дерева на страницах-наследниках
     [Parameter] public Func<TEntity, string>? ItemTextFunc { get; set; }
     [Parameter] public Func<TEntity, bool>? CanExpandFunc { get; set; }
 
@@ -31,12 +28,37 @@ public partial class BaseTreePage<TEntity> : ComponentBase where TEntity : class
 
     [Parameter] public EventCallback<TEntity?> SelectedItemChanged { get; set; }
 
+    // НОВЫЙ ТРИГГЕР: Вызывается, когда контекст сообщает о коммите сущности данного типа,
+    // чтобы заставить бизнес-страницу перечитать полный граф в оперативной памяти.
+    [Parameter] public EventCallback OnDataChangedRefreshRequested { get; set; }
+
     protected override void OnInitialized()
     {
         base.OnInitialized();
         ActionContext ??= new TreeActionContext<TEntity>();
+
         // Синхронизируем перерисовку UI при изменении контекста
         ActionContext.OnContextUpdated = StateHasChanged;
+
+        // РЕАКТИВНАЯ АВТОМАТИКА: Подписываемся на импульсы обновлений из контекста холста
+        ActionContext.OnRefreshRequested += HandleRefreshRequest;
+    }
+
+    /// <summary>
+    /// Перехватывает событие обновления из контекста и реактивно перерисовывает дерево
+    /// </summary>
+    private void HandleRefreshRequest()
+    {
+        InvokeAsync(async () =>
+        {
+            if (OnDataChangedRefreshRequested.HasDelegate)
+            {
+                // Просим бизнес-страницу (например, UnitTreePage) обновить коллекцию Items в памяти
+                await OnDataChangedRefreshRequested.InvokeAsync();
+            }
+
+            StateHasChanged();
+        });
     }
 
     protected async Task OnCreateRootClick()
@@ -64,22 +86,29 @@ public partial class BaseTreePage<TEntity> : ComponentBase where TEntity : class
 
     private async Task OnSelectedChanged(TEntity? directNode)
     {
-        // Если кликнули мимо или объект пустой — ничего не делаем
         if (directNode == null) return;
 
-        // Если пользователь повторно кликает по уже выбранному листу — игнорируем, 
-        // не сбрасывая фокус и сохраняя тулбар активным
         if (EqualityComparer<TEntity>.Default.Equals(ActionContext.SelectedData, directNode))
         {
             return;
         }
 
-        // Записываем железно существующий C#-объект в источник правды контекста
         ActionContext.SelectedData = directNode;
 
         if (SelectedItemChanged.HasDelegate)
         {
             await SelectedItemChanged.InvokeAsync(directNode);
+        }
+    }
+
+    /// <summary>
+    /// Освобождаем подписку при закрытии MDI-вкладки для защиты от утечек памяти
+    /// </summary>
+    public void Dispose()
+    {
+        if (ActionContext != null)
+        {
+            ActionContext.OnRefreshRequested -= HandleRefreshRequest;
         }
     }
 }

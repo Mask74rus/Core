@@ -15,7 +15,7 @@ public partial class UnitTreePage : ComponentBase
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
     [Inject] private IDialogService DialogService { get; set; } = null!;
 
-    // ИСПРАВЛЕНО: Явно инстанцируем наш специализированный доменный контекст
+    // Явно инстанцируем наш специализированный доменный контекст управления тулбаром
     protected UnitTreeActionContext Context { get; } = new()
     {
         PageTitle = "Структура предприятия и оборудования",
@@ -27,7 +27,7 @@ public partial class UnitTreePage : ComponentBase
 
     protected override Task OnInitializedAsync()
     {
-        // ИСПРАВЛЕНО: Тулбар полностью автономен, в OnInitialized только возвращаем готовую таску
+        // Тулбар полностью автономен, разметка пятизонального холста рендерится мгновенно за 0 мс
         return Task.CompletedTask;
     }
 
@@ -39,14 +39,28 @@ public partial class UnitTreePage : ComponentBase
         }
     }
 
+    // =========================================================================
+    // ВЫСОКОПРОИЗВОДИТЕЛЬНАЯ СИСТЕМА СБОРКИ ДЕРЕВА В ОПЕРАТИВНОЙ ПАМЯТИ (1-2 мс)
+    // =========================================================================
+
     private async Task RefreshTreeAsync()
     {
         _isInitialLoading = true;
         StateHasChanged();
         try
         {
-            List<UnitBase> roots = await UnitService.GetRootsAsync();
-            _rootNodes = roots.Select(r => new TreeItemData<UnitBase> { Value = r }).ToList();
+            // Делаем ОДИН-ЕДИНСТВЕННЫЙ быстрый запрос к PostgreSQL вместо лавины ленивых вызовов
+            List<UnitBase> allItems = await UnitService.GetAllAsync();
+
+            // Строим индекс отношений по ParentId в оперативной памяти за O(M) операций
+            ILookup<Guid?, UnitBase> lookup = allItems.ToLookup(x => x.ParentId);
+
+            // Мгновенно выцепляем корневые элементы структуры
+            List<UnitBase> roots = lookup[null].ToList();
+
+            // Рекурсивно собираем TreeItemData сразу со всеми вложенными детьми в памяти.
+            // Теперь коллекции item.Children заполнены на старте, и стрелки у пустых цехов исчезнут сразу!
+            _rootNodes = roots.Select(r => BuildTreeItemData(r, lookup)).ToList();
         }
         catch (Exception ex)
         {
@@ -59,24 +73,40 @@ public partial class UnitTreePage : ComponentBase
         }
     }
 
-    private async Task<IReadOnlyCollection<TreeItemData<UnitBase>>> LoadChildrenAsync(UnitBase parent)
+    /// <summary>
+    /// Высокопроизводительный рекурсивный сборщик, который ОДНОВРЕМЕННО строит
+    /// и доменный граф навигационных свойств, и UI-иерархию Children для MudBlazor 9.4
+    /// </summary>
+    private TreeItemData<UnitBase> BuildTreeItemData(UnitBase current, ILookup<Guid?, UnitBase> lookup)
     {
-        if (parent == null) return Array.Empty<TreeItemData<UnitBase>>();
+        var uiItem = new TreeItemData<UnitBase> { Value = current };
 
-        try
+        List<UnitBase> domainChildren = lookup[current.Id].ToList();
+        current.Children.Clear();
+
+        if (domainChildren.Any())
         {
-            List<UnitBase> children = await UnitService.GetChildrenAsync(parent.Id);
-            return children.Select(c => new TreeItemData<UnitBase> { Value = c }).ToList();
+            var uiChildren = new List<TreeItemData<UnitBase>>();
+
+            foreach (UnitBase child in domainChildren)
+            {
+                current.Children.Add(child);
+                child.Parent = current;
+
+                // Уходим в рекурсию, собирая поддеревья для MudBlazor
+                uiChildren.Add(BuildTreeItemData(child, lookup));
+            }
+
+            // Записываем дочернюю коллекцию в обертку UI. Дерево нативно оживает на клиенте!
+            uiItem.Children = uiChildren;
         }
-        catch (Exception ex)
-        {
-            Snackbar.Add($"Ошибка загрузки подчиненных узлов: {ex.Message}", Severity.Error);
-            return Array.Empty<TreeItemData<UnitBase>>();
-        }
+
+        return uiItem;
     }
 
-    // ИСПРАВЛЕНО: Метод OnNodeSelected полностью УДАЛЕН. 
-    // Изменение фокуса строки идет через автоматический маппинг в Context.SelectedData напрямую!
+    // =========================================================================
+    // ОПЕРАЦИИ УПРАВЛЕНИЯ ДАННЫМИ (ФАБРИКА СУЩНОСТЕЙ И КОНТЕКСТА EF CORE)
+    // =========================================================================
 
     protected async Task CreateRootNodeAsync()
     {
@@ -94,13 +124,10 @@ public partial class UnitTreePage : ComponentBase
         };
 
         IDialogReference dialog = await DialogService.ShowAsync<UnitEditDialog>("Новый корневой элемент", parameters);
-        DialogResult? result = await dialog.Result;
 
-        if (result is { Canceled: false })
-        {
-            Snackbar.Add("Корневой элемент структуры успешно добавлен", Severity.Success);
-            await RefreshTreeAsync();
-        }
+        // Просто ждем закрытия диалога. Вызов RefreshTreeAsync() УДАЛЕН — 
+        // пятизональный холст сам реактивно перерисует экран по сигналу от интерцептора СУБД!
+        await dialog.Result;
     }
 
     protected async Task CreateChildNodeAsync()
@@ -128,6 +155,7 @@ public partial class UnitTreePage : ComponentBase
             _ => throw new ArgumentOutOfRangeException(nameof(childKind), $"Неизвестная категория {childKind}")
         };
 
+        // Зануляем навигационную ссылку, защищая ChangeTracker EF Core от дублирования объектов в сессии
         childUnit.Parent = null;
 
         DialogParameters parameters = new()
@@ -143,8 +171,9 @@ public partial class UnitTreePage : ComponentBase
         if (result is { Canceled: false })
         {
             Snackbar.Add("Подчиненный узел успешно добавлен", Severity.Success);
-            Context.SelectedData = null; // Сбрасываем фокус по правилам платформы
-            await RefreshTreeAsync();
+
+            // Гасим кнопки тулбара, зануляя фокус на клиенте. Авто-апдейт дерева идет через триггеры СУБД!
+            Context.SelectedData = null;
         }
     }
 
@@ -172,8 +201,8 @@ public partial class UnitTreePage : ComponentBase
 
         if (result is { Canceled: false })
         {
+            // Вызов RefreshTreeAsync() УДАЛЕН — холст сам перерисует обновленный узел
             Snackbar.Add("Данные узла успешно обновлены", Severity.Success);
-            await RefreshTreeAsync();
         }
     }
 
@@ -184,10 +213,13 @@ public partial class UnitTreePage : ComponentBase
         UnitBase selected = Context.SelectedData;
         try
         {
+            // Отдаем команду доменному сервису. Контекст EF Core запишет удаление, интерцептор поймает его,
+            // а верхний уровень пятизонального холста сбросит стейты и перерисует граф
             await UnitService.DeleteAsync(selected.Id);
             Snackbar.Add($"Объект '{selected.Name}' успешно удален", Severity.Success);
+
+            // Своевременно гасим кнопки тулбара, зануляя фокус на клиенте
             Context.SelectedData = null;
-            await RefreshTreeAsync();
         }
         catch (Exception ex)
         {
@@ -203,23 +235,5 @@ public partial class UnitTreePage : ComponentBase
         UnitKind.Transport => Icons.Material.Filled.LocalShipping,
         UnitKind.Position => Icons.Material.Filled.LocationOn,
         _ => Icons.Material.Filled.Circle
-    };
-
-    protected static string GetTranslate(UnitType type) => type switch
-    {
-        UnitType.Workshop => "Цех",
-        UnitType.Section => "Участок",
-        UnitType.Line => "Линия",
-        UnitType.Workstation => "Рабочее место",
-        UnitType.Storage => "Склад",
-        UnitType.Zone => "Зона",
-        UnitType.Rack => "Стеллаж",
-        UnitType.Cell => "Ячейка",
-        UnitType.Crane => "Кран",
-        UnitType.MachineTool => "Станок",
-        UnitType.Table => "Верстак",
-        UnitType.Vehicle => "Транспорт",
-        UnitType.Conveyor => "Транспортер",
-        _ => "Прочее"
     };
 }

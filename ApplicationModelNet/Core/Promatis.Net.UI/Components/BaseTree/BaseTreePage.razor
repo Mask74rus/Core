@@ -11,7 +11,6 @@
         <ChildContent>
             @if (IsLoading)
             {
-                @* Лоадер со стартовой миллисекунды жестко держит высоту calc(100vh - 245px) *@
                 <div class="d-flex justify-center align-center w-100"
                      style="height: calc(100vh - 245px); min-height: calc(100vh - 245px); max-height: calc(100vh - 245px);">
                     <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
@@ -33,10 +32,10 @@
             }
             else
             {
-                @* Скролл-бокс дерева жестко зажимает MDI-рамки на высоте calc(100vh - 245px) *@
                 <div class="w-100 pr-2"
                      style="height: calc(100vh - 245px); min-height: calc(100vh - 245px); max-height: calc(100vh - 245px); overflow-y: auto; overflow-x: hidden;">
 
+                    @* ИСПРАВЛЕНО: Убран несуществующий в MudBlazor 9 параметр ChildSelector. Тип дерева возвращен к TEntity *@
                     <MudTreeView T="TEntity"
                                  Items="@Items"
                                  ServerData="@ServerData"
@@ -47,14 +46,11 @@
                                 bool canExpand = CanExpandFunc == null || CanExpandFunc(item.Value!);
                                 bool isSelected = ActionContext.SelectedData == item.Value;
 
-                                // ДИНАМИЧЕСКИЙ РАСЧЕТ ИНЛАЙН-СТИЛЕЙ СТРОКИ:
-                                // Пробиваем рендеринг MudBlazor на атомарном уровне, забирая серый цвет из темы!
                                 string activeStyle = isSelected
                                     ? "background-color: var(--mud-palette-action-disabled-background) !important; color: var(--mud-palette-surface) !important; border-radius: 4px; font-weight: 500;"
                                     : "cursor: pointer;";
                             }
 
-                            @* Нативно управляем подсветкой фона и текста через ContentStyle, а скрытием стрелки — через ExpandButtonIcon *@
                             <MudTreeViewItem Value="@item.Value"
                                              Text="@(ItemTextFunc != null ? ItemTextFunc(item.Value!) : item.Value?.ToString())"
                                              Icon="@(ItemIconFunc != null ? ItemIconFunc(item.Value!) : string.Empty)"
@@ -62,7 +58,7 @@
                                              CanExpand="@canExpand"
                                              ExpandButtonIcon="@(canExpand ? Icons.Material.Filled.ChevronRight : string.Empty)"
                                              Selected="@isSelected"
-                                             Style="@activeStyle" 
+                                             Style="@activeStyle"
                                              OnClick="@((e) => OnSelectedChanged(item.Value))"
                                              LoadingIcon="@Icons.Material.Filled.Refresh">
 

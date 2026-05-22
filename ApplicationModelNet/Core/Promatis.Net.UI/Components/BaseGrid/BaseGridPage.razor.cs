@@ -3,7 +3,7 @@ using MudBlazor;
 
 namespace Promatis.Net.UI.Components.BaseGrid;
 
-public partial class BaseGridPage<TEntity> : ComponentBase where TEntity : class
+public partial class BaseGridPage<TEntity> : ComponentBase, IDisposable where TEntity : class
 {
     [Parameter] public IEnumerable<TEntity>? Items { get; set; }
     [Parameter] public Func<GridState<TEntity>, CancellationToken, Task<GridData<TEntity>>>? ServerData { get; set; }
@@ -17,14 +17,44 @@ public partial class BaseGridPage<TEntity> : ComponentBase where TEntity : class
     [Parameter] public EventCallback<TEntity> OnEditTriggered { get; set; }
     [Parameter] public EventCallback<TEntity> OnDeleteTriggered { get; set; }
 
+    // НОВЫЙ ТРИГГЕР: Вызывается, если таблица работает в режиме плоского списка Items,
+    // чтобы заставить бизнес-страницу перечитать данные из базы.
+    [Parameter] public EventCallback OnDataChangedRefreshRequested { get; set; }
+
     private MudDataGrid<TEntity> _grid = null!;
 
     protected override void OnInitialized()
     {
         base.OnInitialized();
         ActionContext ??= new GridActionContext<TEntity>();
+
         // Синхронизируем обновление UI при изменении контекста таблицы
         ActionContext.OnContextUpdated = StateHasChanged;
+
+        // РЕАКТИВНАЯ АВТОМАТИКА: Подписываемся на импульсы обновлений из контекста холста
+        ActionContext.OnRefreshRequested += HandleRefreshRequest;
+    }
+
+    /// <summary>
+    /// Ловит сигнал из контекста и запускает молниеносное обновление данных на экране
+    /// </summary>
+    private void HandleRefreshRequest()
+    {
+        InvokeAsync(async () =>
+        {
+            if (ServerData != null)
+            {
+                // Если грид на ServerData — пинаем нативный метод перезагрузки MudBlazor
+                await ReloadServerDataAsync();
+            }
+            else if (OnDataChangedRefreshRequested.HasDelegate)
+            {
+                // Если грид на плоской коллекции — просим страницу обновить коллекцию Items
+                await OnDataChangedRefreshRequested.InvokeAsync();
+            }
+
+            StateHasChanged();
+        });
     }
 
     public Task ReloadServerDataAsync() => _grid != null ? _grid.ReloadServerData() : Task.CompletedTask;
@@ -46,7 +76,6 @@ public partial class BaseGridPage<TEntity> : ComponentBase where TEntity : class
             await OnDeleteTriggered.InvokeAsync(ActionContext.SelectedData);
     }
 
-    // Внутренний перехватчик выбора строки
     private void OnSelectedItemChanged(TEntity? newItem)
     {
         if (newItem == null && ActionContext.SelectedData != null)
@@ -55,5 +84,16 @@ public partial class BaseGridPage<TEntity> : ComponentBase where TEntity : class
         }
 
         ActionContext.SelectedData = newItem;
+    }
+
+    /// <summary>
+    /// Уничтожает подписку при закрытии вкладки MDI, исключая утечки ОЗУ
+    /// </summary>
+    public void Dispose()
+    {
+        if (ActionContext != null)
+        {
+            ActionContext.OnRefreshRequested -= HandleRefreshRequest;
+        }
     }
 }

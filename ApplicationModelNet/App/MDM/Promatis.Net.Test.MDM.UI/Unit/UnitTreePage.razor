@@ -10,7 +10,7 @@
               ActionContext="@Context"
               Items="@_rootNodes"
               IsLoading="@_isInitialLoading"
-              ServerData="@LoadChildrenAsync"
+              OnDataChangedRefreshRequested="@RefreshTreeAsync"
               ItemTextFunc="@(x => $"{x.Code} - {x.Name} ({x.Type.GetDescription()})")"
               ItemIconFunc="@(x => GetNodeIcon(x.Kind))"
               ItemIconColorFunc="@(x => Color.Primary)"

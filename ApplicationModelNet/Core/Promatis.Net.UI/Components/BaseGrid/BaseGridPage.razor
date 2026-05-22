@@ -15,9 +15,9 @@
                      @ref="_grid"
                      SelectedItem="@ActionContext.SelectedData"
                      SelectedItemChanged="@OnSelectedItemChanged"
-                     RowStyleFunc="@((item, idx) => item == ActionContext.SelectedData 
-                                                                                 ? "background-color: var(--mud-palette-action-disabled-background) !important; color: var(--mud-palette-surface) !important; font-weight: 500;"
-                                       : string.Empty)"
+                     RowStyleFunc="@((item, idx) => item == ActionContext.SelectedData
+                                                            ? "background-color: var(--mud-palette-action-disabled-background) !important; color: var(--mud-palette-surface) !important; font-weight: 500;"
+                                                            : string.Empty)"
                      Hover="true"
                      Dense="true"
                      Striped="false"

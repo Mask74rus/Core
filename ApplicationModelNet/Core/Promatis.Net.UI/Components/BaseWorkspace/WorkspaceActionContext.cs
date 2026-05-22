@@ -10,16 +10,8 @@ public abstract class WorkspaceActionContext
     public string PageTitle { get; set; } = "Рабочая область";
     public string ModuleName { get; init; } = string.Empty;
 
-    // --- УПРАВЛЕНИЕ ВИЗУАЛЬНЫМ СТИЛЕМ ПОДЛОЖКИ (Вместо PlainView флага) ---
-
-    /// <summary>
-    /// Интенсивность тени подложки MudPaper (по умолчанию 1 для справочников, 0 для мнемосхем)
-    /// </summary>
+    // --- УПРАВЛЕНИЕ ВИЗУАЛЬНЫМ СТИЛЕМ ПОДЛОЖКИ ---
     public int PaperElevation { get; set; } = 1;
-
-    /// <summary>
-    /// Дополнительные CSS-классы для подложки (по умолчанию pa-4 для отступов справочников, pa-0 для мнемосхем)
-    /// </summary>
     public string PaperClass { get; set; } = "pa-4 d-flex flex-column flex-grow-1 w-100 h-100";
 
     // --- УПРАВЛЕНИЕ ГЕОМЕТРИЕЙ КАРКАСА ---
@@ -36,4 +28,31 @@ public abstract class WorkspaceActionContext
 
     public Action? OnContextUpdated { get; set; }
     public void NotifyUpdate() => OnContextUpdated?.Invoke();
+
+    // =========================================================================
+    // ДОБАВЛЕНО ДЛЯ РЕАКТИВНОГО UI (ВЕРХНИЙ ИНФРАСТРУКТУРНЫЙ ЭТАЖ)
+    // =========================================================================
+
+    /// <summary>
+    /// Глобальное событие, извещающее вложенный UI-контент о необходимости обновить данные.
+    /// </summary>
+    public event Action? OnRefreshRequested;
+
+    /// <summary>
+    /// Вызывается верхним уровнем холста при коммите любой сущности.
+    /// Переопределяется в типизированных наследниках для проверки соответствия типов.
+    /// </summary>
+    /// <param name="state">Состояние изменения из перехватчика EF Core (EntityStateChangeEnum)</param>
+    /// <param name="entity"></param>
+    public virtual void HandleGlobalEntityCommit(object state, object entity)
+    {
+    }
+
+    /// <summary>
+    /// Вспомогательный метод для безопасного запуска обновления вложенного контента изнутри контекста.
+    /// </summary>
+    protected void RequestRefresh()
+    {
+        OnRefreshRequested?.Invoke();
+    }
 }

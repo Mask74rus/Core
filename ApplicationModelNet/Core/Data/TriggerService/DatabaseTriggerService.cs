@@ -6,6 +6,9 @@ namespace Promatis.Net.Data;
 
 public class DatabaseTriggerService(IServiceProvider serviceProvider) : IDatabaseTriggerService
 {
+    // ИСПРАВЛЕНО: Теперь это официальное событие экземпляра контракта
+    public static event Action<EntityStateChangeEnum, object>? OnEntityCommitted;
+
     // Изменяем сигнатуру делегата: теперь он принимает IServiceProvider вторым аргументом
     private static readonly Dictionary<Type, List<Func<EntityCancelArgsBase, IServiceProvider, Task>>> BeforeSubscribers = new();
     private static readonly Dictionary<Type, List<Func<EntityChangedArgsBase, IServiceProvider, Task>>> AfterSubscribers = new();
@@ -105,6 +108,8 @@ public class DatabaseTriggerService(IServiceProvider serviceProvider) : IDatabas
                 }
             }
         }
+
+        OnEntityCommitted?.Invoke(state, entity);
     }
 
     private void AddSubscriber<TArgs>(Dictionary<Type, List<Func<TArgs, IServiceProvider, Task>>> dict, Type type, Func<TArgs, IServiceProvider, Task> action)

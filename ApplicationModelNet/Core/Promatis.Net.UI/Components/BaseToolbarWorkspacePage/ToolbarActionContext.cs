@@ -7,11 +7,6 @@ namespace Promatis.Net.UI.Components.BaseToolbarWorkspacePage;
 /// Автоматизирует геометрию командных панелей и доступность кнопок CRUD.
 /// </summary>
 /// <typeparam name="TEntity">Тип доменного объекта (модели), отображаемого на форме.</typeparam>
-/// <summary>
-/// Глобальный базовый контекст действий для любых рабочих областей системы, имеющих командный тулбар.
-/// Обеспечивает строгую симметрию между статической конфигурацией формы и динамическим расчетом кнопок.
-/// </summary>
-/// <typeparam name="TEntity">Тип доменного объекта (модели), отображаемого на форме.</typeparam>
 public class ToolbarActionContext<TEntity> : WorkspaceActionContext, IHasToolbar where TEntity : class
 {
     // Реализация интерфейса контракта тулбаров IHasToolbar
@@ -89,6 +84,43 @@ public class ToolbarActionContext<TEntity> : WorkspaceActionContext, IHasToolbar
         {
             action.IsEnabled = isEnabled;
             NotifyUpdate();
+        }
+    }
+
+    // =========================================================================
+    // ДОБАВЛЕНО: РЕАКТИВНАЯ ФИЛЬТРАЦИЯ ТИПОВ ДАННЫХ ПРИ ТРАНЗАКЦИЯХ СУБД
+    // =========================================================================
+
+    /// <summary>
+    /// Перехватывает сигнал коммита от верхнего уровня каркаса.
+    /// Проверяет полиморфизм типов доменной модели и реактивно пинает вложенный контент.
+    /// </summary>
+    public override void HandleGlobalEntityCommit(object state, object entity)
+    {
+        base.HandleGlobalEntityCommit(state, entity);
+
+        // ИСПРАВЛЕНО: Безопасно извлекаем чистый базовый тип, даже если EF Core обернул его в Прокси
+        Type entityType = entity.GetType();
+        if (entityType.BaseType != null && entityType.Namespace == "Castle.Proxies")
+        {
+            entityType = entityType.BaseType; // Спускаемся к реальному доменному типу
+        }
+
+        // Сравниваем чистые типы метаданных
+        if (typeof(TEntity).IsAssignableFrom(entityType))
+        {
+            string stateStr = state.ToString() ?? string.Empty;
+
+            if (stateStr == "Deleted" || stateStr == "SoftDeleted")
+            {
+                if (SelectedData != null && ReferenceEquals(SelectedData, entity))
+                {
+                    SelectedData = null;
+                }
+            }
+
+            // Пингаем UI
+            RequestRefresh();
         }
     }
 

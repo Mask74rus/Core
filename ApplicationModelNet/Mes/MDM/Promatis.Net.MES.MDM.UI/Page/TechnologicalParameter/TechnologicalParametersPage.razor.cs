@@ -32,7 +32,6 @@ public partial class TechnologicalParametersPage : ComponentBase
         }
         finally
         {
-            // Исправлено: Сбрасываем фокус через базовое свойство SelectedData
             _context.SelectedData = null;
             _isLoading = false;
             StateHasChanged();
@@ -53,7 +52,7 @@ public partial class TechnologicalParametersPage : ComponentBase
 
         if (result is { Canceled: false })
         {
-            await LoadDataAsync();
+            // Ручной вызов LoadDataAsync() УДАЛЕН — real-time обновление идет автоматически от интерцептора
             Snackbar.Add("Параметр успешно создан", Severity.Success);
         }
     }
@@ -62,6 +61,7 @@ public partial class TechnologicalParametersPage : ComponentBase
     {
         var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
 
+        // Генерируем чистую копию модели, изолируя изменения доменной карточки от рантайм-сессии
         var modelCopy = new Domain.TechnologicalParameter
         {
             Id = selectedItem.Id,
@@ -84,7 +84,7 @@ public partial class TechnologicalParametersPage : ComponentBase
 
         if (result is { Canceled: false })
         {
-            await LoadDataAsync();
+            // Ручной вызов LoadDataAsync() УДАЛЕН — холст сам перерисует обновленную строку
             Snackbar.Add("Параметр успешно обновлен", Severity.Success);
         }
     }
@@ -100,8 +100,8 @@ public partial class TechnologicalParametersPage : ComponentBase
         {
             try
             {
+                // Отдаем команду бэкенд-сервису. Коммит в БД запустит реактивную цепочку real-time обновления
                 await ParameterService.DeleteAsync(selectedItem.Id);
-                await LoadDataAsync();
                 Snackbar.Add("Параметр удален", Severity.Success);
             }
             catch (Exception ex)

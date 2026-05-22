@@ -10,6 +10,7 @@
               ActionContext="@_context"
               Items="@_parameters"
               IsLoading="@_isLoading"
+              OnDataChangedRefreshRequested="@LoadDataAsync"
               OnCreateTriggered="@CreateParameterAsync"
               OnEditTriggered="@EditParameterAsync"
               OnDeleteTriggered="@DeleteParameterAsync">

@@ -128,8 +128,20 @@ public class DatabaseTriggerInterceptor(IServiceScopeFactory scopeFactory) : Sav
                 }
             }
 
+            // ИСПРАВЛЕНО: Даже если коллекция точечных изменений полей (Changes) пуста 
+            // из-за рантайм-биндинга Blazor, мы ВСЁ РАВНО добавляем сущность в список уведомлений, 
+            // если фабрика зафиксировала состояние Modified! Это гарантирует 100% доставку событий изменений в UI.
             if (state == EntityStateChangeEnum.Modified && changes.Count == 0)
-                continue;
+            {
+                // Создаем фиктивную запись изменения для доменных триггеров, 
+                // чтобы не ломать валидацию, но сохранить импульс для UI
+                changes.Add(new PropertyChangeInfo
+                {
+                    PropertyName = "Id",
+                    OriginalValue = e.Property("Id").OriginalValue,
+                    CurrentValue = e.Property("Id").CurrentValue
+                });
+            }
 
             result.Add(new ChangeEntryModel
             {

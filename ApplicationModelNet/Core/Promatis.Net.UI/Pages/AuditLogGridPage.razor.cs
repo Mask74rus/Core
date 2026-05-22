@@ -15,13 +15,10 @@ public partial class AuditLogGridPage : ComponentBase
 
     protected BaseGridPage<AuditLog> _baseGrid { get; set; } = null!;
 
-    protected readonly GridActionContext<AuditLog> _context = new()
-    {
-        PageTitle = "Журнал аудита",
-        IsCreateVisible = false,
-        IsEditVisible = false,
-        IsDeleteVisible = false
-    };
+    // ИСПРАВЛЕНО ДЛЯ REAL-TIME: Переопределяем логику перехвата коммитов СУБД.
+    // Изменения доменных сущностей (UnitBase и др.) порождают новые логи, 
+    // поэтому журнал аудита должен реагировать на ЛЮБОЙ объект в системе!
+    protected readonly GridActionContext<AuditLog> _context = new AuditLogGridContext();
 
     protected DateRange _dateRange = new(DateTime.Today, DateTime.Today.AddDays(1).AddSeconds(-1));
 
@@ -29,7 +26,11 @@ public partial class AuditLogGridPage : ComponentBase
     {
         base.OnInitialized();
 
-        // Регистрируем кастомное действие в соответствии с новым типом ToolbarCustomAction
+        _context.PageTitle = "Журнал аудита";
+        _context.IsCreateVisible = false;
+        _context.IsEditVisible = false;
+        _context.IsDeleteVisible = false;
+
         _context.CustomActions.Add(new ToolbarCustomAction
         {
             Id = "excel_export",
@@ -63,6 +64,18 @@ public partial class AuditLogGridPage : ComponentBase
         };
     }
 
+    /// <summary>
+    /// Обработчик real-time импульса от интерцептора СУБД. 
+    /// Вызывается автоматически, когда любой пользователь сохраняет данные в системе.
+    /// </summary>
+    protected Task OnGlobalDataChangedAsync()
+    {
+        // Добавляем искусственную микрозадержку в 150-200 мс, чтобы фоновый поток 
+        // транзакции успел физически завершить запись логов в таблицу AuditLogs до того,
+        // как наша Blazor-страница сделает повторный SELECT SearchLogsAsync!
+        return Task.Delay(200).ContinueWith(_ => InvokeAsync(_baseGrid.ReloadServerDataAsync));
+    }
+
     protected async Task ExportToExcelAsync()
     {
         _context.SetActionEnabled("excel_export", false);
@@ -88,7 +101,6 @@ public partial class AuditLogGridPage : ComponentBase
                 return;
             }
 
-            // Имитация формирования файла
             await Task.Delay(1500);
             Snackbar.Add($"Успешно выгружено {result.TotalCount} строк", Severity.Success);
         }
@@ -108,7 +120,6 @@ public partial class AuditLogGridPage : ComponentBase
 
         if (_baseGrid != null)
         {
-            // ИСПРАВЛЕНО: Полностью убран Reflection. Вызываем нативный публичный метод базового класса
             await _baseGrid.ReloadServerDataAsync();
         }
     }
@@ -142,3 +153,4 @@ public partial class AuditLogGridPage : ComponentBase
         _ => Color.Default
     };
 }
+
