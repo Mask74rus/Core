@@ -10,7 +10,9 @@
               Items="@_rootNodes"
               IsLoading="@_isInitialLoading"
               ServerData="@LoadChildrenAsync"
-              ItemTextFunc="@(x => x.Name)"
+              ItemTextFunc="@(x => $"{x.Code} - {x.Name} ({GetTranslate(x.Type)})")"
+              ItemIconFunc="@(x => GetNodeIcon(x.Kind))"
+              ItemIconColorFunc="@(x => Color.Primary)"
               CanExpandFunc="@(x => x.Kind != UnitKind.Position)"
               OnCreateRootTriggered="@CreateRootNodeAsync"
               OnCreateChildTriggered="@CreateChildNodeAsync"
@@ -24,20 +26,5 @@
             <MudText Typo="Typo.body2" Color="Color.Default" Class="mud-text-disabled">Добавьте первый корневой элемент на панели инструментов</MudText>
         </div>
     </EmptyContent>
-
-    <NodeContent Context="unit">
-        <div class="d-flex align-center gap-2 w-100 pr-4 py-1">
-            <MudIcon Icon="@GetNodeIcon(unit.Kind)" Size="Size.Small" Color="Color.Primary" />
-            <div class="d-flex flex-column flex-grow-1">
-                <MudText Typo="Typo.body2" Class="font-weight-medium">@unit.Name</MudText>
-                <MudText Typo="Typo.caption" Color="Color.Secondary">@unit.Code (@GetTranslate(unit.Type))</MudText>
-            </div>
-            <MudIconButton Icon="@Icons.Material.Filled.Edit"
-                           Size="Size.Small"
-                           Color="Color.Default"
-                           Class="pa-1"
-                           OnClick="@(() => EditNodeAsync(unit))" />
-        </div>
-    </NodeContent>
 
 </BaseTreePage>

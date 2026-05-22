@@ -29,13 +29,6 @@ public class UnitTreeActionContext : TreeActionContext<UnitBase>
         // 1. Даем базовой инфраструктуре проверить фокус на null
         base.RecalculateButtonStates();
 
-        if (SelectedData == null)
-        {
-            IsCreateChildVisible = false;
-            return;
-        }
-
-        // 2. Декларативно скрываем кнопку, если фокус находится на конечной позиции
-        IsCreateChildVisible = SelectedData.Kind != UnitKind.Position;
+        IsCreateChildVisible = true;
     }
 }

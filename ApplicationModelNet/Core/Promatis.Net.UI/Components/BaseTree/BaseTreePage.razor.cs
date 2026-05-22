@@ -5,6 +5,10 @@ namespace Promatis.Net.UI.Components.BaseTree;
 
 public partial class BaseTreePage<TEntity> : ComponentBase where TEntity : class
 {
+    // ИСПРАВЛЕНО: Декларируем новые параметры строго внутри .razor для мгновенной видимости компилятором
+    [Parameter] public Func<TEntity, string>? ItemIconFunc { get; set; }
+    [Parameter] public Func<TEntity, Color>? ItemIconColorFunc { get; set; }
+
     // В MudBlazor 9 тип коллекции для дерева обернут в TreeItemData
     [Parameter] public List<TreeItemData<TEntity>>? Items { get; set; }
     [Parameter] public Func<TEntity, Task<IReadOnlyCollection<TreeItemData<TEntity>>>>? ServerData { get; set; }
@@ -58,12 +62,24 @@ public partial class BaseTreePage<TEntity> : ComponentBase where TEntity : class
             await OnDeleteNodeTriggered.InvokeAsync(ActionContext.SelectedData);
     }
 
-    private async Task OnSelectedValueChanged(TEntity? newValue)
+    private async Task OnSelectedChanged(TEntity? directNode)
     {
-        ActionContext.SelectedData = newValue;
+        // Если кликнули мимо или объект пустой — ничего не делаем
+        if (directNode == null) return;
+
+        // Если пользователь повторно кликает по уже выбранному листу — игнорируем, 
+        // не сбрасывая фокус и сохраняя тулбар активным
+        if (EqualityComparer<TEntity>.Default.Equals(ActionContext.SelectedData, directNode))
+        {
+            return;
+        }
+
+        // Записываем железно существующий C#-объект в источник правды контекста
+        ActionContext.SelectedData = directNode;
+
         if (SelectedItemChanged.HasDelegate)
         {
-            await SelectedItemChanged.InvokeAsync(newValue);
+            await SelectedItemChanged.InvokeAsync(directNode);
         }
     }
 }

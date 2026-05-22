@@ -1,16 +1,21 @@
-﻿@typeparam TEntity where TEntity : class
+﻿
+@typeparam TEntity where TEntity : class
 
 <style>
     /* Намертво принуждаем выделенный узел дерева принимать серый цвет и инвертировать текст */
-    .promatis-tree-container .mud-tree-view-item-selected .mud-tree-view-item-content {
+    .promatis-tree-container .promatis-selected-node .mud-tree-view-item-content {
         background-color: var(--mud-palette-action-disabled-background) !important;
         color: var(--mud-palette-surface) !important;
         border-radius: 4px;
     }
-        /* Инвертируем внутренние иконки, типографику и кастомный текст в выделенном узле */
-        .promatis-tree-container .mud-tree-view-item-selected .mud-tree-view-item-content * {
+        /* Инвертируем внутренние иконки и текст в выделенном узле */
+        .promatis-tree-container .promatis-selected-node .mud-tree-view-item-content * {
             color: var(--mud-palette-surface) !important;
         }
+
+    .promatis-tree-container .mud-tree-view-item-content {
+        cursor: pointer;
+    }
 </style>
 
 <div class="promatis-tree-container w-100 h-100">
@@ -44,19 +49,40 @@
             }
             else
             {
-                <MudTreeView T="TEntity" 
-                             Items="@Items" 
+                <MudTreeView T="TEntity"
+                             Items="@Items"
                              ServerData="@ServerData"
-                             SelectedValue="@ActionContext.SelectedData"
-                             SelectedValueChanged="@OnSelectedValueChanged"
                              Hover="true"
                              Dense="true">
                     <ItemTemplate Context="item">
+                        @{
+                            // 1. Проверяем доменное правило (запрет расширения для Позиций)
+                            bool businessCanExpand = CanExpandFunc == null || CanExpandFunc(item.Value!);
+        
+                            // 2. Проверяем состояние данных от ServerData:
+                            // Если MudBlazor уже выполнил ленивую загрузку и коллекция Children прилетела пустой (Count == 0),
+                            // значит, узел физически пуст на бэкенде!
+                            bool isLoadedAndEmpty = item.Children != null && !item.Children.Any();
+        
+                            // Шеврон должен отображаться только если бизнес-логика разрешает И узел не является загруженным пустым листом
+                            bool showArrow = businessCanExpand && !isLoadedAndEmpty;
+        
+                            // Разрешаем разворот только если бизнес-логика не против и узел не пустой
+                            bool canExpand = businessCanExpand && !isLoadedAndEmpty;
+                            bool isSelected = ActionContext.SelectedData == item.Value;
+                        }
+
                         <MudTreeViewItem Value="@item.Value"
                                          Text="@(ItemTextFunc != null ? ItemTextFunc(item.Value!) : item.Value?.ToString())"
-                                         CanExpand="@(CanExpandFunc == null || CanExpandFunc(item.Value!))"
+                                         Icon="@(ItemIconFunc != null ? ItemIconFunc(item.Value!) : string.Empty)"
+                                         IconColor="@(ItemIconColorFunc != null ? ItemIconColorFunc(item.Value!) : Color.Default)"
+                                         CanExpand="@canExpand"
+                                         ExpandButtonIcon="@(showArrow ? Icons.Material.Filled.ChevronRight : string.Empty)"
+                                         Selected="@isSelected"
+                                         Class="@(isSelected ? "--mud-palette-action-disabled-background" : string.Empty)"
+                                         OnClick="@((e) => OnSelectedChanged(item.Value))"
                                          LoadingIcon="@Icons.Material.Filled.Refresh">
-
+        
                             @if (NodeContent != null)
                             {
                                 @NodeContent(item.Value!)
