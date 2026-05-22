@@ -1,15 +1,21 @@
-﻿namespace Promatis.Net.MES.Domain.Interface;
+﻿using System.ComponentModel;
+
+namespace Promatis.Net.MES.Domain.Interface;
 
 public enum UnitKind
 {
-    // Явно указываем, из чего состоит каждая категория
+    [Description("Складская логистика")]
     Storage = UnitType.Storage | UnitType.Zone | UnitType.Rack | UnitType.Cell | UnitType.Crane,
+
+    [Description("Производственная зона")]
     Production = UnitType.Workshop | UnitType.Section | UnitType.Line | UnitType.Workstation | UnitType.MachineTool | UnitType.Table,
+
+    [Description("Транспортный узел")]
     Transport = UnitType.Vehicle | UnitType.Conveyor,
 
-    // Департамент может содержать крупные узлы
+    [Description("Подразделение")]
     Department = UnitType.Workshop | UnitType.Section | UnitType.Other,
 
-    // Позиция — конкретные рабочие точки
+    [Description("Рабочая точка / Ячейка")]
     Position = UnitType.Cell | UnitType.Other
 }

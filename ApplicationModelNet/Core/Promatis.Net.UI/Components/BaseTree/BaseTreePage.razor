@@ -1,22 +1,4 @@
-﻿
-@typeparam TEntity where TEntity : class
-
-<style>
-    /* Намертво принуждаем выделенный узел дерева принимать серый цвет и инвертировать текст */
-    .promatis-tree-container .promatis-selected-node .mud-tree-view-item-content {
-        background-color: var(--mud-palette-action-disabled-background) !important;
-        color: var(--mud-palette-surface) !important;
-        border-radius: 4px;
-    }
-        /* Инвертируем внутренние иконки и текст в выделенном узле */
-        .promatis-tree-container .promatis-selected-node .mud-tree-view-item-content * {
-            color: var(--mud-palette-surface) !important;
-        }
-
-    .promatis-tree-container .mud-tree-view-item-content {
-        cursor: pointer;
-    }
-</style>
+﻿@typeparam TEntity where TEntity : class
 
 <div class="promatis-tree-container w-100 h-100">
     <BaseToolbarWorkspacePage TEntity="TEntity"
@@ -29,7 +11,9 @@
         <ChildContent>
             @if (IsLoading)
             {
-                <div class="d-flex justify-center align-center h-100" style="min-height: 400px;">
+                @* Лоадер со стартовой миллисекунды жестко держит высоту calc(100vh - 245px) *@
+                <div class="d-flex justify-center align-center w-100"
+                     style="height: calc(100vh - 245px); min-height: calc(100vh - 245px); max-height: calc(100vh - 245px);">
                     <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
                 </div>
             }
@@ -49,48 +33,48 @@
             }
             else
             {
-                <MudTreeView T="TEntity"
-                             Items="@Items"
-                             ServerData="@ServerData"
-                             Hover="true"
-                             Dense="true">
-                    <ItemTemplate Context="item">
-                        @{
-                            // 1. Проверяем доменное правило (запрет расширения для Позиций)
-                            bool businessCanExpand = CanExpandFunc == null || CanExpandFunc(item.Value!);
-        
-                            // 2. Проверяем состояние данных от ServerData:
-                            // Если MudBlazor уже выполнил ленивую загрузку и коллекция Children прилетела пустой (Count == 0),
-                            // значит, узел физически пуст на бэкенде!
-                            bool isLoadedAndEmpty = item.Children != null && !item.Children.Any();
-        
-                            // Шеврон должен отображаться только если бизнес-логика разрешает И узел не является загруженным пустым листом
-                            bool showArrow = businessCanExpand && !isLoadedAndEmpty;
-        
-                            // Разрешаем разворот только если бизнес-логика не против и узел не пустой
-                            bool canExpand = businessCanExpand && !isLoadedAndEmpty;
-                            bool isSelected = ActionContext.SelectedData == item.Value;
-                        }
+                @* Скролл-бокс дерева жестко зажимает MDI-рамки на высоте calc(100vh - 245px) *@
+                <div class="w-100 pr-2"
+                     style="height: calc(100vh - 245px); min-height: calc(100vh - 245px); max-height: calc(100vh - 245px); overflow-y: auto; overflow-x: hidden;">
 
-                        <MudTreeViewItem Value="@item.Value"
-                                         Text="@(ItemTextFunc != null ? ItemTextFunc(item.Value!) : item.Value?.ToString())"
-                                         Icon="@(ItemIconFunc != null ? ItemIconFunc(item.Value!) : string.Empty)"
-                                         IconColor="@(ItemIconColorFunc != null ? ItemIconColorFunc(item.Value!) : Color.Default)"
-                                         CanExpand="@canExpand"
-                                         ExpandButtonIcon="@(showArrow ? Icons.Material.Filled.ChevronRight : string.Empty)"
-                                         Selected="@isSelected"
-                                         Class="@(isSelected ? "--mud-palette-action-disabled-background" : string.Empty)"
-                                         OnClick="@((e) => OnSelectedChanged(item.Value))"
-                                         LoadingIcon="@Icons.Material.Filled.Refresh">
-        
-                            @if (NodeContent != null)
-                            {
-                                @NodeContent(item.Value!)
+                    <MudTreeView T="TEntity"
+                                 Items="@Items"
+                                 ServerData="@ServerData"
+                                 Hover="true"
+                                 Dense="true">
+                        <ItemTemplate Context="item">
+                            @{
+                                bool canExpand = CanExpandFunc == null || CanExpandFunc(item.Value!);
+                                bool isSelected = ActionContext.SelectedData == item.Value;
+
+                                // ДИНАМИЧЕСКИЙ РАСЧЕТ ИНЛАЙН-СТИЛЕЙ СТРОКИ:
+                                // Пробиваем рендеринг MudBlazor на атомарном уровне, забирая серый цвет из темы!
+                                string activeStyle = isSelected
+                                    ? "background-color: var(--mud-palette-action-disabled-background) !important; color: var(--mud-palette-surface) !important; border-radius: 4px; font-weight: 500;"
+                                    : "cursor: pointer;";
                             }
 
-                        </MudTreeViewItem>
-                    </ItemTemplate>
-                </MudTreeView>
+                            @* Нативно управляем подсветкой фона и текста через ContentStyle, а скрытием стрелки — через ExpandButtonIcon *@
+                            <MudTreeViewItem Value="@item.Value"
+                                             Text="@(ItemTextFunc != null ? ItemTextFunc(item.Value!) : item.Value?.ToString())"
+                                             Icon="@(ItemIconFunc != null ? ItemIconFunc(item.Value!) : string.Empty)"
+                                             IconColor="@(isSelected ? Color.Default : ItemIconColorFunc?.Invoke(item.Value!) ?? Color.Default)"
+                                             CanExpand="@canExpand"
+                                             ExpandButtonIcon="@(canExpand ? Icons.Material.Filled.ChevronRight : string.Empty)"
+                                             Selected="@isSelected"
+                                             Style="@activeStyle" 
+                                             OnClick="@((e) => OnSelectedChanged(item.Value))"
+                                             LoadingIcon="@Icons.Material.Filled.Refresh">
+
+                                @if (NodeContent != null)
+                                {
+                                    @NodeContent(item.Value!)
+                                }
+
+                            </MudTreeViewItem>
+                        </ItemTemplate>
+                    </MudTreeView>
+                </div>
             }
         </ChildContent>
     </BaseToolbarWorkspacePage>

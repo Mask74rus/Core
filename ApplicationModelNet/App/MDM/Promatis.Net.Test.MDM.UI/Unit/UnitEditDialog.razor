@@ -1,4 +1,5 @@
-﻿@using Promatis.Net.MES.Domain.Interface
+﻿@using Promatis.Net.Domain.Interface
+@using Promatis.Net.MES.Domain.Interface
 @using Promatis.Net.UI.Components.Dialogs;
 @inherits Microsoft.AspNetCore.Components.ComponentBase
 
@@ -32,7 +33,8 @@
                        Required="true">
                 @foreach (UnitType type in _availableTypes)
                 {
-                    <MudSelectItem Value="@type">@GetTranslate(type)</MudSelectItem>
+                    @* Вызываем GetDescription() прямо на элементе итератора *@
+                    <MudSelectItem Value="@type">@type.GetDescription()</MudSelectItem>
                 }
             </MudSelect>
 

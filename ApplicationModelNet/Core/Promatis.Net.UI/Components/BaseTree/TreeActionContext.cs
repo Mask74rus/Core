@@ -1,4 +1,6 @@
-﻿using Promatis.Net.UI.Components.BaseToolbarWorkspacePage;
+﻿using Promatis.Net.MES.Domain;
+using Promatis.Net.MES.Domain.Interface;
+using Promatis.Net.UI.Components.BaseToolbarWorkspacePage;
 
 namespace Promatis.Net.UI.Components.BaseTree;
 
@@ -12,7 +14,7 @@ public class TreeActionContext<TEntity> : ToolbarActionContext<TEntity> where TE
     // =========================================================================
     // 1. СТАТИЧЕСКАЯ КОНФИГУРАЦИЯ (Управляется со страницы при инициализации)
     // =========================================================================
-
+    
     /// <summary>
     /// Флаг видимости кнопки «Добавить подузел». По умолчанию для всех деревьев включен.
     /// </summary>

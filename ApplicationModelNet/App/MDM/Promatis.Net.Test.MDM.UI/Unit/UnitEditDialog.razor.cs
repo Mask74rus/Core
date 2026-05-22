@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using Promatis.Net.Domain;
+using Promatis.Net.Domain.Interface;
 using Promatis.Net.MES.Domain;
 using Promatis.Net.MES.Domain.Interface;
 using Promatis.Net.UI.Components.Dialogs;
@@ -14,7 +15,6 @@ public partial class UnitEditDialog : ComponentBase
     protected string _title = string.Empty;
     protected List<UnitType> _availableTypes = new();
 
-    // ИСПРАВЛЕНО: Используем не-дженерик интерфейс, чтобы GlobalPolymorphicValidator полиморфно вычислял типы в рантайме
     [Inject] protected IValidator UnitValidator { get; set; } = null!;
     [Inject] protected ISnackbar Snackbar { get; set; } = null!;
 
@@ -26,9 +26,9 @@ public partial class UnitEditDialog : ComponentBase
     {
         base.OnInitialized();
 
-        _title = IsNew ? $"Создание: {GetKindTranslate(Model.Kind)}" : $"Редактирование: {Model.Name}";
+        // ИСПРАВЛЕНО: Читаем описание Kind напрямую из доменного атрибута через метод расширения
+        _title = IsNew ? $"Создание: {Model.Kind.GetDescription()}" : $"Редактирование: {Model.Name}";
 
-        // Фильтрация доступных типов на основе битовой маски категории Kind
         _availableTypes = Enum.GetValues<UnitType>()
             .Where(t => t != UnitType.None)
             .Where(t => ((int)Model.Kind & (int)t) != 0)
@@ -42,33 +42,4 @@ public partial class UnitEditDialog : ComponentBase
             await OnSave(Model);
         }
     }
-
-    protected string GetKindTranslate(UnitKind kind) => kind switch
-    {
-        UnitKind.Department => "Подразделение",
-        UnitKind.Production => "Производственная зона",
-        UnitKind.Storage => "Складская логистика",
-        UnitKind.Transport => "Транспортный узел",
-        UnitKind.Position => "Рабочая точка / Ячейка",
-        _ => kind.ToString()
-    };
-
-    protected string GetTranslate(UnitType type) => type switch
-    {
-        UnitType.Workshop => "Цех",
-        UnitType.Section => "Участок",
-        UnitType.Line => "Линия / Конвейер",
-        UnitType.Workstation => "Рабочее место",
-        UnitType.Storage => "Склад",
-        UnitType.Zone => "Зона хранения",
-        UnitType.Rack => "Стеллаж",
-        UnitType.Cell => "Ячейка адреса хранения",
-        UnitType.Crane => "Кран / Подъемник",
-        UnitType.MachineTool => "Станок",
-        UnitType.Table => "Верстак / Стол",
-        UnitType.Vehicle => "Транспортное средство",
-        UnitType.Conveyor => "Автономный транспортер",
-        UnitType.Other => "Прочее",
-        _ => type.ToString()
-    };
 }

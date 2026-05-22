@@ -1,5 +1,6 @@
 ﻿@page "/mdm/units"
 
+@using Promatis.Net.Domain.Interface
 @using Promatis.Net.MES.Domain
 @using Promatis.Net.MES.Domain.Interface
 
@@ -10,7 +11,7 @@
               Items="@_rootNodes"
               IsLoading="@_isInitialLoading"
               ServerData="@LoadChildrenAsync"
-              ItemTextFunc="@(x => $"{x.Code} - {x.Name} ({GetTranslate(x.Type)})")"
+              ItemTextFunc="@(x => $"{x.Code} - {x.Name} ({x.Type.GetDescription()})")"
               ItemIconFunc="@(x => GetNodeIcon(x.Kind))"
               ItemIconColorFunc="@(x => Color.Primary)"
               CanExpandFunc="@(x => x.Kind != UnitKind.Position)"
