@@ -1,9 +1,10 @@
 ﻿using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using Promatis.Net.Service;
-using Promatis.Net.UI;
+using Promatis.Net.UI.Components.BaseGrid;
 
 namespace Promatis.Net.MES.MDM.UI.Page.TechnologicalParameter;
+
 
 public partial class TechnologicalParametersPage : ComponentBase
 {
@@ -11,23 +12,13 @@ public partial class TechnologicalParametersPage : ComponentBase
     [Inject] protected IDialogService DialogService { get; set; } = null!;
     [Inject] protected ISnackbar Snackbar { get; set; } = null!;
 
-    protected GridActionContext _context = new() { PageTitle = "Технологические параметры" };
+    protected GridActionContext<Domain.TechnologicalParameter> _context = new() { PageTitle = "Технологические параметры" };
     protected List<Domain.TechnologicalParameter> _parameters = new();
-    protected Domain.TechnologicalParameter? _selectedParameter;
-    protected MudDataGrid<Domain.TechnologicalParameter> _grid = null!;
     protected bool _isLoading = true;
-
-    protected override void OnInitialized()
-    {
-        UpdateToolbarState();
-    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
-        {
-            await LoadDataAsync();
-        }
+        if (firstRender) await LoadDataAsync();
     }
 
     protected async Task LoadDataAsync()
@@ -41,28 +32,11 @@ public partial class TechnologicalParametersPage : ComponentBase
         }
         finally
         {
-            _selectedParameter = null;
+            // Исправлено: Сбрасываем фокус через базовое свойство SelectedData
+            _context.SelectedData = null;
             _isLoading = false;
-            UpdateToolbarState();
             StateHasChanged();
         }
-    }
-
-    protected void OnRowClick(DataGridRowClickEventArgs<Domain.TechnologicalParameter> args)
-    {
-        _selectedParameter = args.Item;
-        UpdateToolbarState();
-    }
-
-    protected void UpdateToolbarState()
-    {
-        // Кнопки "Изменить" и "Удалить" активируются только при наличии выбранной строки
-        bool hasSelection = _selectedParameter != null;
-
-        _context.IsEditEnabled = hasSelection;
-        _context.IsDeleteEnabled = hasSelection;
-
-        _context.NotifyUpdate();
     }
 
     protected async Task CreateParameterAsync()
@@ -84,22 +58,19 @@ public partial class TechnologicalParametersPage : ComponentBase
         }
     }
 
-    protected async Task EditParameterAsync()
+    protected async Task EditParameterAsync(Domain.TechnologicalParameter selectedItem)
     {
-        if (_selectedParameter == null) return;
-
         var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
 
-        // Клонируем выделенный объект для изоляции редактирования
         var modelCopy = new Domain.TechnologicalParameter
         {
-            Id = _selectedParameter.Id,
-            Code = _selectedParameter.Code,
-            Name = _selectedParameter.Name,
-            DataType = _selectedParameter.DataType,
-            UnitOfMeasurement = _selectedParameter.UnitOfMeasurement,
-            Description = _selectedParameter.Description,
-            CreatedAt = _selectedParameter.CreatedAt
+            Id = selectedItem.Id,
+            Code = selectedItem.Code,
+            Name = selectedItem.Name,
+            DataType = selectedItem.DataType,
+            UnitOfMeasurement = selectedItem.UnitOfMeasurement,
+            Description = selectedItem.Description,
+            CreatedAt = selectedItem.CreatedAt
         };
 
         var parameters = new DialogParameters<TechnologicalParameterDialog>
@@ -118,20 +89,18 @@ public partial class TechnologicalParametersPage : ComponentBase
         }
     }
 
-    protected async Task DeleteParameterAsync()
+    protected async Task DeleteParameterAsync(Domain.TechnologicalParameter selectedItem)
     {
-        if (_selectedParameter == null) return;
-
         bool? confirm = await DialogService.ShowMessageBoxAsync(
             "Предупреждение",
-            $"Вы действительно хотите удалить параметр '{_selectedParameter.Name}'?",
+            $"Вы действительно хотите удалить параметр '{selectedItem.Name}'?",
             yesText: "Удалить", cancelText: "Отмена");
 
         if (confirm == true)
         {
             try
             {
-                await ParameterService.DeleteAsync(_selectedParameter.Id);
+                await ParameterService.DeleteAsync(selectedItem.Id);
                 await LoadDataAsync();
                 Snackbar.Add("Параметр удален", Severity.Success);
             }

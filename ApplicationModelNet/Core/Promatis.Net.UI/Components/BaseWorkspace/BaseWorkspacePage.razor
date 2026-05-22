@@ -2,93 +2,79 @@
     Класс контейнера меняется: flex-row для боковых панелей (Left/Right)
     и flex-column для стандартных (Top/Bottom)
 -->
-@if (ToolbarContent == null)
-{
-    <MudPaper Elevation="1"
-              Class="pa-4 font-sans d-flex flex-column flex-grow-1 w-100 h-100"
-              Style="width: 100%; min-height: calc(100vh - 150px); overflow: hidden;">
-        <div class="flex-grow-1 w-100 d-flex flex-column" style="height: 100%; min-height: 0;">
-            @_renderBody
-        </div>
-    </MudPaper>
-}
-else
-{
-    <MudPaper Elevation="1"
-              Class="@($"pa-4 font-sans d-flex gap-4 {GetMainContainerClass()} flex-grow-1 w-100 h-100")"
-              Style="width: 100%; min-height: calc(100vh - 150px); overflow: hidden;">
+<MudPaper Elevation="@GetPaperElevation()"
+          Class="@GetPaperClass()"
+          Style="@($"width: 100%; min-height: {GetWorkspaceHeight()}; overflow: hidden;")">
 
-        @switch (CurrentPosition)
+    @if (TopContent != null && !IsTopCollapsed())
+    {
+        <div class="workspace-zone-top w-100 mb-2"
+             style="@($"height: {GetTopHeight()}; min-height: {GetTopHeight()}; max-height: {GetTopHeight()};")">
+            @TopContent
+        </div>
+    }
+
+    <div class="d-flex flex-row align-stretch flex-grow-1 gap-4 w-100" style="min-height: 0;">
+
+        @if (LeftContent != null && !IsLeftCollapsed())
         {
-            case ToolbarPosition.Top:
-                @_renderToolbar
-                @_renderBody
-                break;
-
-            case ToolbarPosition.Bottom:
-                @_renderBody
-                @_renderToolbar
-                break;
-
-            case ToolbarPosition.Left:
-                @_renderVerticalToolbar
-                @_renderBody
-                break;
-
-            case ToolbarPosition.Right:
-                @_renderBody
-                @_renderVerticalToolbar
-                break;
+            <div class="workspace-zone-left d-flex flex-column align-stretch justify-space-between"
+                 style="@($"width: {GetLeftWidth()}; min-width: {GetLeftWidth()}; max-width: {GetLeftWidth()};")">
+                @LeftContent
+            </div>
         }
-    </MudPaper>
-}
 
-@code {
-    [CascadingParameter]
-    protected WorkspaceActionContext? ActionContext { get; set; }
-
-    [Parameter] public RenderFragment? ToolbarContent { get; set; }
-    [Parameter] public RenderFragment? BodyContent { get; set; }
-
-    private ToolbarPosition CurrentPosition => ActionContext?.Position ?? ToolbarPosition.Top;
-    private string CurrentTitle => ActionContext?.PageTitle ?? "Рабочая область";
-
-    private string GetMainContainerClass() => CurrentPosition switch
-    {
-        ToolbarPosition.Left or ToolbarPosition.Right => "flex-row align-stretch",
-        _ => "flex-column"
-    };
-
-    private RenderFragment _renderToolbar => __builder =>
-    {
-        <div class="d-flex align-center justify-space-between bg-light pa-2 rounded shadow-sm w-100">
-            <div class="d-flex align-center gap-2 flex-wrap">
-                @ToolbarContent
-            </div>
-
-        </div>
-    };
-
-    private RenderFragment _renderVerticalToolbar => __builder =>
-    {
-        <div class="d-flex flex-column align-stretch justify-space-between bg-light pa-3 rounded shadow-sm"
-             style="min-width: 180px; max-width: 240px;">
-            <div class="d-flex flex-column gap-2">
-                <MudText Typo="Typo.subtitle2" Class="font-weight-bold text-center border-bottom pb-2 mb-2">
-                    @CurrentTitle
-                </MudText>
-                @ToolbarContent
-            </div>
-        </div>
-    };
-
-    private RenderFragment _renderBody => __builder =>
-    {
-        <div class="workspace-main-container flex-grow-1 w-100">
+        <div class="workspace-zone-body flex-grow-1 h-100" style="min-width: 0; min-height: 0;">
             @if (BodyContent != null)
             {
                 @BodyContent
             }
         </div>
-    };
+
+        @if (RightContent != null && !IsRightCollapsed())
+        {
+            <div class="workspace-zone-right d-flex flex-column align-stretch justify-space-between"
+                 style="@($"width: {GetRightWidth()}; min-width: {GetRightWidth()}; max-width: {GetRightWidth()};")">
+                @RightContent
+            </div>
+        }
+
+    </div>
+
+    @if (BottomContent != null && !IsBottomCollapsed())
+    {
+        <div class="workspace-zone-bottom w-100 mt-2"
+             style="@($"height: {GetBottomHeight()}; min-height: {GetBottomHeight()}; max-height: {GetBottomHeight()};")">
+            @BottomContent
+        </div>
+    }
+
+</MudPaper>
+
+@code {
+#nullable enable
+
+    [CascadingParameter] protected WorkspaceActionContext? ActionContext { get; set; }
+
+    [Parameter] public RenderFragment? BodyContent { get; set; }
+    [Parameter] public RenderFragment? TopContent { get; set; }
+    [Parameter] public RenderFragment? BottomContent { get; set; }
+    [Parameter] public RenderFragment? LeftContent { get; set; }
+    [Parameter] public RenderFragment? RightContent { get; set; }
+
+    // Визуальные настройки подложки с безопасным откатом на дефолты платформы
+    private int GetPaperElevation() => ActionContext?.PaperElevation ?? 1;
+    private string GetPaperClass() => ActionContext?.PaperClass ?? "pa-4 d-flex flex-column flex-grow-1 w-100 h-100";
+
+    // Геометрия каркаса
+    private string GetWorkspaceHeight() => ActionContext?.WorkspaceHeight ?? "100%";
+    private string GetTopHeight() => ActionContext?.TopZoneHeight ?? "auto";
+    private string GetBottomHeight() => ActionContext?.BottomZoneHeight ?? "auto";
+    private string GetLeftWidth() => ActionContext?.LeftZoneWidth ?? "250px";
+    private string GetRightWidth() => ActionContext?.RightZoneWidth ?? "300px";
+
+    private bool IsTopCollapsed() => ActionContext?.IsTopZoneCollapsed ?? false;
+    private bool IsBottomCollapsed() => ActionContext?.IsBottomZoneCollapsed ?? false;
+    private bool IsLeftCollapsed() => ActionContext?.IsLeftZoneCollapsed ?? false;
+    private bool IsRightCollapsed() => ActionContext?.IsRightZoneCollapsed ?? false;
 }

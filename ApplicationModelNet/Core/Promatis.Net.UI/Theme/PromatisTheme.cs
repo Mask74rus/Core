@@ -15,7 +15,7 @@ public static class PromatisTheme
             AppbarText = "#2C3E50",               // Цвет текста, заголовков и иконок в верхней панели
             DrawerBackground = "#EAEAEA",         // Фон бокового меню навигации (MudDrawer)
             Background = "#F9F9F9",               // Общий фоновый цвет подложки всех страниц приложения
-            Surface = Colors.Shades.White         // Фон контейнеров MudPaper, карточек MudCard и таблиц
+            Surface = Colors.Shades.White,         // Фон контейнеров MudPaper, карточек MudCard и таблиц
         },
         PaletteDark = new PaletteDark
         {
@@ -30,7 +30,7 @@ public static class PromatisTheme
             DrawerBackground = "#1E1E1E",         // Фон боковой панели навигации в тёмной теме
             DrawerText = "#E0E0E0",               // Цвет ссылок и текста в боковом меню
             TextPrimary = "#E0E0E0",              // Основной цвет текста на страницах (мягкий светло-серый)
-            TextSecondary = "#A0A0A0"             // Цвет для второстепенного текста и подсказок
+            TextSecondary = "#A0A0A0",             // Цвет для второстепенного текста и подсказок
         },
         LayoutProperties = new LayoutProperties
         {

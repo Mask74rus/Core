@@ -1,12 +1,30 @@
-﻿namespace Promatis.Net.UI;
+﻿using Promatis.Net.UI.Components.BaseToolbarWorkspacePage;
 
-public class GridActionContext : WorkspaceActionContext
+namespace Promatis.Net.UI.Components.BaseGrid;
+
+/// <summary>
+/// Специализированный контекст действий для табличных рабочих областей (гридов).
+/// Полностью интегрирован в иерархию ToolbarActionContext.
+/// </summary>
+/// <typeparam name="TEntity">Тип доменного объекта строки таблицы.</typeparam>
+public class GridActionContext<TEntity> : ToolbarActionContext<TEntity> where TEntity : class
 {
-    public bool IsCreateEnabled { get; set; } = true;
-    public bool IsEditEnabled { get; set; } = false;
-    public bool IsDeleteEnabled { get; set; } = false;
+    public TEntity? SelectedItem
+    {
+        get => SelectedData;
+        set => SelectedData = value;
+    }
 
-    public bool IsCreateVisible { get; set; } = true;
-    public bool IsDeleteVisible { get; set; } = true;
-    public bool IsEditVisible { get; set; } = true;
+    public GridActionContext()
+    {
+        Position = ToolbarPosition.Top;
+    }
+
+    // ИСПРАВЛЕНО: Явно перехватываем изменение выделенного элемента на уровне грида,
+    // чтобы форсировать перерисовку тулбара при штатном клике MudBlazor
+    protected override void RecalculateButtonStates()
+    {
+        base.RecalculateButtonStates();
+        NotifyUpdate();
+    }
 }

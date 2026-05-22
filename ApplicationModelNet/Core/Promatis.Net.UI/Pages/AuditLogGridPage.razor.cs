@@ -2,36 +2,45 @@
 using MudBlazor;
 using Promatis.Net.Domain;
 using Promatis.Net.Service;
+using Promatis.Net.UI.Components.BaseGrid;
+using Promatis.Net.UI.Components.BaseToolbarWorkspacePage;
+
 
 namespace Promatis.Net.UI.Pages;
 
 public partial class AuditLogGridPage : ComponentBase
 {
-    [Inject]
-    protected IAuditLogService AuditLogService { get; set; } = null!;
+    [Inject] protected IAuditLogService AuditLogService { get; set; } = null!;
+    [Inject] protected ISnackbar Snackbar { get; set; } = null!;
 
-    [Inject]
-    protected ISnackbar Snackbar { get; set; } = null!;
+    protected BaseGridPage<AuditLog> _baseGrid { get; set; } = null!;
 
-    private MudDataGrid<AuditLog> _grid = null!;
-
-    // Владелец контекста — текущая страница. Объект создается один раз и жестко держит конфигурацию кнопок.
-    protected readonly GridActionContext _context = new()
+    protected readonly GridActionContext<AuditLog> _context = new()
     {
         PageTitle = "Журнал аудита",
         IsCreateVisible = false,
-        IsDeleteVisible = false,
-        IsCreateEnabled = false,
-        IsDeleteEnabled = false
+        IsEditVisible = false,
+        IsDeleteVisible = false
     };
 
-    // Локальный диапазон дат для корректного отображения в календаре пользователя
     protected DateRange _dateRange = new(DateTime.Today, DateTime.Today.AddDays(1).AddSeconds(-1));
-    protected bool _isExporting;
 
-    /// <summary>
-    /// Серверный запрос пагинации для MudDataGrid (совместим с делегатом MudBlazor 9+)
-    /// </summary>
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+
+        // Регистрируем кастомное действие в соответствии с новым типом ToolbarCustomAction
+        _context.CustomActions.Add(new ToolbarCustomAction
+        {
+            Id = "excel_export",
+            Title = "Выгрузить в Excel",
+            Icon = Icons.Material.Filled.Download,
+            Color = Color.Success,
+            Variant = Variant.Filled,
+            OnExecute = ExportToExcelAsync
+        });
+    }
+
     protected async Task<GridData<AuditLog>> LoadServerData(GridState<AuditLog> state, CancellationToken cancellationToken)
     {
         (DateTime utcStart, DateTime utcEnd) = GetUtcPeriod();
@@ -54,16 +63,12 @@ public partial class AuditLogGridPage : ComponentBase
         };
     }
 
-    /// <summary>
-    /// Логика выгрузки данных логов в Excel
-    /// </summary>
     protected async Task ExportToExcelAsync()
     {
-        if (_isExporting) return;
+        _context.SetActionEnabled("excel_export", false);
 
         try
         {
-            _isExporting = true;
             (DateTime utcStart, DateTime utcEnd) = GetUtcPeriod();
 
             var request = new AuditLogSearchRequest(
@@ -72,7 +77,7 @@ public partial class AuditLogGridPage : ComponentBase
                 EntityName: null,
                 Action: null,
                 PageIndex: 0,
-                PageSize: int.MaxValue // Выгружаем весь срез данных за выбранный день
+                PageSize: int.MaxValue
             );
 
             PagedResult<AuditLog> result = await AuditLogService.SearchLogsAsync(request);
@@ -83,11 +88,8 @@ public partial class AuditLogGridPage : ComponentBase
                 return;
             }
 
-            // ИМИТАЦИЯ ГЕНЕРАЦИИ EXCEL И СКАЧИВАНИЯ ЧЕРЕЗ JS:
-            // var fileBytes = ExcelGenerator.Generate(result.Items);
-            // await BlazorDownloadFileService.DownloadFile("audit_logs.xlsx", fileBytes, "application/vnd.ms-excel");
+            // Имитация формирования файла
             await Task.Delay(1500);
-
             Snackbar.Add($"Успешно выгружено {result.TotalCount} строк", Severity.Success);
         }
         catch (Exception ex)
@@ -96,31 +98,26 @@ public partial class AuditLogGridPage : ComponentBase
         }
         finally
         {
-            _isExporting = false;
+            _context.SetActionEnabled("excel_export", true);
         }
     }
 
-    /// <summary>
-    /// Реактивный обработчик изменения дат в MudDateRangePicker
-    /// </summary>
     protected async Task OnDateRangeChanged(DateRange newRange)
     {
         _dateRange = newRange;
-        if (_grid != null)
+
+        if (_baseGrid != null)
         {
-            await _grid.ReloadServerData();
+            // ИСПРАВЛЕНО: Полностью убран Reflection. Вызываем нативный публичный метод базового класса
+            await _baseGrid.ReloadServerDataAsync();
         }
     }
 
-    /// <summary>
-    /// Принудительная конвертация локального периода в UTC стандарт со строгим Kind для драйвера PostgreSQL
-    /// </summary>
     private (DateTime Start, DateTime End) GetUtcPeriod()
     {
         DateTime localStart = _dateRange.Start ?? DateTime.MinValue;
         DateTime localEnd = _dateRange.End ?? DateTime.MaxValue;
 
-        // Если дата окончания выбрана без указания времени, расширяем её до конца локальных суток (23:59:59)
         if (_dateRange.End.HasValue && _dateRange.End.Value.TimeOfDay == TimeSpan.Zero)
         {
             localEnd = _dateRange.End.Value.AddDays(1).AddSeconds(-1);

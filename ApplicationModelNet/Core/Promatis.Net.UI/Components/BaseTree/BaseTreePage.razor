@@ -1,76 +1,71 @@
-﻿@using Promatis.Net.UI.Components.BaseWorkspace
-@typeparam TEntity where TEntity : class
+﻿@typeparam TEntity where TEntity : class
 
-<CascadingValue Value="@ActionContext" IsFixed="true">
-    <CascadingValue Value="@((WorkspaceActionContext)ActionContext)" IsFixed="true">
-
-        <BaseWorkspacePage ToolbarContent="@GetTreeToolbarFragment()"
-                           BodyContent="@ChildContent" />
-
-    </CascadingValue>
-</CascadingValue>
-
-@code {
-    [Parameter] public RenderFragment? ChildContent { get; set; }
-    [Parameter] public RenderFragment? AdditionalToolbarContent { get; set; }
-
-    /// <summary>
-    /// ЕДИНСТВЕННЫЙ источник правды для дерева.
-    /// </summary>
-    [Parameter] public TreeActionContext ActionContext { get; set; } = null!;
-
-    [Parameter] public EventCallback OnCreateRootTriggered { get; set; }
-    [Parameter] public EventCallback OnCreateChildTriggered { get; set; }
-    [Parameter] public EventCallback OnEditNodeTriggered { get; set; }
-    [Parameter] public EventCallback OnDeleteNodeTriggered { get; set; }
-
-    protected override void OnInitialized()
-    {
-        base.OnInitialized();
-
-        ActionContext ??= new TreeActionContext();
-        ActionContext.OnContextUpdated = StateHasChanged;
+<style>
+    /* Намертво принуждаем выделенный узел дерева принимать серый цвет и инвертировать текст */
+    .promatis-tree-container .mud-tree-view-item-selected .mud-tree-view-item-content {
+        background-color: var(--mud-palette-action-disabled-background) !important;
+        color: var(--mud-palette-surface) !important;
+        border-radius: 4px;
     }
+        /* Инвертируем внутренние иконки, типографику и кастомный текст в выделенном узле */
+        .promatis-tree-container .mud-tree-view-item-selected .mud-tree-view-item-content * {
+            color: var(--mud-palette-surface) !important;
+        }
+</style>
 
-    private RenderFragment GetTreeToolbarFragment() => __builder =>
-    {
-        @if (ActionContext.IsCreateRootVisible)
-        {
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
-                       Disabled="@(!ActionContext.IsCreateRootEnabled)" OnClick="OnCreateRootClick">
-                Добавить корень
-            </MudButton>
-        }
-        @if (ActionContext.IsCreateChildVisible)
-        {
-            <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
-                       Disabled="@(!ActionContext.IsCreateChildEnabled)" OnClick="OnCreateChildClick">
-                Добавить подузел
-            </MudButton>
-        }
-        @if (ActionContext.IsEditNodeVisible)
-        {
-            <MudButton Variant="Variant.Outlined" Color="Color.Info" Size="Size.Small"
-                       Disabled="@(!ActionContext.IsEditNodeEnabled)" OnClick="OnEditNodeClick">
-                Изменить
-            </MudButton>
-        }
-        @if (ActionContext.IsDeleteNodeVisible)
-        {
-            <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small"
-                       Disabled="@(!ActionContext.IsDeleteNodeEnabled)" OnClick="OnDeleteNodeClick">
-                Удалить узел
-            </MudButton>
-        }
-        @if (AdditionalToolbarContent != null)
-        {
-            <MudDivider Vertical="true" FlexItem="true" Class="mx-2" />
-            @AdditionalToolbarContent
-        }
-    };
+<div class="promatis-tree-container w-100 h-100">
+    <BaseToolbarWorkspacePage TEntity="TEntity"
+                              ActionContext="@ActionContext"
+                              OnCreateTriggered="OnCreateRootClick"
+                              OnCreateChildTriggered="OnCreateChildClick"
+                              OnEditTriggered="OnEditNodeClick"
+                              OnDeleteTriggered="OnDeleteNodeClick"
+                              AdditionalToolbarContent="@AdditionalToolbarContent">
+        <ChildContent>
+            @if (IsLoading)
+            {
+                <div class="d-flex justify-center align-center h-100" style="min-height: 400px;">
+                    <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+                </div>
+            }
+            else if (Items == null || !Items.Any())
+            {
+                @if (EmptyContent != null)
+                {
+                    @EmptyContent
+                }
+                else
+                {
+                    <div class="d-flex flex-column align-center justify-center my-8" style="min-height: 400px;">
+                        <MudIcon Icon="@Icons.Material.Filled.AccountTree" Color="Color.Default" Class="mud-text-disabled" Style="font-size: 4rem;" />
+                        <MudText Typo="Typo.h6" Color="Color.Secondary" Class="mt-4">Данные иерархии пусты</MudText>
+                    </div>
+                }
+            }
+            else
+            {
+                <MudTreeView T="TEntity" 
+                             Items="@Items" 
+                             ServerData="@ServerData"
+                             SelectedValue="@ActionContext.SelectedData"
+                             SelectedValueChanged="@OnSelectedValueChanged"
+                             Hover="true"
+                             Dense="true">
+                    <ItemTemplate Context="item">
+                        <MudTreeViewItem Value="@item.Value"
+                                         Text="@(ItemTextFunc != null ? ItemTextFunc(item.Value!) : item.Value?.ToString())"
+                                         CanExpand="@(CanExpandFunc == null || CanExpandFunc(item.Value!))"
+                                         LoadingIcon="@Icons.Material.Filled.Refresh">
 
-    private async Task OnCreateRootClick() { if (OnCreateRootTriggered.HasDelegate) await OnCreateRootTriggered.InvokeAsync(); }
-    private async Task OnCreateChildClick() { if (OnCreateChildTriggered.HasDelegate) await OnCreateChildTriggered.InvokeAsync(); }
-    private async Task OnEditNodeClick() { if (OnEditNodeTriggered.HasDelegate) await OnEditNodeTriggered.InvokeAsync(); }
-    private async Task OnDeleteNodeClick() { if (OnDeleteNodeTriggered.HasDelegate) await OnDeleteNodeTriggered.InvokeAsync(); }
-}
+                            @if (NodeContent != null)
+                            {
+                                @NodeContent(item.Value!)
+                            }
+
+                        </MudTreeViewItem>
+                    </ItemTemplate>
+                </MudTreeView>
+            }
+        </ChildContent>
+    </BaseToolbarWorkspacePage>
+</div>

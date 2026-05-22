@@ -1,11 +1,11 @@
-﻿
-using global::Promatis.Net.MES.Domain;
+﻿using global::Promatis.Net.MES.Domain;
 using global::Promatis.Net.MES.Domain.Interface;
 using global::Promatis.Net.MES.Service;
-using global::Promatis.Net.UI;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using Promatis.Net.Test.MDM.Domain;
+using Promatis.Net.UI.Components.BaseToolbarWorkspacePage;
+using Promatis.Net.UI.Components.BaseTree;
 
 namespace Promatis.Net.Test.MDM.UI.Unit;
 
@@ -15,30 +15,26 @@ public partial class UnitTreePage : ComponentBase
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
     [Inject] private IDialogService DialogService { get; set; } = null!;
 
-    protected TreeActionContext Context { get; } = new();
+    // ИСПРАВЛЕНО: Явно инстанцируем наш специализированный доменный контекст
+    protected UnitTreeActionContext Context { get; } = new()
+    {
+        PageTitle = "Структура предприятия и оборудования",
+        Position = ToolbarPosition.Top
+    };
 
     private List<TreeItemData<UnitBase>> _rootNodes = new();
-    private UnitBase? _selectedNode;
     private bool _isInitialLoading = true;
 
-    // ИСПРАВЛЕНО: OnInitializedAsync теперь выполняется МГНОВЕННО, 
-    // не порождая никаких тяжелых ожиданий базы данных
     protected override Task OnInitializedAsync()
     {
-        Context.PageTitle = "Структура предприятия и оборудования";
-        Context.Position = ToolbarPosition.Top;
-
-        // Возвращаем выполненную таску сразу, чтобы каркас формы мгновенно отрендерился
+        // ИСПРАВЛЕНО: Тулбар полностью автономен, в OnInitialized только возвращаем готовую таску
         return Task.CompletedTask;
     }
 
-    // ИСПРАВЛЕНО: Тяжелый запрос к PostgreSQL запускается СТРОГО ПОСЛЕ того, 
-    // как пользователь уже увидел открывшуюся вкладку и лоадер на экране!
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            // Запускаем загрузку корней дерева из базы данных
             await RefreshTreeAsync();
         }
     }
@@ -50,12 +46,7 @@ public partial class UnitTreePage : ComponentBase
         try
         {
             List<UnitBase> roots = await UnitService.GetRootsAsync();
-
-            // ИСПРАВЛЕНО: Убрано свойство HasChildren, возвращаем чистый объект данных
-            _rootNodes = roots.Select(r => new TreeItemData<UnitBase>
-            {
-                Value = r
-            }).ToList();
+            _rootNodes = roots.Select(r => new TreeItemData<UnitBase> { Value = r }).ToList();
         }
         catch (Exception ex)
         {
@@ -70,60 +61,36 @@ public partial class UnitTreePage : ComponentBase
 
     private async Task<IReadOnlyCollection<TreeItemData<UnitBase>>> LoadChildrenAsync(UnitBase parent)
     {
-        if (parent == null)
-            return [];
+        if (parent == null) return Array.Empty<TreeItemData<UnitBase>>();
 
         try
         {
             List<UnitBase> children = await UnitService.GetChildrenAsync(parent.Id);
-
-            // ИСПРАВЛЕНО: Материализуем через ToList(), чтобы вернуть корректную коллекцию для чтения
-            return children.Select(c => new TreeItemData<UnitBase>
-            {
-                Value = c
-            }).ToList();
+            return children.Select(c => new TreeItemData<UnitBase> { Value = c }).ToList();
         }
         catch (Exception ex)
         {
             Snackbar.Add($"Ошибка загрузки подчиненных узлов: {ex.Message}", Severity.Error);
-            return [];
+            return Array.Empty<TreeItemData<UnitBase>>();
         }
     }
 
-    private void OnNodeSelected(UnitBase? node)
-    {
-        _selectedNode = node;
-
-        if (node == null)
-        {
-            Context.IsCreateChildEnabled = false;
-            Context.IsEditNodeEnabled = false;
-            Context.IsDeleteNodeEnabled = false;
-        }
-        else
-        {
-            Context.IsCreateChildEnabled = node.Kind != UnitKind.Position;
-            Context.IsEditNodeEnabled = true;
-            Context.IsDeleteNodeEnabled = true;
-        }
-
-        Context.NotifyUpdate();
-    }
+    // ИСПРАВЛЕНО: Метод OnNodeSelected полностью УДАЛЕН. 
+    // Изменение фокуса строки идет через автоматический маппинг в Context.SelectedData напрямую!
 
     protected async Task CreateRootNodeAsync()
     {
-        // ИСПРАВЛЕНО: Задаем required свойство Type прямо в инициализаторе
         var newRoot = new DepartmentUnit
         {
             ParentId = null,
-            Type = UnitType.Workshop // Инициализация обязательного свойства
+            Type = UnitType.Workshop
         };
 
         DialogParameters parameters = new()
         {
-            { nameof(UnitEditDialog.IsNew), true },
-            { nameof(UnitEditDialog.Model), newRoot },
-            { nameof(UnitEditDialog.OnSave), new Func<UnitBase, Task>(UnitService.AddAsync) }
+            { "IsNew", true },
+            { "Model", newRoot },
+            { "OnSave", new Func<UnitBase, Task>(UnitService.AddAsync) }
         };
 
         IDialogReference dialog = await DialogService.ShowAsync<UnitEditDialog>("Новый корневой элемент", parameters);
@@ -138,10 +105,11 @@ public partial class UnitTreePage : ComponentBase
 
     protected async Task CreateChildNodeAsync()
     {
-        if (_selectedNode == null) return;
+        if (Context.SelectedData == null) return;
 
-        // 1. Вычисляем категорию подчиненного узла
-        UnitKind childKind = _selectedNode.Kind switch
+        UnitBase selected = Context.SelectedData;
+
+        UnitKind childKind = selected.Kind switch
         {
             UnitKind.Department => UnitKind.Production,
             UnitKind.Production => UnitKind.Position,
@@ -150,50 +118,42 @@ public partial class UnitTreePage : ComponentBase
             _ => UnitKind.Position
         };
 
-        // 2. Инстанцируем физический C#-класс
         UnitBase childUnit = childKind switch
         {
-            UnitKind.Department => new DepartmentUnit { Type = UnitType.Other, ParentId = _selectedNode.Id },
-            UnitKind.Production => new ProductionUnit { Type = UnitType.Other, ParentId = _selectedNode.Id },
-            UnitKind.Storage => new StorageUnit { Type = UnitType.Other, ParentId = _selectedNode.Id },
-            UnitKind.Transport => new TransportUnit { Type = UnitType.Other, ParentId = _selectedNode.Id },
-            UnitKind.Position => new PositionUnit { Type = UnitType.Other, ParentId = _selectedNode.Id },
+            UnitKind.Department => new DepartmentUnit { Type = UnitType.Other, ParentId = selected.Id },
+            UnitKind.Production => new ProductionUnit { Type = UnitType.Other, ParentId = selected.Id },
+            UnitKind.Storage => new StorageUnit { Type = UnitType.Other, ParentId = selected.Id },
+            UnitKind.Transport => new TransportUnit { Type = UnitType.Other, ParentId = selected.Id },
+            UnitKind.Position => new PositionUnit { Type = UnitType.Other, ParentId = selected.Id },
             _ => throw new ArgumentOutOfRangeException(nameof(childKind), $"Неизвестная категория {childKind}")
         };
 
-        // КРИТИЧЕСКОЕ ИСПРАВЛЕНО: Явно зануляем навигационное свойство.
-        // Передаем бэкенду ТОЛЬКО ParentId. Это заблокирует попытки EF Core пересоздать родителя в базе данных!
         childUnit.Parent = null;
 
         DialogParameters parameters = new()
         {
-            { nameof(UnitEditDialog.IsNew), true },
-            { nameof(UnitEditDialog.Model), childUnit },
-            { nameof(UnitEditDialog.OnSave), new Func<UnitBase, Task>(UnitService.AddAsync) }
+            { "IsNew", true },
+            { "Model", childUnit },
+            { "OnSave", new Func<UnitBase, Task>(UnitService.AddAsync) }
         };
 
-        IDialogReference dialog = await DialogService.ShowAsync<UnitEditDialog>($"Добавление подузла для {_selectedNode.Name}", parameters);
+        IDialogReference dialog = await DialogService.ShowAsync<UnitEditDialog>($"Добавление подузла для {selected.Name}", parameters);
         DialogResult? result = await dialog.Result;
 
         if (result is { Canceled: false })
         {
             Snackbar.Add("Подчиненный узел успешно добавлен", Severity.Success);
-
-            _selectedNode = null;
-            Context.IsCreateChildEnabled = false;
-            Context.IsDeleteNodeEnabled = false;
-            Context.NotifyUpdate();
-
+            Context.SelectedData = null; // Сбрасываем фокус по правилам платформы
             await RefreshTreeAsync();
         }
     }
 
     protected async Task EditSelectedNodeAsync()
     {
-        if (_selectedNode == null) return;
-
-        // Перенаправляем выполнение в наш готовый метод открытия диалога
-        await EditNodeAsync(_selectedNode);
+        if (Context.SelectedData != null)
+        {
+            await EditNodeAsync(Context.SelectedData);
+        }
     }
 
     protected async Task EditNodeAsync(UnitBase node)
@@ -202,9 +162,9 @@ public partial class UnitTreePage : ComponentBase
 
         DialogParameters parameters = new()
         {
-            { nameof(UnitEditDialog.IsNew), false },
-            { nameof(UnitEditDialog.Model), node },
-            { nameof(UnitEditDialog.OnSave), new Func<UnitBase, Task>(UnitService.UpdateAsync) }
+            { "IsNew", false },
+            { "Model", node },
+            { "OnSave", new Func<UnitBase, Task>(UnitService.UpdateAsync) }
         };
 
         IDialogReference dialog = await DialogService.ShowAsync<UnitEditDialog>("Редактирование параметров узла", parameters);
@@ -219,13 +179,14 @@ public partial class UnitTreePage : ComponentBase
 
     protected async Task DeleteNodeAsync()
     {
-        if (_selectedNode == null) return;
+        if (Context.SelectedData == null) return;
 
+        UnitBase selected = Context.SelectedData;
         try
         {
-            await UnitService.DeleteAsync(_selectedNode.Id);
-            Snackbar.Add($"Объект '{_selectedNode.Name}' успешно удален", Severity.Success);
-            _selectedNode = null;
+            await UnitService.DeleteAsync(selected.Id);
+            Snackbar.Add($"Объект '{selected.Name}' успешно удален", Severity.Success);
+            Context.SelectedData = null;
             await RefreshTreeAsync();
         }
         catch (Exception ex)

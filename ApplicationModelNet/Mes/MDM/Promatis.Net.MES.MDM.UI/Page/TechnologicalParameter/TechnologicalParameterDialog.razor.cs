@@ -9,34 +9,22 @@ namespace Promatis.Net.MES.MDM.UI.Page.TechnologicalParameter;
 
 public partial class TechnologicalParameterDialog : ComponentBase
 {
-    [Inject] protected IValidator<Domain.TechnologicalParameter> Validator { get; set; } = null!;
+    // Инжектируем не-дженерик IValidator, чтобы избежать конфликтов приведения типов
+    [Inject] protected IValidator Validator { get; set; } = null!;
     [Inject] protected IReferenceService<Domain.TechnologicalParameter> ParameterService { get; set; } = null!;
     [Inject] protected ISnackbar Snackbar { get; set; } = null!;
 
     [Parameter] public Domain.TechnologicalParameter Model { get; set; } = null!;
     [Parameter] public bool IsNew { get; set; }
 
-    protected ReferenceBaseValidator<Domain.TechnologicalParameter> _parameterValidator = null!;
-
     protected override void OnInitialized()
     {
         base.OnInitialized();
 
-        // Приведение типов для получения доступа к делегату потоковой валидации инпутов
-        if (Validator is ReferenceBaseValidator<Domain.TechnologicalParameter> referenceValidator)
-        {
-            _parameterValidator = referenceValidator;
-        }
-        else
-        {
-            throw new InvalidOperationException(
-                $"Валидатор для {nameof(TechnologicalParameter)} должен наследоваться от {nameof(ReferenceBaseValidator<>)}");
-        }
+        // ИСПРАВЛЕНО: Жёсткое приведение типов к ReferenceBaseValidator удалено. 
+        // Вся инлайн и кросс-валидация полностью делегирована платформенному механизму BaseEditDialog.
     }
 
-    /// <summary>
-    /// Делегат сохранения, который автоматически вызывается внутри BaseEditDialog
-    /// </summary>
     protected async Task SaveParameterAsync()
     {
         if (IsNew)

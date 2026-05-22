@@ -1,14 +1,58 @@
-﻿namespace Promatis.Net.UI;
+﻿using Promatis.Net.UI.Components.BaseToolbarWorkspacePage;
 
-public class TreeActionContext : WorkspaceActionContext
+namespace Promatis.Net.UI.Components.BaseTree;
+
+/// <summary>
+/// Специализированный инфраструктурный контекст для любых древовидных форм в системе.
+/// Декларативно расширяет базовый тулбар операциями добавления подузлов.
+/// </summary>
+/// <typeparam name="TEntity">Тип доменного объекта узла дерева.</typeparam>
+public class TreeActionContext<TEntity> : ToolbarActionContext<TEntity> where TEntity : class
 {
-    public bool IsCreateRootEnabled { get; set; } = true;
-    public bool IsCreateChildEnabled { get; set; } = false;
-    public bool IsDeleteNodeEnabled { get; set; } = false;
-    public bool IsEditNodeEnabled { get; set; } = false;
+    // =========================================================================
+    // 1. СТАТИЧЕСКАЯ КОНФИГУРАЦИЯ (Управляется со страницы при инициализации)
+    // =========================================================================
 
-    public bool IsCreateRootVisible { get; set; } = true;
+    /// <summary>
+    /// Флаг видимости кнопки «Добавить подузел». По умолчанию для всех деревьев включен.
+    /// </summary>
     public bool IsCreateChildVisible { get; set; } = true;
-    public bool IsDeleteNodeVisible { get; set; } = true;
-    public bool IsEditNodeVisible { get; set; } = true;
+
+    // =========================================================================
+    // 2. ДИНАМИЧЕСКИЙ РАСЧЕТ СТЭЙТА (Строго Read-Only, завязано на фокус узла)
+    // =========================================================================
+
+    /// <summary>
+    /// Кнопка активна, если родительский узел выбран И внутренние бизнес-правила разрешают добавлять в него детей.
+    /// </summary>
+    public virtual bool IsCreateChildEnabled => SelectedData != null && CanCreateChildNode(SelectedData);
+
+    public TreeActionContext() : base()
+    {
+        // Устанавливаем базовую позицию командной панели для дерева
+        Position = ToolbarPosition.Top;
+    }
+
+    // =========================================================================
+    // 3. ДОМЕННЫЙ ПРЕДИКАТ-ХУК (Для переопределения бизнес-логики в наследниках)
+    // =========================================================================
+
+    /// <summary>
+    /// Проверяет, разрешает ли бизнес-логика конкретного узла добавлять в него дочерние элементы.
+    /// По умолчанию для любого базового дерева возвращает true.
+    /// </summary>
+    protected virtual bool CanCreateChildNode(TEntity node) => true;
+
+    protected override void RecalculateButtonStates()
+    {
+        // Вызываем базовую проверку плоских кнопок CRUD (Изменить/Удалить)
+        base.RecalculateButtonStates();
+
+        // Специфичное поведение тулбара: если фокуса на узле нет, 
+        // скрываем кнопку добавления подузла, чтобы не перегружать интерфейс
+        if (SelectedData == null)
+        {
+            IsCreateChildVisible = false;
+        }
+    }
 }

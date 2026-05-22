@@ -1,71 +1,43 @@
-﻿@using Promatis.Net.UI.Components.BaseWorkspace
-@typeparam TEntity where TEntity : class
+﻿@typeparam TEntity where TEntity : class
 
-<!-- Спускаем переданный сверху (или дефолтный) контекст -->
-<CascadingValue Value="@ActionContext" IsFixed="true">
-    <CascadingValue Value="@((WorkspaceActionContext)ActionContext)" IsFixed="true">
-
-        <BaseWorkspacePage ToolbarContent="@GetGridToolbarFragment()"
-                           BodyContent="@ChildContent" />
-
-    </CascadingValue>
-</CascadingValue>
-
-@code {
-    [Parameter] public RenderFragment? ChildContent { get; set; }
-    [Parameter] public RenderFragment? AdditionalToolbarContent { get; set; }
-
-    /// <summary>
-    /// ЕДИНСТВЕННЫЙ источник правды для управления тулбаром. Передается с конечной страницы.
-    /// </summary>
-    [Parameter] public GridActionContext ActionContext { get; set; } = null!;
-
-    [Parameter] public EventCallback OnCreateTriggered { get; set; }
-    [Parameter] public EventCallback OnEditTriggered { get; set; }
-    [Parameter] public EventCallback OnDeleteTriggered { get; set; }
-
-    protected override void OnInitialized()
-    {
-        base.OnInitialized();
-
-        // Защита: если конечная страница не передала контекст, создаем дефолтный
-        ActionContext ??= new GridActionContext();
-
-        // Подписываемся на обновление тулбара
-        ActionContext.OnContextUpdated = StateHasChanged;
-    }
-
-    private RenderFragment GetGridToolbarFragment() => __builder =>
-    {
-        @if (ActionContext.IsCreateVisible)
-        {
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
-                       Disabled="@(!ActionContext.IsCreateEnabled)" OnClick="OnCreateClick">
-                Создать
-            </MudButton>
-        }
-        @if (ActionContext.IsEditVisible)
-        {
-            <MudButton Variant="Variant.Outlined" Color="Color.Info" Size="Size.Small"
-                       Disabled="@(!ActionContext.IsEditEnabled)" OnClick="OnEditNodeClick">
-                Изменить
-            </MudButton>
-        }
-        @if (ActionContext.IsDeleteVisible)
-        {
-            <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small"
-                       Disabled="@(!ActionContext.IsDeleteEnabled)" OnClick="OnDeleteClick">
-                Удалить
-            </MudButton>
-        }
-        @if (AdditionalToolbarContent != null)
-        {
-            <MudDivider Vertical="true" FlexItem="true" Class="mx-2" />
-            @AdditionalToolbarContent
-        }
-    };
-
-    private async Task OnCreateClick() { if (OnCreateTriggered.HasDelegate) await OnCreateTriggered.InvokeAsync(); }
-    private async Task OnEditNodeClick() { if (OnEditTriggered.HasDelegate) await OnEditTriggered.InvokeAsync(); }
-    private async Task OnDeleteClick() { if (OnDeleteTriggered.HasDelegate) await OnDeleteTriggered.InvokeAsync(); }
-}
+@* Используем единый командный медиатор для автоматического распределения тулбара и контента *@
+<BaseToolbarWorkspacePage TEntity="TEntity"
+                          ActionContext="@ActionContext"
+                          OnCreateTriggered="OnCreateClick"
+                          OnEditTriggered="OnEditClick"
+                          OnDeleteTriggered="OnDeleteClick"
+                          AdditionalToolbarContent="@AdditionalToolbarContent">
+    <ChildContent>
+        <MudDataGrid T="TEntity"
+                     Items="@Items"
+                     ServerData="@ServerData"
+                     Loading="@IsLoading"
+                     @ref="_grid"
+                     SelectedItem="@ActionContext.SelectedData"
+                     SelectedItemChanged="@OnSelectedItemChanged"
+                     RowStyleFunc="@((item, idx) => item == ActionContext.SelectedData 
+                                                                                 ? "background-color: var(--mud-palette-action-disabled-background) !important; color: var(--mud-palette-surface) !important; font-weight: 500;"
+                                       : string.Empty)"
+                     Hover="true"
+                     Dense="true"
+                     Striped="false"
+                     Bordered="true"
+                     Elevation="0"
+                     FixedHeader="true"
+                     Height="calc(100vh - 280px)">
+            <Columns>
+                @ColumnsContent
+            </Columns>
+            <PagerContent>
+                @if (PagerContent != null)
+                {
+                    @PagerContent
+                }
+                else
+                {
+                    <MudDataGridPager T="TEntity" InfoFormat="{first_item}-{last_item} из {all_items}" RowsPerPageString="Строк на странице:" />
+                }
+            </PagerContent>
+        </MudDataGrid>
+    </ChildContent>
+</BaseToolbarWorkspacePage>

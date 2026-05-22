@@ -10,13 +10,12 @@ namespace Promatis.Net.Test.MDM.UI.Unit;
 
 public partial class UnitEditDialog : ComponentBase
 {
-    // Ссылка на плоский, стабильный базовый диалог
     protected BaseEditDialog _dialog = null!;
     protected string _title = string.Empty;
     protected List<UnitType> _availableTypes = new();
 
-    // Инжектируем базовый интерфейс, Scrutor его отлично поставляет
-    [Inject] protected IValidator<UnitBase> UnitValidator { get; set; } = null!;
+    // ИСПРАВЛЕНО: Используем не-дженерик интерфейс, чтобы GlobalPolymorphicValidator полиморфно вычислял типы в рантайме
+    [Inject] protected IValidator UnitValidator { get; set; } = null!;
     [Inject] protected ISnackbar Snackbar { get; set; } = null!;
 
     [Parameter] public bool IsNew { get; set; }
@@ -25,15 +24,17 @@ public partial class UnitEditDialog : ComponentBase
 
     protected override void OnInitialized()
     {
+        base.OnInitialized();
+
         _title = IsNew ? $"Создание: {GetKindTranslate(Model.Kind)}" : $"Редактирование: {Model.Name}";
 
+        // Фильтрация доступных типов на основе битовой маски категории Kind
         _availableTypes = Enum.GetValues<UnitType>()
             .Where(t => t != UnitType.None)
             .Where(t => ((int)Model.Kind & (int)t) != 0)
             .ToList();
     }
 
-    // Вспомогательный метод для адаптации сигнатуры сохранения под object ядра
     protected async Task OnSaveInternal()
     {
         if (OnSave != null)

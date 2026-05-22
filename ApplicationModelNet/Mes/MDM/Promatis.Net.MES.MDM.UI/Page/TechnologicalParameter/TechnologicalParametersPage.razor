@@ -8,34 +8,17 @@
 <!-- Инверсия управления: передаем готовый контекст в базовый грид -->
 <BaseGridPage TEntity="TechnologicalParameter"
               ActionContext="@_context"
+              Items="@_parameters"
+              IsLoading="@_isLoading"
               OnCreateTriggered="@CreateParameterAsync"
               OnEditTriggered="@EditParameterAsync"
               OnDeleteTriggered="@DeleteParameterAsync">
 
-    <ChildContent>
-        <MudDataGrid T="TechnologicalParameter"
-                     Items="@_parameters"
-                     Loading="@_isLoading"
-                     @ref="_grid"
-                     @bind-SelectedDataItem="@_selectedParameter"
-                     RowClick="@OnRowClick"
-                     Hover="true"
-                     Dense="true"
-                     Striped="true"
-                     Bordered="true"
-                     Elevation="0"
-                     FixedHeader="true"
-                     Height="calc(100vh - 280px)">
-            <Columns>
-                <PropertyColumn Property="x => x.Code" Title="Код" Style="width: 150px;" />
-                <PropertyColumn Property="x => x.Name" Title="Наименование" Style="width: 250px;" />
-                <PropertyColumn Property="x => x.DataType" Title="Тип данных" Style="width: 150px;" />
-                <PropertyColumn Property="x => x.UnitOfMeasurement" Title="Ед. изм." Style="width: 120px;" />
-                <PropertyColumn Property="x => x.Description" Title="Описание" />
-            </Columns>
-            <PagerContent>
-                <MudDataGridPager T="TechnologicalParameter" InfoFormat="{first_item}-{last_item} из {all_items}" RowsPerPageString="Строк на странице:" />
-            </PagerContent>
-        </MudDataGrid>
-    </ChildContent>
+    <ColumnsContent>
+        <PropertyColumn T="TechnologicalParameter" TProperty="string" Property="x => x.Code" Title="Код" Style="width: 150px;" />
+        <PropertyColumn T="TechnologicalParameter" TProperty="string" Property="x => x.Name" Title="Наименование" Style="width: 250px;" />
+        <PropertyColumn T="TechnologicalParameter" TProperty="string" Property="x => x.DataType" Title="Тип данных" Style="width: 150px;" />
+        <PropertyColumn T="TechnologicalParameter" TProperty="string" Property="x => x.UnitOfMeasurement" Title="Ед. изм." Style="width: 120px;" />
+        <PropertyColumn T="TechnologicalParameter" TProperty="string" Property="x => x.Description" Title="Описание" />
+    </ColumnsContent>
 </BaseGridPage>

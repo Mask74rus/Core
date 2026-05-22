@@ -6,7 +6,12 @@
 
 
 <!-- Инверсия управления: передаем готовый контекст в базовый грид -->
-<BaseGridPage TEntity="AuditLog" ActionContext="@_context">
+@* Явно наследуем базовый компонент и привязываем обновленный GridActionContext *@
+<BaseGridPage TEntity="AuditLog"
+              @ref="_baseGrid"
+              ActionContext="@_context"
+              ServerData="@LoadServerData">
+
     <AdditionalToolbarContent>
         <div class="d-flex align-center gap-3">
             <MudDateRangePicker Label="Период логов"
@@ -15,54 +20,21 @@
                                 Margin="Margin.Dense"
                                 Style="width: 260px;"
                                 Clearable="false" />
-
-            <MudDivider Vertical="true" FlexItem="true" Class="mx-1" />
-
-            <MudButton Variant="Variant.Filled"
-                       Color="Color.Success"
-                       Size="Size.Small"
-                       StartIcon="@Icons.Material.Filled.Download"
-                       OnClick="ExportToExcelAsync"
-                       Disabled="_isExporting">
-                @if (_isExporting)
-                {
-                    <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
-                    <MudText Class="ms-2">Экспорт...</MudText>
-                }
-                else
-                {
-                    <MudText>Выгрузить в Excel</MudText>
-                }
-            </MudButton>
         </div>
     </AdditionalToolbarContent>
 
-    <ChildContent>
-        <MudDataGrid T="AuditLog"
-                     ServerData="@LoadServerData"
-                     @ref="_grid"
-                     Hover="true"
-                     Dense="true"
-                     Striped="true"
-                     Bordered="true"
-                     Elevation="0">
-            <Columns>
-                <PropertyColumn Property="x => x.ChangedAt" Title="Дата и время" Format="dd.MM.yyyy HH:mm:ss" Style="width: 180px;" />
-                <PropertyColumn Property="x => x.EntityName" Title="Сущность" Style="width: 200px;" />
-                <PropertyColumn Property="x => x.Action" Title="Действие" Style="width: 120px;">
-                    <CellTemplate>
-                        <MudChip T="string" Color="@GetActionColor(context.Item.Action)" Size="Size.Small" Variant="Variant.Text">
-                            @context.Item.Action
-                        </MudChip>
-                    </CellTemplate>
-                </PropertyColumn>
-                <PropertyColumn Property="x => x.ChangedBy" Title="Пользователь" Style="width: 180px;" />
-                <PropertyColumn Property="x => x.EntityId" Title="ID Объекта" Style="width: 320px;" Class="font-monospace" />
-                <PropertyColumn Property="x => x.ChangesJson" Title="Изменения (JSON)" CellClass="text-truncate" />
-            </Columns>
-            <PagerContent>
-                <MudDataGridPager T="AuditLog" InfoFormat="{first_item}-{last_item} из {all_items}" RowsPerPageString="Строк на странице:" />
-            </PagerContent>
-        </MudDataGrid>
-    </ChildContent>
+    <ColumnsContent>
+        <PropertyColumn T="AuditLog" TProperty="DateTime" Property="x => x.ChangedAt" Title="Дата и время" Format="dd.MM.yyyy HH:mm:ss" Style="width: 180px;" />
+        <PropertyColumn T="AuditLog" TProperty="string" Property="x => x.EntityName" Title="Сущность" Style="width: 200px;" />
+        <PropertyColumn T="AuditLog" TProperty="string" Property="x => x.Action" Title="Действие" Style="width: 120px;">
+            <CellTemplate>
+                <MudChip T="string" Color="@GetActionColor(context.Item.Action)" Size="Size.Small" Variant="Variant.Text">
+                    @context.Item.Action
+                </MudChip>
+            </CellTemplate>
+        </PropertyColumn>
+        <PropertyColumn T="AuditLog" TProperty="string" Property="x => x.ChangedBy" Title="Пользователь" Style="width: 180px;" />
+        <PropertyColumn T="AuditLog" TProperty="Guid" Property="x => x.EntityId" Title="ID Объекта" Style="width: 320px;" Class="font-monospace" />
+        <PropertyColumn T="AuditLog" TProperty="string" Property="x => x.ChangesJson" Title="Изменения (JSON)" CellClass="text-truncate" />
+    </ColumnsContent>
 </BaseGridPage>

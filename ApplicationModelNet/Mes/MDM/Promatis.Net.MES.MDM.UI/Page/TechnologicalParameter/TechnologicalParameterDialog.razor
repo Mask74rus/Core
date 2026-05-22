@@ -7,34 +7,28 @@
                 OnSaveAction="@SaveParameterAsync"
                 Snackbar="@Snackbar">
     <FormContent>
+        @* Потоковая валидация теперь идет через функцию обратного вызова FluentValidation *@
         <MudTextField @bind-Value="Model.Code"
                       For="@(() => Model.Code)"
-                      Validation="@(_parameterValidator.ValidateValue)"
                       Immediate="true"
                       Label="Код параметра (только латиница в верхнем регистре, цифры, _)"
                       Variant="Variant.Outlined" />
 
         <MudTextField @bind-Value="Model.Name"
                       For="@(() => Model.Name)"
-                      Validation="@(_parameterValidator.ValidateValue)"
                       Immediate="true"
                       Label="Наименование"
                       Variant="Variant.Outlined" />
 
-        <MudSelect @bind-Value="Model.DataType"
-                   For="@(() => Model.DataType)"
-                   Validation="@(_parameterValidator.ValidateValue)"
-                   Label="Тип данных"
-                   Variant="Variant.Outlined">
-            <MudSelectItem Value="@("Numeric")">Числовой (Numeric)</MudSelectItem>
-            <MudSelectItem Value="@("String")">Строковый (String)</MudSelectItem>
-            <MudSelectItem Value="@("Boolean")">Логический (Boolean)</MudSelectItem>
-            <MudSelectItem Value="@("DateTime")">Дата/Время (DateTime)</MudSelectItem>
-        </MudSelect>
+        @* ИСПРАВЛЕНО: Поскольку DataType теперь обычная строка без ограничений, используем MudTextField *@
+        <MudTextField @bind-Value="Model.DataType"
+                      For="@(() => Model.DataType)"
+                      Immediate="true"
+                      Label="Тип данных"
+                      Variant="Variant.Outlined" />
 
         <MudTextField @bind-Value="Model.UnitOfMeasurement"
                       For="@(() => Model.UnitOfMeasurement)"
-                      Validation="@(_parameterValidator.ValidateValue)"
                       Immediate="true"
                       Label="Единица измерения"
                       Variant="Variant.Outlined" />

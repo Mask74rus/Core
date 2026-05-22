@@ -1,4 +1,4 @@
-﻿namespace Promatis.Net.UI;
+﻿namespace Promatis.Net.UI.Components.BaseToolbarWorkspacePage;
 
 public enum ToolbarPosition
 {
