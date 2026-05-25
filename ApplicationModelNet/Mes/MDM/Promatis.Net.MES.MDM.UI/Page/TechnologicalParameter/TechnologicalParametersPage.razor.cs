@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components;
 using MudBlazor;
+using Promatis.Net.Data;
 using Promatis.Net.Service;
 using Promatis.Net.UI.Components.BaseGrid;
 
@@ -18,7 +19,11 @@ public partial class TechnologicalParametersPage : ComponentBase
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender) await LoadDataAsync();
+        if (firstRender)
+        {
+            // ПЕРВОНАЧАЛЬНАЯ ЗАГРУЗКА: PostgreSQL опрашивается строго 1 раз за сессию
+            await LoadDataAsync();
+        }
     }
 
     protected async Task LoadDataAsync()
@@ -30,6 +35,10 @@ public partial class TechnologicalParametersPage : ComponentBase
         {
             _parameters = await ParameterService.GetAllAsync();
         }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Ошибка загрузки параметров: {ex.Message}", Severity.Error);
+        }
         finally
         {
             _context.SelectedData = null;
@@ -37,6 +46,24 @@ public partial class TechnologicalParametersPage : ComponentBase
             StateHasChanged();
         }
     }
+
+    /// <summary>
+    /// Перехватчик real-time импульсов СУБД. Нам не нужно делать повторный SELECT в базу,
+    /// так как базовый BaseGridPage уже хирургически обновил коллекцию _parameters в ОЗУ.
+    /// Метод просто синхронизирует состояние кнопок тулбара и обновляет графику.
+    /// </summary>
+    protected Task HandleIncrementalUpdateAsync((EntityStateChangeEnum State, Domain.TechnologicalParameter Entity) delta)
+    {
+        // Пересчитываем стейты кнопок тулбара (Изменить/Удалить) на основе новых данных в памяти
+        _context.SelectedData = _context.SelectedData;
+
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    // =========================================================================
+    // CRUD ОПЕРАЦИИ И ВЫЗОВЫ ДОМЕННЫХ КАРТОЧЕК
+    // =========================================================================
 
     protected async Task CreateParameterAsync()
     {
@@ -52,7 +79,6 @@ public partial class TechnologicalParametersPage : ComponentBase
 
         if (result is { Canceled: false })
         {
-            // Ручной вызов LoadDataAsync() УДАЛЕН — real-time обновление идет автоматически от интерцептора
             Snackbar.Add("Параметр успешно создан", Severity.Success);
         }
     }
@@ -61,7 +87,7 @@ public partial class TechnologicalParametersPage : ComponentBase
     {
         var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
 
-        // Генерируем чистую копию модели, изолируя изменения доменной карточки от рантайм-сессии
+        // Изолируем доменную карточку от живой сессии таблицы, создавая чистую копию
         var modelCopy = new Domain.TechnologicalParameter
         {
             Id = selectedItem.Id,
@@ -84,7 +110,6 @@ public partial class TechnologicalParametersPage : ComponentBase
 
         if (result is { Canceled: false })
         {
-            // Ручной вызов LoadDataAsync() УДАЛЕН — холст сам перерисует обновленную строку
             Snackbar.Add("Параметр успешно обновлен", Severity.Success);
         }
     }
@@ -100,9 +125,9 @@ public partial class TechnologicalParametersPage : ComponentBase
         {
             try
             {
-                // Отдаем команду бэкенд-сервису. Коммит в БД запустит реактивную цепочку real-time обновления
+                // Удаление в БД запустит каскадный интерцептор, и строка исчезнет из ОЗУ за 0 мс
                 await ParameterService.DeleteAsync(selectedItem.Id);
-                Snackbar.Add("Параметр удален", Severity.Success);
+                Snackbar.Add("Параметр успешно удален", Severity.Success);
             }
             catch (Exception ex)
             {

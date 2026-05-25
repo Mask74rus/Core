@@ -1,6 +1,6 @@
 ﻿@typeparam TEntity where TEntity : class
 
-@* Используем единый командный медиатор для автоматического распределения тулбара и контента *@
+@* Единый командный медиатор для автоматического распределения тулбара и контента *@
 <BaseToolbarWorkspacePage TEntity="TEntity"
                           ActionContext="@ActionContext"
                           OnCreateTriggered="OnCreateClick"
@@ -8,6 +8,7 @@
                           OnDeleteTriggered="OnDeleteClick"
                           AdditionalToolbarContent="@AdditionalToolbarContent">
     <ChildContent>
+        @* ВОЗВРАЩЕНО: Исходный проверенный механизм выделения строк и принудительного окрашивания *@
         <MudDataGrid T="TEntity"
                      Items="@Items"
                      ServerData="@ServerData"
@@ -16,8 +17,8 @@
                      SelectedItem="@ActionContext.SelectedData"
                      SelectedItemChanged="@OnSelectedItemChanged"
                      RowStyleFunc="@((item, idx) => item == ActionContext.SelectedData
-                                                            ? "background-color: var(--mud-palette-action-disabled-background) !important; color: var(--mud-palette-surface) !important; font-weight: 500;"
-                                                            : string.Empty)"
+                                       ? "background-color: var(--mud-palette-action-disabled-background) !important; color: var(--mud-palette-text-primary) !important; font-weight: 500;"
+                                       : string.Empty)"
                      Hover="true"
                      Dense="true"
                      Striped="false"

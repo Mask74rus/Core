@@ -55,4 +55,25 @@ public abstract class WorkspaceActionContext
     {
         OnRefreshRequested?.Invoke();
     }
+
+    // =========================================================================
+    // ГЛОБАЛЬНАЯ СИСТЕМА ЦВЕТОВОГО КОДИРОВАНИЯ ОПЕРАЦИЙ (ВЫНЕСЕНО ИЗ СТРАНИЦ)
+    // =========================================================================
+
+    /// <summary>
+    /// Возвращает системный цвет MudBlazor на основе строкового или Enum действия.
+    /// Централизованно обеспечивает цветовое единообразие во всех модулях MES/MDM.
+    /// </summary>
+    public virtual MudBlazor.Color GetActionColor(string? action)
+    {
+        if (string.IsNullOrWhiteSpace(action)) return MudBlazor.Color.Default;
+
+        return action.ToLower().Trim() switch
+        {
+            "create" or "insert" or "added" or "добавление" or "создание" => MudBlazor.Color.Success,
+            "update" or "edit" or "modified" or "изменение" or "редактирование" => MudBlazor.Color.Warning,
+            "delete" or "remove" or "deleted" or "softdeleted" or "удаление" => MudBlazor.Color.Error,
+            _ => MudBlazor.Color.Default
+        };
+    }
 }

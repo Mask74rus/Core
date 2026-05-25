@@ -12,23 +12,12 @@ public class UnitTreeActionContext : TreeActionContext<UnitBase>
 {
     /// <summary>
     /// Декларативное бизнес-правило завода:
-    /// Создавать дочерние элементы (подузлы) можно для чего угодно, кроме конечных рабочих точек (ячеек/станков).
+    /// Создавать дочерние элементы (подузлы) можно для любого объекта структуры, 
+    /// кроме конечных рабочих позиций (станков, рабочих мест, ячеек).
     /// </summary>
     protected override bool CanCreateChildNode(UnitBase node)
     {
+        // Кнопка "Добавить подузел" станет серой (Disabled), если выбрана конечная позиция
         return node.Kind != UnitKind.Position;
-    }
-
-    /// <summary>
-    /// Расширение логики перерасчета стейта. 
-    /// Управляет реактивной видимостью кнопки «Добавить подузел» в зависимости от типа узла,
-    /// предотвращая визуальное замусоривание тулбара.
-    /// </summary>
-    protected override void RecalculateButtonStates()
-    {
-        // 1. Даем базовой инфраструктуре проверить фокус на null
-        base.RecalculateButtonStates();
-
-        IsCreateChildVisible = true;
     }
 }

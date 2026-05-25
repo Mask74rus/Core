@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components;
 using MudBlazor;
+using Promatis.Net.Data;
 
 namespace Promatis.Net.UI.Components.BaseTree;
 
@@ -19,7 +20,6 @@ public partial class BaseTreePage<TEntity> : ComponentBase, IDisposable where TE
     [Parameter] public TreeActionContext<TEntity> ActionContext { get; set; } = null!;
 
     [Parameter] public Func<TEntity, string>? ItemTextFunc { get; set; }
-    [Parameter] public Func<TEntity, bool>? CanExpandFunc { get; set; }
 
     [Parameter] public EventCallback OnCreateRootTriggered { get; set; }
     [Parameter] public EventCallback<TEntity> OnCreateChildTriggered { get; set; }
@@ -28,65 +28,69 @@ public partial class BaseTreePage<TEntity> : ComponentBase, IDisposable where TE
 
     [Parameter] public EventCallback<TEntity?> SelectedItemChanged { get; set; }
 
-    // НОВЫЙ ТРИГГЕР: Вызывается, когда контекст сообщает о коммите сущности данного типа,
-    // чтобы заставить бизнес-страницу перечитать полный граф в оперативной памяти.
-    [Parameter] public EventCallback OnDataChangedRefreshRequested { get; set; }
+    /// <summary>
+    /// Сигнал инкрементального обновления для ОЗУ-движка бизнес-страницы.
+    /// </summary>
+    [Parameter] public EventCallback<(EntityStateChangeEnum State, TEntity Entity)> OnIncrementalUpdateRequested { get; set; }
+
+    private TEntity? _selectedTreeValue;
+
+    protected TEntity? SelectedTreeValue
+    {
+        get => _selectedTreeValue;
+        set
+        {
+            if (!EqualityComparer<TEntity>.Default.Equals(_selectedTreeValue, value))
+            {
+                _selectedTreeValue = value;
+                _ = OnSelectedChanged(value);
+            }
+        }
+    }
 
     protected override void OnInitialized()
     {
         base.OnInitialized();
         ActionContext ??= new TreeActionContext<TEntity>();
-
-        // Синхронизируем перерисовку UI при изменении контекста
         ActionContext.OnContextUpdated = StateHasChanged;
 
-        // РЕАКТИВНАЯ АВТОМАТИКА: Подписываемся на импульсы обновлений из контекста холста
-        ActionContext.OnRefreshRequested += HandleRefreshRequest;
+        // Прямое подключение к каналу СУБД
+        DatabaseTriggerService.OnEntityCommitted += HandleEntityCommitted;
     }
 
-    /// <summary>
-    /// Перехватывает событие обновления из контекста и реактивно перерисовывает дерево
-    /// </summary>
-    private void HandleRefreshRequest()
+    private void HandleEntityCommitted(EntityStateChangeEnum state, object entity)
     {
-        InvokeAsync(async () =>
+        Type entityType = entity.GetType();
+        if (entityType.BaseType != null && entityType.Namespace == "Castle.Proxies")
         {
-            if (OnDataChangedRefreshRequested.HasDelegate)
+            entityType = entityType.BaseType;
+        }
+
+        if (typeof(TEntity).IsAssignableFrom(entityType))
+        {
+            var targetEntity = (TEntity)entity;
+
+            InvokeAsync(async () =>
             {
-                // Просим бизнес-страницу (например, UnitTreePage) обновить коллекцию Items в памяти
-                await OnDataChangedRefreshRequested.InvokeAsync();
-            }
+                if (OnIncrementalUpdateRequested.HasDelegate)
+                {
+                    // Пинаем инкрементальный ОЗУ-движок на бизнес-странице
+                    await OnIncrementalUpdateRequested.InvokeAsync((state, targetEntity));
+                }
+                StateHasChanged();
+            });
+        }
+    }
 
+    protected async Task OnSelectedChanged(TEntity? directNode)
+    {
+        if (directNode == null)
+        {
+            ActionContext.SelectedData = null;
+            if (SelectedItemChanged.HasDelegate) await SelectedItemChanged.InvokeAsync(null);
             StateHasChanged();
-        });
-    }
-
-    protected async Task OnCreateRootClick()
-    {
-        if (OnCreateRootTriggered.HasDelegate) await OnCreateRootTriggered.InvokeAsync();
-    }
-
-    protected async Task OnCreateChildClick()
-    {
-        if (OnCreateChildTriggered.HasDelegate && ActionContext.SelectedData != null)
-            await OnCreateChildTriggered.InvokeAsync(ActionContext.SelectedData);
-    }
-
-    protected async Task OnEditNodeClick()
-    {
-        if (OnEditNodeTriggered.HasDelegate && ActionContext.SelectedData != null)
-            await OnEditNodeTriggered.InvokeAsync(ActionContext.SelectedData);
-    }
-
-    protected async Task OnDeleteNodeClick()
-    {
-        if (OnDeleteNodeTriggered.HasDelegate && ActionContext.SelectedData != null)
-            await OnDeleteNodeTriggered.InvokeAsync(ActionContext.SelectedData);
-    }
-
-    private async Task OnSelectedChanged(TEntity? directNode)
-    {
-        if (directNode == null) return;
+            return;
+        }
 
         if (EqualityComparer<TEntity>.Default.Equals(ActionContext.SelectedData, directNode))
         {
@@ -99,16 +103,17 @@ public partial class BaseTreePage<TEntity> : ComponentBase, IDisposable where TE
         {
             await SelectedItemChanged.InvokeAsync(directNode);
         }
+
+        StateHasChanged();
     }
 
-    /// <summary>
-    /// Освобождаем подписку при закрытии MDI-вкладки для защиты от утечек памяти
-    /// </summary>
+    protected async Task OnCreateRootClick() { if (OnCreateRootTriggered.HasDelegate) await OnCreateRootTriggered.InvokeAsync(); }
+    protected async Task OnCreateChildClick() { if (OnCreateChildTriggered.HasDelegate && ActionContext.SelectedData != null) await OnCreateChildTriggered.InvokeAsync(ActionContext.SelectedData); }
+    protected async Task OnEditNodeClick() { if (OnEditNodeTriggered.HasDelegate && ActionContext.SelectedData != null) await OnEditNodeTriggered.InvokeAsync(ActionContext.SelectedData); }
+    protected async Task OnDeleteNodeClick() { if (OnDeleteNodeTriggered.HasDelegate && ActionContext.SelectedData != null) await OnDeleteNodeTriggered.InvokeAsync(ActionContext.SelectedData); }
+
     public void Dispose()
     {
-        if (ActionContext != null)
-        {
-            ActionContext.OnRefreshRequested -= HandleRefreshRequest;
-        }
+        DatabaseTriggerService.OnEntityCommitted -= HandleEntityCommitted;
     }
 }

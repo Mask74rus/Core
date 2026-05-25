@@ -11,8 +11,7 @@
         <ChildContent>
             @if (IsLoading)
             {
-                <div class="d-flex justify-center align-center w-100"
-                     style="height: calc(100vh - 245px); min-height: calc(100vh - 245px); max-height: calc(100vh - 245px);">
+                <div class="d-flex justify-center align-center w-100" style="height: calc(100vh - 245px);">
                     <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
                 </div>
             }
@@ -32,41 +31,32 @@
             }
             else
             {
-                <div class="w-100 pr-2"
-                     style="height: calc(100vh - 245px); min-height: calc(100vh - 245px); max-height: calc(100vh - 245px); overflow-y: auto; overflow-x: hidden;">
-
-                    @* ИСПРАВЛЕНО: Убран несуществующий в MudBlazor 9 параметр ChildSelector. Тип дерева возвращен к TEntity *@
+                <div class="w-100 pr-2" style="height: calc(100vh - 245px); overflow-y: auto; overflow-x: hidden;">
                     <MudTreeView T="TEntity"
                                  Items="@Items"
-                                 ServerData="@ServerData"
+                                 @bind-SelectedValue="@SelectedTreeValue"
                                  Hover="true"
                                  Dense="true">
                         <ItemTemplate Context="item">
                             @{
-                                bool canExpand = CanExpandFunc == null || CanExpandFunc(item.Value!);
-                                bool isSelected = ActionContext.SelectedData == item.Value;
-
-                                string activeStyle = isSelected
-                                    ? "background-color: var(--mud-palette-action-disabled-background) !important; color: var(--mud-palette-surface) !important; border-radius: 4px; font-weight: 500;"
-                                    : "cursor: pointer;";
+                                TEntity? domainEntity = item.Value;
+                                bool isSelected = item.Selected;
+                                string activeStyle = isSelected ? "background-color: var(--mud-palette-action-disabled-background) !important; color: var(--mud-palette-text-primary) !important; border-radius: 4px; font-weight: 500;" : "cursor: pointer;";
                             }
 
-                            <MudTreeViewItem Value="@item.Value"
-                                             Text="@(ItemTextFunc != null ? ItemTextFunc(item.Value!) : item.Value?.ToString())"
-                                             Icon="@(ItemIconFunc != null ? ItemIconFunc(item.Value!) : string.Empty)"
-                                             IconColor="@(isSelected ? Color.Default : ItemIconColorFunc?.Invoke(item.Value!) ?? Color.Default)"
-                                             CanExpand="@canExpand"
-                                             ExpandButtonIcon="@(canExpand ? Icons.Material.Filled.ChevronRight : string.Empty)"
-                                             Selected="@isSelected"
+                            <MudTreeViewItem Value="@domainEntity"
+                                             Items="@item.Children"
+                                             @bind-Expanded="@item.Expanded"
+                                             Text="@(ItemTextFunc != null && domainEntity != null ? ItemTextFunc(domainEntity) : domainEntity?.ToString())"
+                                             Icon="@(ItemIconFunc != null && domainEntity != null ? ItemIconFunc(domainEntity) : string.Empty)"
+                                             IconColor="@(isSelected ? Color.Primary : ItemIconColorFunc?.Invoke(domainEntity!) ?? Color.Default)"
                                              Style="@activeStyle"
-                                             OnClick="@((e) => OnSelectedChanged(item.Value))"
                                              LoadingIcon="@Icons.Material.Filled.Refresh">
 
-                                @if (NodeContent != null)
+                                @if (NodeContent != null && domainEntity != null)
                                 {
-                                    @NodeContent(item.Value!)
+                                    @NodeContent(domainEntity)
                                 }
-
                             </MudTreeViewItem>
                         </ItemTemplate>
                     </MudTreeView>

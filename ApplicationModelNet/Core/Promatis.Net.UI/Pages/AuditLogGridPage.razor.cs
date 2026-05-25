@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components;
 using MudBlazor;
+using Promatis.Net.Data;
 using Promatis.Net.Domain;
 using Promatis.Net.Service;
 using Promatis.Net.UI.Components.BaseGrid;
@@ -15,9 +16,8 @@ public partial class AuditLogGridPage : ComponentBase
 
     protected BaseGridPage<AuditLog> _baseGrid { get; set; } = null!;
 
-    // ИСПРАВЛЕНО ДЛЯ REAL-TIME: Переопределяем логику перехвата коммитов СУБД.
-    // Изменения доменных сущностей (UnitBase и др.) порождают новые логи, 
-    // поэтому журнал аудита должен реагировать на ЛЮБОЙ объект в системе!
+    // REAL-TIME ИНТЕГРАЦИЯ: Используем кастомный контекст AuditLogGridContext,
+    // перехватывающий абсолютно любые транзакции в системе для реактивного обновления журнала логов
     protected readonly GridActionContext<AuditLog> _context = new AuditLogGridContext();
 
     protected DateRange _dateRange = new(DateTime.Today, DateTime.Today.AddDays(1).AddSeconds(-1));
@@ -65,14 +65,15 @@ public partial class AuditLogGridPage : ComponentBase
     }
 
     /// <summary>
-    /// Обработчик real-time импульса от интерцептора СУБД. 
-    /// Вызывается автоматически, когда любой пользователь сохраняет данные в системе.
+    /// Обработчик real-time импульса от интерцептора СУБД.
+    /// ИСПРАВЛЕНО: Добавлена строго типизированная сигнатура кортежа дельты СУБД 
+    /// для 100% совместимости с параметром OnIncrementalUpdateRequested базового грида.
     /// </summary>
-    protected Task OnGlobalDataChangedAsync()
+    protected Task OnGlobalDataChangedAsync((EntityStateChangeEnum State, AuditLog Entity) delta)
     {
-        // Добавляем искусственную микрозадержку в 150-200 мс, чтобы фоновый поток 
-        // транзакции успел физически завершить запись логов в таблицу AuditLogs до того,
-        // как наша Blazor-страница сделает повторный SELECT SearchLogsAsync!
+        // Сохраняем вашу оригинальную высокопроизводительную микрозадержку.
+        // Даем фоновому СУБД-потоку завершить транзакцию записи логов в таблицы PostgreSQL,
+        // после чего пинаем MudBlazor нативно перерисовать текущую страницу.
         return Task.Delay(200).ContinueWith(_ => InvokeAsync(_baseGrid.ReloadServerDataAsync));
     }
 
@@ -144,13 +145,5 @@ public partial class AuditLogGridPage : ComponentBase
 
         return (utcStart, utcEnd);
     }
-
-    protected Color GetActionColor(string action) => action.ToLower() switch
-    {
-        "create" or "insert" or "добавление" => Color.Success,
-        "update" or "edit" or "изменение" => Color.Warning,
-        "delete" or "remove" or "удаление" => Color.Error,
-        _ => Color.Default
-    };
 }
 

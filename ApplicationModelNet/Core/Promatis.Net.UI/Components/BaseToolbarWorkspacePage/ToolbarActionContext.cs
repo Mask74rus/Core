@@ -79,7 +79,7 @@ public class ToolbarActionContext<TEntity> : WorkspaceActionContext, IHasToolbar
     /// </summary>
     public void SetActionEnabled(string actionId, bool isEnabled)
     {
-        var action = CustomActions.FirstOrDefault(a => a.Id == actionId);
+        ToolbarCustomAction? action = CustomActions.FirstOrDefault(a => a.Id == actionId);
         if (action != null && action.IsEnabled != isEnabled)
         {
             action.IsEnabled = isEnabled;

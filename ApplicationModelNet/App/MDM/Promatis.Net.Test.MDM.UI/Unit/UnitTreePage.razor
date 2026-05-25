@@ -2,19 +2,17 @@
 
 @using Promatis.Net.Domain.Interface
 @using Promatis.Net.MES.Domain
-@using Promatis.Net.MES.Domain.Interface
 
 @inherits Microsoft.AspNetCore.Components.ComponentBase
 
 <BaseTreePage TEntity="UnitBase"
               ActionContext="@Context"
-              Items="@_rootNodes"
+              Items="@_treeEngine.RootNodes"
               IsLoading="@_isInitialLoading"
-              OnDataChangedRefreshRequested="@RefreshTreeAsync"
+              OnIncrementalUpdateRequested="@HandleIncrementalUpdateAsync"
               ItemTextFunc="@(x => $"{x.Code} - {x.Name} ({x.Type.GetDescription()})")"
               ItemIconFunc="@(x => GetNodeIcon(x.Kind))"
               ItemIconColorFunc="@(x => Color.Primary)"
-              CanExpandFunc="@(x => x.Kind != UnitKind.Position)"
               OnCreateRootTriggered="@CreateRootNodeAsync"
               OnCreateChildTriggered="@CreateChildNodeAsync"
               OnEditNodeTriggered="@EditSelectedNodeAsync"

@@ -1,6 +1,4 @@
-﻿using Promatis.Net.MES.Domain;
-using Promatis.Net.MES.Domain.Interface;
-using Promatis.Net.UI.Components.BaseToolbarWorkspacePage;
+﻿using Promatis.Net.UI.Components.BaseToolbarWorkspacePage;
 
 namespace Promatis.Net.UI.Components.BaseTree;
 
@@ -12,20 +10,21 @@ namespace Promatis.Net.UI.Components.BaseTree;
 public class TreeActionContext<TEntity> : ToolbarActionContext<TEntity> where TEntity : class
 {
     // =========================================================================
-    // 1. СТАТИЧЕСКАЯ КОНФИГУРАЦИЯ (Управляется со страницы при инициализации)
+    // 1. СТАТИЧЕСКАЯ КОНФИГУРАЦИЯ ВИДИМОСТИ (Всегда включена)
     // =========================================================================
 
     /// <summary>
-    /// Флаг видимости кнопки «Добавить подузел». По умолчанию для всех деревьев включен.
+    /// Флаг видимости кнопки «Добавить подузел». 
+    /// Зафиксирован в true, чтобы исключить раздражающее пользователей "прыгание" интерфейса.
     /// </summary>
     public bool IsCreateChildVisible { get; set; } = true;
 
     // =========================================================================
-    // 2. ДИНАМИЧЕСКИЙ РАСЧЕТ СТЭЙТА (Строго Read-Only, завязано на фокус узла)
+    // 2. ДИНАМИЧЕСКИЙ РАСЧЕТ ДОСТУПНОСТИ (Read-Only)
     // =========================================================================
 
     /// <summary>
-    /// Кнопка активна, если родительский узел выбран И внутренние бизнес-правила разрешают добавлять в него детей.
+    /// Кнопка активна, если узел выбран И внутренние бизнес-правила (предикат) разрешают добавлять в него детей.
     /// </summary>
     public virtual bool IsCreateChildEnabled => SelectedData != null && CanCreateChildNode(SelectedData);
 
@@ -36,7 +35,7 @@ public class TreeActionContext<TEntity> : ToolbarActionContext<TEntity> where TE
     }
 
     // =========================================================================
-    // ДОБАВЛЕНО: РЕАКТИВНЫЙ ПЕРЕХВАТ ТРАНЗАКЦИЙ ДЛЯ ИЕРАРХИЙ
+    // РЕАКТИВНЫЙ ПЕРЕХВАТ ТРАНЗАКЦИЙ ДЛЯ ИЕРАРХИЙ
     // =========================================================================
 
     /// <summary>
@@ -45,39 +44,23 @@ public class TreeActionContext<TEntity> : ToolbarActionContext<TEntity> where TE
     /// </summary>
     public override void HandleGlobalEntityCommit(object state, object entity)
     {
-        // Вызываем базовый метод (он проверит соответствие типов и сбросит SelectedData в null при удалении элемента)
         base.HandleGlobalEntityCommit(state, entity);
 
         if (entity is TEntity)
         {
-            // После того как базовый класс отработал и отправил RequestRefresh, 
-            // мы повторно запускаем перерасчет видимости кнопки "Добавить подузел" для тулбара,
-            // чтобы панель инструментов мгновенно синхронизировала интерфейс кнопок с базой
+            // Синхронизируем состояние кнопок с актуальной базой данных после коммита
             RecalculateButtonStates();
             NotifyUpdate();
         }
     }
 
     // =========================================================================
-    // 3. ДОМЕННЫЙ ПРЕДИКАТ-ХУК (Для переопределения бизнес-логики в наследниках)
+    // 3. ДОМЕННЫЙ ПРЕДИКАТ-ХУК (Бизнес-правила вложенности)
     // =========================================================================
 
     /// <summary>
     /// Проверяет, разрешает ли бизнес-логика конкретного узла добавлять в него дочерние элементы.
-    /// По умолчанию для любого базового дерева возвращает true.
+    /// По умолчанию для любого базового дерева возвращает true. Переопределяется в доменных наследниках.
     /// </summary>
     protected virtual bool CanCreateChildNode(TEntity node) => true;
-
-    protected override void RecalculateButtonStates()
-    {
-        // Вызываем базовую проверку плоских кнопок CRUD (Изменить/Удалить)
-        base.RecalculateButtonStates();
-
-        // Специфичное поведение тулбара: если фокуса на узле нет, 
-        // скрываем кнопку добавления подузла, чтобы не перегружать интерфейс
-        if (SelectedData == null)
-        {
-            IsCreateChildVisible = false;
-        }
-    }
 }

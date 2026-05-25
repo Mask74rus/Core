@@ -5,13 +5,12 @@
 @inherits ComponentBase
 
 
-<!-- Инверсия управления: передаем готовый контекст в базовый грид -->
-@* Явно наследуем базовый компонент и привязываем обновленный GridActionContext *@
+@* Явно вызываем наш базовый универсальный грид в режиме ServerData *@
 <BaseGridPage TEntity="AuditLog"
               @ref="_baseGrid"
               ActionContext="@_context"
               ServerData="@LoadServerData"
-              OnDataChangedRefreshRequested="@OnGlobalDataChangedAsync">
+              OnIncrementalUpdateRequested="@OnGlobalDataChangedAsync">
 
     <AdditionalToolbarContent>
         <div class="d-flex align-center gap-3">
@@ -27,9 +26,9 @@
     <ColumnsContent>
         <PropertyColumn T="AuditLog" TProperty="DateTime" Property="x => x.ChangedAt" Title="Дата и время" Format="dd.MM.yyyy HH:mm:ss" Style="width: 180px;" />
         <PropertyColumn T="AuditLog" TProperty="string" Property="x => x.EntityName" Title="Сущность" Style="width: 200px;" />
-        <PropertyColumn T="AuditLog" TProperty="string" Property="x => x.Action" Title="Действие" Style="width: 120px;">
+        <PropertyColumn T="AuditLog" TProperty="string" Property="x => x.Action" Title="Action" Style="width: 120px;">
             <CellTemplate>
-                <MudChip T="string" Color="@GetActionColor(context.Item.Action)" Size="Size.Small" Variant="Variant.Text">
+                <MudChip T="string" Color="@_context.GetActionColor(context.Item.Action)" Size="Size.Small" Variant="Variant.Text">
                     @context.Item.Action
                 </MudChip>
             </CellTemplate>

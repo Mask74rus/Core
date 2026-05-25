@@ -108,7 +108,7 @@
             <MudDivider Vertical="@(!_isVertical)" FlexItem="true" Class="mx-2 my-1" />
         }
 
-        foreach (var action in ActionContext.CustomActions.Where(a => a.IsVisible))
+        foreach (ToolbarCustomAction action in ActionContext.CustomActions.Where(a => a.IsVisible))
         {
             <MudButton Variant="@action.Variant"
                        Color="@action.Color"

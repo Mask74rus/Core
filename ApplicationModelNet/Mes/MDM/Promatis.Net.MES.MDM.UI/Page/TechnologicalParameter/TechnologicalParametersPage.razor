@@ -1,25 +1,23 @@
 ﻿@page "/mes/mdm/technological-parameters"
-
-@using Promatis.Net.MES.MDM.Domain
 @using Promatis.Net.UI.Components.BaseGrid
 
 @inherits ComponentBase
 
 <!-- Инверсия управления: передаем готовый контекст в базовый грид -->
-<BaseGridPage TEntity="TechnologicalParameter"
+<BaseGridPage TEntity="Domain.TechnologicalParameter"
               ActionContext="@_context"
               Items="@_parameters"
               IsLoading="@_isLoading"
-              OnDataChangedRefreshRequested="@LoadDataAsync"
+              OnIncrementalUpdateRequested="@HandleIncrementalUpdateAsync"
               OnCreateTriggered="@CreateParameterAsync"
               OnEditTriggered="@EditParameterAsync"
               OnDeleteTriggered="@DeleteParameterAsync">
 
     <ColumnsContent>
-        <PropertyColumn T="TechnologicalParameter" TProperty="string" Property="x => x.Code" Title="Код" Style="width: 150px;" />
-        <PropertyColumn T="TechnologicalParameter" TProperty="string" Property="x => x.Name" Title="Наименование" Style="width: 250px;" />
-        <PropertyColumn T="TechnologicalParameter" TProperty="string" Property="x => x.DataType" Title="Тип данных" Style="width: 150px;" />
-        <PropertyColumn T="TechnologicalParameter" TProperty="string" Property="x => x.UnitOfMeasurement" Title="Ед. изм." Style="width: 120px;" />
-        <PropertyColumn T="TechnologicalParameter" TProperty="string" Property="x => x.Description" Title="Описание" />
+        <PropertyColumn T="Domain.TechnologicalParameter" TProperty="string" Property="x => x.Code" Title="Код" Style="width: 150px;" />
+        <PropertyColumn T="Domain.TechnologicalParameter" TProperty="string" Property="x => x.Name" Title="Наименование" Style="width: 250px;" />
+        <PropertyColumn T="Domain.TechnologicalParameter" TProperty="string" Property="x => x.DataType" Title="Тип данных" Style="width: 150px;" />
+        <PropertyColumn T="Domain.TechnologicalParameter" TProperty="string" Property="x => x.UnitOfMeasurement" Title="Ед. изм." Style="width: 120px;" />
+        <PropertyColumn T="Domain.TechnologicalParameter" TProperty="string" Property="x => x.Description" Title="Описание" />
     </ColumnsContent>
 </BaseGridPage>
