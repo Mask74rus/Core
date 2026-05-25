@@ -1,13 +1,16 @@
-﻿using Promatis.Net.MES.Domain;
+﻿using Microsoft.EntityFrameworkCore;
+using Promatis.Net.Domain;
+using Promatis.Net.Domain.Interface;
+using Promatis.Net.MES.Domain;
 using Promatis.Net.MES.Domain.Interface;
 using Promatis.Net.Service;
 
 namespace Promatis.Net.MES.Service;
 
-public interface IUnitBaseService<T> : IReferenceTreeService<T>
-    where T : UnitBase
+public interface IUnitBaseService<TContext> : IReferenceTreeService<UnitBase, TContext> // <- ИСПРАВЛЕНО: передано 2 аргумента типа в родительский интерфейс!
+    where TContext : DbContext
 {
-    Task<List<T>> GetByKindAsync(UnitKind kind);
-    Task<List<T>> GetByTypeAsync(UnitType type);
-    Task<List<T>> GetByKindAndTypeAsync(UnitKind kind, UnitType type);
+    Task<List<UnitBase>> GetByKindAsync(UnitKind kind);
+    Task<List<UnitBase>> GetByTypeAsync(UnitType type);
+    Task<List<UnitBase>> GetByKindAndTypeAsync(UnitKind kind, UnitType type);
 }

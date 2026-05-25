@@ -10,16 +10,37 @@ namespace Promatis.Net.ApplicationModel.Tests.Service;
 
 public class ReferenceTreeServiceTests : BaseServiceTests
 {
-    public class TestTreeEntity : ReferenceTreeBase, ITreeNode<TestTreeEntity>
+    /// <summary>
+    /// Рабочая тестовая сущность для верификации иерархических алгоритмов.
+    /// ИСПРАВЛЕНО: Базовый класс ReferenceTreeBase<T> закрыт типом TestTreeEntity, дублирование свойств удалено.
+    /// </summary>
+    public class TestTreeEntity : ReferenceTreeBase<TestTreeEntity>
     {
-        // Настоящие свойства дерева для EF Core (как мы делали для UnitBase)
-        public virtual TestTreeEntity? Parent { get; set; }
-        public virtual ICollection<TestTreeEntity> Children { get; set; } = new List<TestTreeEntity>();
+        // Свойства Parent и Children автоматически унаследованы из ReferenceTreeBase<TestTreeEntity> 
+        // и идеально закрывают контракт ITreeNode<TestTreeEntity> под капотом!
     }
 
-    // Добавляем ApplicationDbContext в сигнатуру
+    /// <summary>
+    /// Рабочий тестовый сервис.
+    /// ИСПРАВЛЕНО: Реализует абстрактный хук платформы CreateChildTemplateAsync, 
+    /// необходимый для компиляции базового ReferenceTreeService.
+    /// </summary>
     public class TestTreeService(IDbContextFactory<ApplicationDbContext> f)
-        : ReferenceTreeService<TestTreeEntity, ApplicationDbContext>(f);
+        : ReferenceTreeService<TestTreeEntity, ApplicationDbContext>(f)
+    {
+        /// <summary>
+        /// Простейшая тестовая фабрика создания пустых шаблонов узлов для прогона иерархических тестов.
+        /// </summary>
+        public override Task<TestTreeEntity> CreateChildTemplateAsync(TestTreeEntity parent)
+        {
+            var child = new TestTreeEntity
+            {
+                ParentId = parent.Id
+            };
+            child.Parent = null;
+            return Task.FromResult(child);
+        }
+    }
 
     [Fact]
     public async Task GetParentPathAsync_Should_Return_Correct_Order()

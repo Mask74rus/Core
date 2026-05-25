@@ -5,9 +5,9 @@ using Promatis.Net.Service;
 
 namespace Promatis.Net.MES.Service;
 
-public interface ITechnologicalOperationService<T, TLink> : IReferenceTreeService<T>
-    where T : ReferenceTreeBase, ITechnologicalOperation 
-    where TLink : TechnologicalOperationUnitBase<T>      
+public interface ITechnologicalOperationService<T, TLink> : ITreeService<T>
+    where T : ReferenceTreeBase<T>, ITechnologicalOperation, Promatis.Net.Domain.Interface.IDomainObjectHasKey<Guid>
+    where TLink : class
 {
     /// <summary>
     /// Получить список разрешенного оборудования (юнитов) для конкретной технологической операции.

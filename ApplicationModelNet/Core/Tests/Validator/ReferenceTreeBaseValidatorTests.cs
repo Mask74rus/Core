@@ -7,7 +7,7 @@ namespace Promatis.Net.ApplicationModel.Tests.Validator;
 public class ReferenceTreeBaseValidatorTests
 {
     // Тестовая сущность для проверки абстрактного класса
-    private class TestNode : ReferenceTreeBase { }
+    private class TestNode : ReferenceTreeBase<TestNode> { }
 
     // Тестовый валидатор
     private class TestNodeValidator : ReferenceTreeBaseValidator<TestNode> { }

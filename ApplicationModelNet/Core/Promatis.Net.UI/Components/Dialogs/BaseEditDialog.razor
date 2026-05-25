@@ -15,9 +15,7 @@
         <MudForm @ref="_form" 
                  Model="@Model" 
                  Validation="@(async (object m) => { 
-                                 // ИСПРАВЛЕНО: Запускаем FluentValidation ТОЛЬКО если MudForm передала саму модель (DomainObject).
-                                 // Если пришла строка из MudTextField — игнорируем, её проверит сам инпут.
-                                 if (m is not Promatis.Net.Domain.DomainObject)
+                                 if (m is not Domain.DomainObject)
                                      return Array.Empty<string>();
 
                                  var context = new ValidationContext<object>(m); 

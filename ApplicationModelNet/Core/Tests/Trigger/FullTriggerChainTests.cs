@@ -32,11 +32,8 @@ public class IntegrationDbContext(
     : ApplicationDbContext(options, configuration)
 {
     // 1. ИСПРАВЛЕНИЕ: Делаем тестовый узел полноценным изолированным деревом
-    private class TestNode : ReferenceTreeBase, ITreeNode<TestNode>
+    private class TestNode : ReferenceTreeBase<TestNode>
     {
-        // Добавляем строгие навигационные свойства, необходимые для работы ITreeNode и EF Core
-        public virtual TestNode? Parent { get; set; }
-        public virtual ICollection<TestNode> Children { get; set; } = new List<TestNode>();
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

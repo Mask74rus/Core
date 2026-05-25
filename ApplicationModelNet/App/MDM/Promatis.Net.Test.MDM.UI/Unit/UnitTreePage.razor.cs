@@ -4,6 +4,7 @@ using Promatis.Net.Data;
 using Promatis.Net.MES.Domain;
 using Promatis.Net.MES.Domain.Interface;
 using Promatis.Net.MES.Service;
+using Promatis.Net.Test.MDM.Data;
 using Promatis.Net.Test.MDM.Domain;
 using Promatis.Net.UI.Components.BaseToolbarWorkspacePage;
 using Promatis.Net.UI.Components.BaseTree;
@@ -12,7 +13,7 @@ namespace Promatis.Net.Test.MDM.UI.Unit;
 
 public partial class UnitTreePage : ComponentBase
 {
-    [Inject] private IUnitBaseService<UnitBase> UnitService { get; set; } = null!;
+    [Inject] private IUnitBaseService<MdmApplicationDbContext> UnitService { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
     [Inject] private IDialogService DialogService { get; set; } = null!;
 

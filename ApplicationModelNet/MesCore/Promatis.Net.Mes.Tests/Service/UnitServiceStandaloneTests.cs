@@ -19,11 +19,28 @@ public class UnitServiceStandaloneTests
 
     public class TestUnit : Domain.UnitBase { }
 
+    /// <summary>
+    /// Тестовый сервис для верификации бизнес-выборок UnitBase в модульных тестах.
+    /// ИСПРАВЛЕНО: Сигнатура приведена к стандарту UnitBaseService с одним generic-параметром контекста.
+    /// </summary>
     public class TestUnitService(IDbContextFactory<TestDbContext> factory)
-        : UnitBaseService<Domain.UnitBase, TestDbContext>(factory)
+        : UnitBaseService<TestDbContext>(factory)
     {
-        // Теперь сервис знает, что он работает с типом UnitBase в контексте TestDbContext
+        /// <summary>
+        /// Простейшая заглушка фабрики полиморфизма для успешной компиляции абстрактного сервиса в тестах.
+        /// </summary>
+        public override Task<Domain.UnitBase> CreateChildTemplateAsync(Domain.UnitBase parent)
+        {
+            // ИСПРАВЛЕНО: Безопасное динамическое создание инстанса нативного типа .NET 10
+            var childMock = (Domain.UnitBase)Activator.CreateInstance(parent.GetType())!;
+
+            childMock.ParentId = parent.Id;
+            childMock.Parent = null;
+
+            return Task.FromResult(childMock);
+        }
     }
+
     public UnitServiceStandaloneTests()
     {
         // 2. Опции должны быть для TestDbContext

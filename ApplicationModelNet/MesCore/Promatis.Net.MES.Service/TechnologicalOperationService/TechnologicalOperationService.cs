@@ -9,8 +9,8 @@ namespace Promatis.Net.MES.Service;
 
 public abstract class TechnologicalOperationService<T, TLink, TContext>(IDbContextFactory<TContext> contextFactory)
     : ReferenceTreeService<T, TContext>(contextFactory), ITechnologicalOperationService<T, TLink>
-    where T : ReferenceTreeBase, ITechnologicalOperation, ITreeNode<T>
-    where TLink : TechnologicalOperationUnitBase<T> 
+    where T : ReferenceTreeBase<T>, ITechnologicalOperation, IDomainObjectHasKey<Guid>, new()
+    where TLink : TechnologicalOperationUnitBase<T>
     where TContext : DbContext
 {
     public async Task<List<UnitBase>> GetAllowedUnitsAsync(Guid operationId)
@@ -26,4 +26,10 @@ public abstract class TechnologicalOperationService<T, TLink, TContext>(IDbConte
             .AsNoTracking()
             .ToListAsync();
     }
+
+    /// <summary>
+    /// Оставляем метод абстрактным на текущем уровне. Конкретный прикладной сервис 
+    /// техпроцессов сам переопределит его для создания своих полиморфных операций.
+    /// </summary>
+    public abstract override Task<T> CreateChildTemplateAsync(T parent);
 }
