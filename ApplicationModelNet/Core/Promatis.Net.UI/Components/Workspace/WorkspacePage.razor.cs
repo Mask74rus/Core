@@ -1,10 +1,14 @@
 ﻿using Microsoft.AspNetCore.Components;
 using Promatis.Net.Data;
 
-namespace Promatis.Net.UI.Components.BaseWorkspace;
+namespace Promatis.Net.UI.Components.Workspace;
 
-public partial class BaseWorkspacePage : ComponentBase
+public partial class WorkspacePage : ComponentBase, IDisposable
 {
+    /// <summary>
+    /// Ловим контекст текущей рабочей области из каскада.
+    /// Если страница кастомная и контекст не нужен, холст отрендерится с дефолтной геометрией.
+    /// </summary>
     [CascadingParameter] protected WorkspaceActionContext? ActionContext { get; set; }
 
     [Parameter] public RenderFragment? BodyContent { get; set; }
@@ -28,8 +32,8 @@ public partial class BaseWorkspacePage : ComponentBase
     {
         if (ActionContext == null) return;
 
-        // ИСПРАВЛЕНО: Принудительно маршалируем вызов из потока СУБД в главный UI-поток Blazor!
-        // Это гарантирует, что StateHasChanged() намертво заставит браузер обновить картинку
+        // Принудительно маршалируем вызов из потока СУБД в главный UI-поток Blazor!
+        // Это гарантирует, что StateHasChanged() внутри контекста намертво обновит картинку
         InvokeAsync(() =>
         {
             ActionContext.HandleGlobalEntityCommit(state, entity);

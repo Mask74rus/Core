@@ -1,0 +1,28 @@
+﻿@typeparam TEntity where TEntity : class
+
+<MudDataGrid T="TEntity"
+             ServerData="@LoadGridDataInternalAsync"
+             @ref="_grid"
+             SelectedItem="@ActionContext.SelectedData"
+             SelectedItemChanged="@OnSelectedItemChanged"
+             RowStyleFunc="@FormatSelectedRowStyle"
+             Hover="true"
+             Dense="true"
+             Bordered="true"
+             Elevation="0"
+             FixedHeader="true"
+             Height="calc(100vh - 280px)">
+    <Columns>
+        @ColumnsContent
+    </Columns>
+    <PagerContent>
+        @if (PagerContent != null)
+        {
+            @PagerContent
+        }
+        else
+        {
+            <MudDataGridPager T="TEntity" InfoFormat="{first_item}-{last_item} из {all_items}" RowsPerPageString="Строк на странице:" />
+        }
+    </PagerContent>
+</MudDataGrid>
