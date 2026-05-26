@@ -36,4 +36,8 @@
     <ProjectReference Include="..\Service\Promatis.Net.Service.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Pages\" />
+  </ItemGroup>
+
 </Project>

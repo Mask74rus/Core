@@ -22,4 +22,8 @@
     <ProjectReference Include="..\Promatis.Net.MES.MDM.Service\Promatis.Net.MES.MDM.Service.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Page\" />
+  </ItemGroup>
+
 </Project>
