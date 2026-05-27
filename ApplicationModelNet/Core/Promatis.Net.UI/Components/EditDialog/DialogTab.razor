@@ -1,0 +1,6 @@
+﻿@* Компонент не рендерит HTML сам, он служит декларативным описателем для EditDialog *@
+@code {
+    [Parameter] public required string Title { get; set; }
+    [Parameter] public string? Icon { get; set; }
+    [Parameter] public required RenderFragment Content { get; set; }
+}

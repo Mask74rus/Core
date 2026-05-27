@@ -69,7 +69,7 @@ public abstract class WorkspaceActionContext : IWorkspaceActionContext
     /// </summary>
     /// <param name="state">Состояние изменения из перехватчика EF Core (EntityStateChangeEnum)</param>
     /// <param name="entity">Сам доменный объект (чистый или проксированный)</param>
-    public virtual void HandleGlobalEntityCommit(object state, object entity)
+    public virtual void HandleGlobalEntityCommit(object? state, object? entity)
     {
     }
 

@@ -11,6 +11,7 @@ public partial class EditDialog : ComponentBase
 {
     protected MudForm _form = null!;
     protected bool _isProcessing;
+    protected readonly List<DialogTab> _collectedTabs = [];
 
     [CascadingParameter] protected IMudDialogInstance MudDialog { get; set; } = null!;
 
@@ -21,11 +22,23 @@ public partial class EditDialog : ComponentBase
     [Parameter] public Func<Task> OnSaveAction { get; set; } = null!;
 
     /// <summary>
-    /// Коллекция декларативных вкладок, передаваемая из рантайма контекста страницы.
+    /// Сюда прикладной разработчик декларативно пишет теги <DialogTab>
     /// </summary>
-    [Parameter] public List<DialogTab> Tabs { get; set; } = [];
+    [Parameter] public RenderFragment? Tabs { get; set; }
 
     [Inject] protected ISnackbar Snackbar { get; set; } = null!;
+
+    /// <summary>
+    /// Метод для регистрации вкладок, вызываемый дочерними компонентами DialogTab
+    /// </summary>
+    public void RegisterTab(DialogTab tab)
+    {
+        if (!_collectedTabs.Contains(tab))
+        {
+            _collectedTabs.Add(tab);
+            StateHasChanged();
+        }
+    }
 
     protected void Cancel() => MudDialog.Cancel();
 

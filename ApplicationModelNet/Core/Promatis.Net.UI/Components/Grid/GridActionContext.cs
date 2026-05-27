@@ -3,15 +3,11 @@
 namespace Promatis.Net.UI.Components.Grid;
 
 /// <summary>
-/// Базовый табличный контекст управления. 
-/// Объединяет в себе метаданные тулбара и брокера данных для плоских списков и реестров.
+/// Базовый табличный контекст управления платформы.
+/// Автоматически обеспечивает высокопроизводительные ОЗУ-мутации при любых транзакциях в СУБД.
 /// </summary>
-/// <typeparam name="TEntity">Тип доменной сущности таблицы</typeparam>
-public class GridActionContext<TEntity> : ToolbarActionContext<TEntity> where TEntity : class
+public abstract class GridActionContext<TEntity> : ToolbarActionContext<TEntity> where TEntity : class
 {
-    /// <summary>
-    /// Удобный алиас для работы с выделенной строкой в прикладных таблицах.
-    /// </summary>
     public TEntity? SelectedItem
     {
         get => SelectedData;
@@ -19,24 +15,54 @@ public class GridActionContext<TEntity> : ToolbarActionContext<TEntity> where TE
     }
 
     /// <summary>
-    /// Инкапсулированный платформенный брокер данных для текущего грида.
-    /// Через него таблица будет асинхронно запрашивать строки у бэкенд-служб.
+    /// Универсальный брокер данных текущей таблицы.
     /// </summary>
     public UiDataBroker<TEntity> DataBroker { get; } = new();
 
     public GridActionContext() : base()
     {
-        // Фиксируем стандартное верхнее расположение командного тулбара для всех таблиц
         Position = ToolbarPosition.Top;
     }
 
+    // =========================================================================
+    // ПЛАТФОРМЕННЫЙ АВТОМАТИЧЕСКИЙ ДВИЖОК ОЗУ-МУТАЦИЙ (ПОДНЯТ НАВЕРХ)
+    // =========================================================================
+
     /// <summary>
-    /// Переопределяем хук изменения фокуса, чтобы форсировать мгновенное 
-    /// реактивное обновление кнопок на тулбаре при штатном клике по строке.
+    /// Глобальный перехватчик коммитов СУБД на уровне табличного ядра.
+    /// Полностью освобождает прикладных разработчиков от ручного написания логики обновлений.
     /// </summary>
+    public override void HandleGlobalEntityCommit(object? state, object? entity)
+    {
+        if (entity == null) return;
+
+        Type entityType = entity.GetType();
+
+        // Срезаем динамические прокси Castle/EF Core
+        if (entityType.BaseType != null && entityType.Namespace == "Castle.Proxies")
+        {
+            entityType = entityType.BaseType;
+        }
+
+        // 1. Если транзакция из базы данных затронула именно тип данных нашей таблицы TEntity
+        if (typeof(TEntity).IsAssignableFrom(entityType))
+        {
+            string stateStr = state?.ToString() ?? string.Empty;
+
+            // 2. Автоматически пинаем ОЗУ-движок брокера применить дельту за 0 мс
+            DataBroker.ApplyIncrementalOzuDelta(stateStr, (TEntity)entity);
+
+            // 3. Вызываем базовые правила сброса фокуса ToolbarActionContext
+            base.HandleGlobalEntityCommit(state, entity);
+
+            // 4. Автоматически пинаем GridPage перерисовать HTML-строки из обновленного кэша
+            RequestRefresh();
+        }
+    }
+
     protected override void RecalculateButtonStates()
     {
         base.RecalculateButtonStates();
-        NotifyUpdate(); // Пингаем UiToolbar на перерисовку стейта кнопок
+        NotifyUpdate();
     }
 }

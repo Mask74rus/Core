@@ -1,0 +1,41 @@
+﻿@page "/mes/mdm/technological-parameters"
+
+@using Promatis.Net.MES.MDM.Domain
+@* Внедряем наш автоматически зарегистрированный в DI контекст «полноты власти» страницы *@
+@inject TechnologicalParameterPageContext Context
+
+@* Прокидываем контекст каскадом вниз, чтобы холст WorkspacePage нативно читал настройки геометрии *@
+<CascadingValue Value="@Context" IsFixed="true">
+    <WorkspacePage>
+        
+        <TopContent>
+            @* ТУЛБАР: Автономно рендерит кнопки Создать, Изменить, Удалить и заголовок из контекста *@
+            <UiToolbar TEntity="TechnologicalParameter" 
+                       ActionContext="@Context"
+                       OnCreateTriggered="Context.OpenCreateDialogAsync"
+                       OnEditTriggered="Context.OpenEditDialogAsync"
+                       OnDeleteTriggered="Context.OpenDeleteDialogAsync" />
+        </TopContent>
+
+        <BodyContent>
+            @* ТАБЛИЦА: Чистый визуализатор колонок, берущий данные из ОЗУ-брокера контекста *@
+            <GridPage TEntity="TechnologicalParameter">
+                <ColumnsContent>
+                    <PropertyColumn T="TechnologicalParameter" TProperty="string" Property="x => x.Code" Title="Системный код" HeaderStyle="width: 150px;" Class="font-monospace" />
+                    <PropertyColumn T="TechnologicalParameter" TProperty="string" Property="x => x.Name" Title="Наименование параметра" HeaderStyle="width: 300px;" />
+                    <PropertyColumn T="TechnologicalParameter" TProperty="string" Property="x => x.UnitOfMeasurement" Title="Ед. изм." HeaderStyle="width: 100px;" />
+                    <PropertyColumn T="TechnologicalParameter" TProperty="string" Property="x => x.DataType" Title="Тип данных" HeaderStyle="width: 120px;">
+                        <CellTemplate>
+                            @* Автоматически красим чипсы типов данных через глобальную систему контекста *@
+                            <MudChip T="string" Color="@Context.GetActionColor(context.Item.DataType)" Size="Size.Small" Variant="Variant.Text">
+                                @context.Item.DataType
+                            </MudChip>
+                        </CellTemplate>
+                    </PropertyColumn>
+                    <PropertyColumn T="TechnologicalParameter" TProperty="string" Property="x => x.Description" Title="Описание / Примечание" />
+                </ColumnsContent>
+            </GridPage>
+        </BodyContent>
+
+    </WorkspacePage>
+</CascadingValue>

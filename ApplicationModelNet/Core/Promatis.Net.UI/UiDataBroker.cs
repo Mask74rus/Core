@@ -1,4 +1,5 @@
-﻿using MudBlazor;
+﻿using System.Reflection;
+using MudBlazor;
 
 namespace Promatis.Net.UI;
 
@@ -9,62 +10,98 @@ namespace Promatis.Net.UI;
 /// <typeparam name="TEntity">Тип доменной сущности</typeparam>
 public class UiDataBroker<TEntity> where TEntity : class
 {
-    // Делегат для подключения кастомных бэкенд-провайдеров (например, постраничного поиска логов)
     private Func<GridState<TEntity>, CancellationToken, Task<GridData<TEntity>>>? _customServerDataProvider;
 
-    /// <summary>
-    /// Внутреннее кэш-хранилище плоской коллекции для CRUD-справочников в ОЗУ.
-    /// </summary>
     public List<TEntity>? InMemoryItems { get; set; }
+    public bool IsInMemoryMode { get; private set; }
 
-    /// <summary>
-    /// Возвращает истину, если брокер переведен в режим работы с локальной ОЗУ-коллекцией.
-    /// </summary>
-    public bool IsInMemoryMode => InMemoryItems != null;
-
-    /// <summary>
-    /// Явная инициализация брокера кастомным серверным поставщиком данных (для тяжелых реестров, CQRS, Search-запросов).
-    /// </summary>
     public void ConfigureServerMode(Func<GridState<TEntity>, CancellationToken, Task<GridData<TEntity>>> dataProvider)
     {
         _customServerDataProvider = dataProvider ?? throw new ArgumentNullException(nameof(dataProvider));
-        InMemoryItems = null; // Сбрасываем ОЗУ-режим, если он был включен
+        InMemoryItems = null;
+        IsInMemoryMode = false;
     }
 
-    /// <summary>
-    /// Явная инициализация брокера готовым плоским списком (для простых справочников в памяти браузера).
-    /// </summary>
-    public void ConfigureInMemoryMode(List<TEntity> items)
+    public void ConfigureInMemoryMode()
     {
-        InMemoryItems = items ?? throw new ArgumentNullException(nameof(items));
-        _customServerDataProvider = null; // Сбрасываем серверный режим
+        _customServerDataProvider = null;
+        IsInMemoryMode = true;
     }
 
-    /// <summary>
-    /// Главный унифицированный метод запроса данных, который будут вызывать Grid, Tree или Мнемосхема.
-    /// Хирургически точно распределяет вызов в зависимости от настроенного режима.
-    /// </summary>
     public async Task<GridData<TEntity>> FetchDataAsync(GridState<TEntity> state, CancellationToken ct = default)
     {
-        // Сценарий А: Включен кастомный серверный режим (CQRS / Поиск по фильтрам дат)
         if (_customServerDataProvider != null)
         {
             return await _customServerDataProvider(state, ct);
         }
 
-        // Сценарий Б: Включен ОЗУ-режим локальной коллекции (Простые MES/MDM справочники)
-        if (InMemoryItems != null)
+        if (IsInMemoryMode)
         {
-            // На данном микро-шаге просто возвращаем коллекцию. Логику ОЗУ-сортировки и пагинации
-            // на клиенте мы добавим позже, когда вернем в грид ОЗУ-движок.
             return new GridData<TEntity>
             {
-                Items = InMemoryItems,
-                TotalItems = InMemoryItems.Count
+                Items = InMemoryItems ?? [],
+                TotalItems = InMemoryItems?.Count ?? 0
             };
         }
 
-        // Дефолтный пустой ответ, если брокер еще не успели настроить
         return new GridData<TEntity> { Items = Array.Empty<TEntity>(), TotalItems = 0 };
+    }
+
+    // =========================================================================
+    // ВЫСОКОПРОИЗВОДИТЕЛЬНЫЙ ОЗУ-ДВИЖОК МУТАЦИЙ ПЛАТФОРМЫ (ДОБАВЛЕНО)
+    // =========================================================================
+
+    /// <summary>
+    /// Хирургически точно модифицирует локальный кэш оперативной памяти за 0 мс.
+    /// Полностью исключает необходимость повторных тяжелых SELECT-запросов к СУБД.
+    /// </summary>
+    /// <param name="stateStr">Строковое состояние транзакции ("Added", "Modified", "Deleted", "SoftDeleted")</param>
+    /// Сам пришедший доменный объект</param>
+    public void ApplyIncrementalOzuDelta(string stateStr, TEntity entity)
+    {
+        // Если мы работаем в серверном режиме (например, логи аудита), ОЗУ-мутации пропускаются
+        if (!IsInMemoryMode || InMemoryItems == null) return;
+
+        // Извлекаем свойство Id с помощью рефлексии (выполняется один раз на сущность)
+        PropertyInfo? idProperty = typeof(TEntity).GetProperty("Id");
+        if (idProperty == null) return;
+
+        Guid entityId = (Guid)idProperty.GetValue(entity)!;
+
+        switch (stateStr)
+        {
+            case "Added":
+                // Защита от дублирования при асинхронных всплесках
+                if (!InMemoryItems.Any(x => (Guid)idProperty.GetValue(x)! == entityId))
+                {
+                    InMemoryItems.Add(entity);
+                }
+                break;
+
+            case "Modified":
+                TEntity? existingItem = InMemoryItems.FirstOrDefault(x => (Guid)idProperty.GetValue(x)! == entityId);
+                if (existingItem != null)
+                {
+                    // Находим все значимые и строковые свойства для точечного копирования состояния
+                    IEnumerable<PropertyInfo> properties = typeof(TEntity).GetProperties()
+                        .Where(p => p.CanWrite && p.CanRead)
+                        .Where(p => p.PropertyType.IsValueType || p.PropertyType == typeof(string));
+
+                    foreach (PropertyInfo prop in properties)
+                    {
+                        prop.SetValue(existingItem, prop.GetValue(entity));
+                    }
+                }
+                break;
+
+            case "Deleted":
+            case "SoftDeleted":
+                TEntity? itemToRemove = InMemoryItems.FirstOrDefault(x => (Guid)idProperty.GetValue(x)! == entityId);
+                if (itemToRemove != null)
+                {
+                    InMemoryItems.Remove(itemToRemove);
+                }
+                break;
+        }
     }
 }

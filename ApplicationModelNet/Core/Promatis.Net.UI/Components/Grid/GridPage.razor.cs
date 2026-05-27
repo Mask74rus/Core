@@ -8,9 +8,6 @@ public partial class GridPage<TEntity> : ComponentBase, IDisposable where TEntit
     [Parameter] public RenderFragment? ColumnsContent { get; set; }
     [Parameter] public RenderFragment? PagerContent { get; set; }
 
-    /// <summary>
-    /// Ловим табличный контекст из каскадного потока холста WorkspacePage.
-    /// </summary>
     [CascadingParameter] protected GridActionContext<TEntity> ActionContext { get; set; } = null!;
 
     private MudDataGrid<TEntity> _grid = null!;
@@ -22,37 +19,47 @@ public partial class GridPage<TEntity> : ComponentBase, IDisposable where TEntit
         if (ActionContext == null)
         {
             throw new ArgumentNullException(nameof(ActionContext),
-                $"Компонент {nameof(GridPage<TEntity>)} требует наличия {nameof(GridActionContext<TEntity>)} в каскадных параметрах холста.");
+                $"Компонент {nameof(GridPage<TEntity>)} требует наличия {nameof(GridActionContext<TEntity>)} в каскадных параметрах.");
         }
 
-        // Связываем обновление фокуса и триггеры перерисовки таблицы с контекстом
         ActionContext.OnContextUpdated += StateHasChanged;
-
-        // Подписываемся на импульс обновления данных (например, при программной смене фильтров в контексте)
         ActionContext.OnRefreshRequested += HandleRefreshRequested;
     }
 
-    /// <summary>
-    /// Обработчик импульса обновления данных от контекста страницы.
-    /// </summary>
-    private void HandleRefreshRequested() 
-        => InvokeAsync(ReloadServerDataAsync);
+    private void HandleRefreshRequested()
+    {
+        InvokeAsync(ReloadServerDataAsync);
+    }
 
     /// <summary>
-    /// Внутренний метод-мост, перенаправляющий запрос MudBlazor напрямую в инкапсулированный брокер данных.
+    /// Внутренний метод-мост. Автоматически и безопасно вызывается компонентом MudDataGrid 
+    /// в асинхронном контексте Blazor, исключая любые фризы меню.
     /// </summary>
-    protected Task<GridData<TEntity>> LoadGridDataInternalAsync(GridState<TEntity> state, CancellationToken token) 
-        => ActionContext.DataBroker.FetchDataAsync(state, token);
+    protected async Task<GridData<TEntity>> LoadGridDataInternalAsync(GridState<TEntity> state, CancellationToken token)
+    {
+        // АВТОМАТИКА ПЕРВИЧНОГО ПРОГРЕВА:
+        // Если включен ОЗУ-режим (брокер это знает), но данные еще не предзагружены (коллекция пуста)
+        if (ActionContext.DataBroker.IsInMemoryMode && ActionContext.DataBroker.InMemoryItems == null)
+        {
+            // Ищем метод прогрева на конкретном контексте страницы
+            var initMethod = ActionContext.GetType().GetMethod("InitializeInMemoryDataAsync");
+            if (initMethod != null)
+            {
+                // Вызываем его и ЖДЕМ (await) завершения. 
+                // Так как этот метод выполняется внутри контекста ServerData, 
+                // MudBlazor сам включит красивый лоадер, а меню страницы останется 100% отзывчивым!
+                var task = (Task)initMethod.Invoke(ActionContext, null)!;
+                await task;
+            }
+        }
 
-    /// <summary>
-    /// Обработчик клика по строке. Передает выделенный элемент в контекст «полноты власти».
-    /// </summary>
+        // Напрямую вызываем брокер данных, развернутый внутри нашего контекста
+        return await ActionContext.DataBroker.FetchDataAsync(state, token);
+    }
+
     protected void OnSelectedItemChanged(TEntity? newItem)
     {
-        if (newItem == null && ActionContext.SelectedData != null)
-        {
-            return; // Игнорируем нативное зануление фокуса при клике мимо текста ячейки
-        }
+        if (newItem == null && ActionContext.SelectedData != null) return;
 
         if (!EqualityComparer<TEntity>.Default.Equals(ActionContext.SelectedData, newItem))
         {
@@ -61,9 +68,6 @@ public partial class GridPage<TEntity> : ComponentBase, IDisposable where TEntit
         }
     }
 
-    /// <summary>
-    /// Функция окрашивания выделенной строки через CSS-переменные палитры MudBlazor.
-    /// </summary>
     protected string FormatSelectedRowStyle(TEntity item, int index)
     {
         return item == ActionContext.SelectedData
@@ -71,14 +75,8 @@ public partial class GridPage<TEntity> : ComponentBase, IDisposable where TEntit
             : string.Empty;
     }
 
-    /// <summary>
-    /// Принудительный перезапрос данных таблицы.
-    /// </summary>
     public Task ReloadServerDataAsync() => _grid != null ? _grid.ReloadServerData() : Task.CompletedTask;
 
-    /// <summary>
-    /// Обязательная отписка от событий контекста для защиты от утечек памяти.
-    /// </summary>
     public void Dispose()
     {
         if (ActionContext != null)

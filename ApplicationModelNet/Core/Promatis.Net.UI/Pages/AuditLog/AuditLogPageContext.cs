@@ -9,6 +9,10 @@ namespace Promatis.Net.UI.Pages.AuditLog;
 /// Контекст управления прикладной страницей журнала аудита.
 /// Выступает единым медиатором для холста, тулбара и таблицы в ОЗУ.
 /// </summary>
+/// <summary>
+/// Контекст управления прикладной страницей журнала аудита.
+/// Полностью полагается на автоматику обновлений ядра GridActionContext.
+/// </summary>
 public class AuditLogPageContext : GridActionContext<Domain.AuditLog>
 {
     private readonly IAuditLogService _auditLogService;
@@ -25,7 +29,7 @@ public class AuditLogPageContext : GridActionContext<Domain.AuditLog>
             if (_period != value)
             {
                 _period = value;
-                NotifyUpdate();     // Перерисовываем тулбар (пикер дат)
+                NotifyUpdate();     // Мгновенно перерисовываем тулбар (пикер дат)
                 RequestRefresh();   // Пиняем GridPage на перезапрос серверных данных
             }
         }
@@ -38,12 +42,15 @@ public class AuditLogPageContext : GridActionContext<Domain.AuditLog>
 
         PageTitle = "Журнал аудита";
 
+        // Декларативно отключаем базовый CRUD
         IsCreateVisible = false;
         IsEditVisible = false;
         IsDeleteVisible = false;
 
+        // Настраиваем наш универсальный Брокер Данных на серверный постраничный поиск
         DataBroker.ConfigureServerMode(FetchServerDataInternalAsync);
 
+        // Безопасно добавляем кастомную кнопку через платформенный метод контроля уникальности
         AddCustomAction(new ToolbarCustomAction
         {
             Id = "excel_export",
@@ -94,10 +101,5 @@ public class AuditLogPageContext : GridActionContext<Domain.AuditLog>
         {
             SetActionEnabled("excel_export", true);
         }
-    }
-
-    public override void HandleGlobalEntityCommit(object state, object entity)
-    {
-        RequestRefresh();
     }
 }

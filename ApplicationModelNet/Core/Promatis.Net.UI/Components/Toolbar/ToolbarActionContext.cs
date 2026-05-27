@@ -110,32 +110,30 @@ public abstract class ToolbarActionContext<TEntity> : WorkspaceActionContext, IH
 
     // РЕАКТИВНАЯ ФИЛЬТРАЦИЯ ТРАНЗАКЦИЙ СУБД ПО ТИПУ СУЩНОСТИ
 
-    public override void HandleGlobalEntityCommit(object state, object entity)
+    public override void HandleGlobalEntityCommit(object? state, object? entity)
     {
         base.HandleGlobalEntityCommit(state, entity);
 
-        Type entityType = entity.GetType();
+        if (entity == null) return;
 
-        // Срезаем динамические прокси EF Core
+        Type entityType = entity.GetType();
         if (entityType.BaseType != null && entityType.Namespace == "Castle.Proxies")
         {
             entityType = entityType.BaseType;
         }
 
-        // Если транзакция СУБД затронула именно наш тип TEntity — сбрасываем фокус при удалении и пингаем UI
         if (typeof(TEntity).IsAssignableFrom(entityType))
         {
-            string stateStr = state.ToString() ?? string.Empty;
+            string stateStr = state?.ToString() ?? string.Empty;
 
             if (stateStr == "Deleted" || stateStr == "SoftDeleted")
             {
                 if (SelectedData != null && ReferenceEquals(SelectedData, entity))
                 {
-                    SelectedData = null; // Автоматически зануляем фокус стертого элемента
+                    SelectedData = null;
                 }
             }
 
-            // Глобально пингаем визуализаторы (грид/дерево) о том, что база изменилась
             RequestRefresh();
         }
     }
