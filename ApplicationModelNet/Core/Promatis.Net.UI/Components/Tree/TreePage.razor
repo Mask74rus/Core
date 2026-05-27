@@ -1,0 +1,32 @@
+﻿@typeparam TEntity where TEntity : class, ITreeNode<TEntity>, IDomainObjectHasKey<Guid>
+
+
+<div class="tree-page-container w-100 overflow-auto pa-2"
+     style="height: calc(100vh - 240px); min-height: calc(100vh - 240px); max-height: calc(100vh - 240px);">
+    @if (_isWarmingUp)
+    {
+        <div class="d-flex flex-column align-center justify-center h-100 w-100 gap-2" style="min-height: 200px;">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Загрузка структуры дерева...</MudText>
+        </div>
+    }
+    else
+    {
+        <MudTreeView T="TEntity"
+                     Items="@_rootTreeViewItems"
+                     SelectedValue="@ActionContext.SelectedData"
+                     SelectedValueChanged="@((TEntity? val) => OnSelectedNodeChanged(val))"
+                     Hover="true"
+                     Dense="true"
+                     Color="Color.Primary"
+                     Class="w-100">
+            <ItemTemplate>
+                @* Фиксируем каноничный шаблон узла для MudBlazor 9.4+ *@
+                <MudTreeViewItem Value="@context.Value"
+                                 Items="@context.Children"
+                                 Text="@GetNodeText(context.Value!)"
+                                 Expanded="true" />
+            </ItemTemplate>
+        </MudTreeView>
+    }
+</div>

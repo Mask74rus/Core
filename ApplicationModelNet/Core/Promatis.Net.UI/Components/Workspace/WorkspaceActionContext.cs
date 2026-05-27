@@ -89,4 +89,56 @@ public abstract class WorkspaceActionContext : IWorkspaceActionContext
             _ => Color.Default
         };
     }
+
+    /// <summary>
+    /// Универсальный платформенный высокопроизводительный движок клонирования.
+    /// Создает точную изолированную глубокую копию любого полиморфного доменного объекта СУБД для безопасного редактирования в диалогах.
+    /// Автоматически вырезает бесконечные ORM-петли (Parent/Children) и обходит ограничения абстрактных типов.
+    /// </summary>
+    /// <typeparam name="T">Базовый или конкретный тип доменной сущности</typeparam>
+    public T CloneEntity<T>(T entity) where T : class
+    {
+        if (entity == null) throw new ArgumentNullException(nameof(entity));
+
+        var jsonOptions = new System.Text.Json.JsonSerializerOptions
+        {
+            // Базовая защита от стандартных циклических ссылок
+            ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles,
+
+            // Тотальный фильтр: вырезаем любые сложные навигационные свойства домена из JSON-пайплайна
+            TypeInfoResolver = new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver
+            {
+                Modifiers = { typeInfo =>
+            {
+                foreach (var property in typeInfo.Properties)
+                {
+                    // 1. Если это навигационные свойства иерархий деревьев
+                    if (property.Name is "Parent" or "Children")
+                    {
+                        property.ShouldSerialize = (_, _) => false;
+                        continue;
+                    }
+
+                    // 2. Универсальный фильтр для ГРИДОВ: 
+                    // Если свойство является сложным доменным объектом бэкенда или коллекцией (связи One-to-Many / Many-to-One),
+                    // мы не тащим его в клон формы, оставляя только плоские прикладные поля и ID
+                    Type propType = property.PropertyType;
+                    bool isDomainClass = typeof(Domain.DomainObject).IsAssignableFrom(propType);
+                    bool isDomainCollection = propType.IsGenericType &&
+                                              typeof(System.Collections.IEnumerable).IsAssignableFrom(propType) &&
+                                              typeof(Domain.DomainObject).IsAssignableFrom(propType.GetGenericArguments().FirstOrDefault());
+
+                    if (isDomainClass || isDomainCollection)
+                    {
+                        property.ShouldSerialize = (_, _) => false;
+                    }
+                }
+            }}
+            }
+        };
+
+        // Сериализуем и десериализуем, строго сохраняя реальный рантайм-тип наследника (для полиморфных таблиц/деревьев)
+        string json = System.Text.Json.JsonSerializer.Serialize(entity, entity.GetType(), jsonOptions);
+        return (T)System.Text.Json.JsonSerializer.Deserialize(json, entity.GetType(), jsonOptions)!;
+    }
 }

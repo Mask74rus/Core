@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using MudBlazor;
+using Promatis.Net.UI.Components.Tree;
 
 namespace Promatis.Net.UI.Components.Toolbar;
 
@@ -64,101 +65,111 @@ public partial class UiToolbar<TEntity> : ComponentBase where TEntity : class
     /// <summary>
     /// Динамический фрагмент отрисовки кнопок, инкапсулированный в C#-классе бэкенда
     /// </summary>
-    private RenderFragment RenderButtonsCollection => __builder =>
+    private RenderFragment RenderButtonsCollection => builder =>
     {
+        bool isTreeMode = ActionContext.GetType().BaseType != null
+                         && ActionContext.GetType().BaseType!.IsGenericType
+                         && ActionContext.GetType().BaseType!.GetGenericTypeDefinition() == typeof(TreeActionContext<>);
+
         bool isCreateChildVisible = false;
         bool isCreateChildEnabled = false;
+
+        // Если рантайм определил, что перед нами контекст дерева — извлекаем метаданные кнопок напрямую через апкаст
+        if (isTreeMode)
+        {
+            dynamic? treeContext = ActionContext;
+            if (treeContext != null)
+            {
+                isCreateChildVisible = treeContext.IsCreateChildVisible;
+                isCreateChildEnabled = treeContext.IsCreateChildEnabled;
+            }
+        }
 
         int seq = 0;
 
         if (ActionContext.IsCreateVisible)
         {
-            __builder.OpenComponent<MudButton>(seq++);
-            __builder.AddAttribute(seq++, "Variant", Variant.Filled);
-            __builder.AddAttribute(seq++, "Color", Color.Primary);
-            __builder.AddAttribute(seq++, "Size", Size.Small);
-            __builder.AddAttribute(seq++, "Disabled", !ActionContext.IsCreateEnabled);
-            // ИСПРАВЛЕНО: Генерируем строго типизированный EventCallback<MouseEventArgs>
-            __builder.AddAttribute(seq++, "OnClick", EventCallback.Factory.Create<MouseEventArgs>(this, OnCreateClick));
-            __builder.AddAttribute(seq++, "ChildContent", (RenderFragment)(b => b.AddContent(seq++, "Создать")));
-            __builder.CloseComponent();
+            builder.OpenComponent<MudButton>(seq++);
+            builder.AddAttribute(seq++, "Variant", Variant.Filled);
+            builder.AddAttribute(seq++, "Color", Color.Primary);
+            builder.AddAttribute(seq++, "Size", Size.Small);
+            builder.AddAttribute(seq++, "Disabled", !ActionContext.IsCreateEnabled);
+            builder.AddAttribute(seq++, "OnClick", EventCallback.Factory.Create<MouseEventArgs>(this, OnCreateClick));
+            builder.AddAttribute(seq++, "ChildContent", (RenderFragment)(b => b.AddContent(seq++, "Создать")));
+            builder.CloseComponent();
         }
 
+        // РЕНДЕР КНОПКИ ДЕРЕВА:
         if (isCreateChildVisible)
         {
-            __builder.OpenComponent<MudButton>(seq++);
-            __builder.AddAttribute(seq++, "Variant", Variant.Outlined);
-            __builder.AddAttribute(seq++, "Color", Color.Primary);
-            __builder.AddAttribute(seq++, "Size", Size.Small);
-            __builder.AddAttribute(seq++, "Disabled", !isCreateChildEnabled);
-            // ИСПРАВЛЕНО: Генерируем строго типизированный EventCallback<MouseEventArgs>
-            __builder.AddAttribute(seq++, "OnClick", EventCallback.Factory.Create<MouseEventArgs>(this, OnCreateChildClick));
-            __builder.AddAttribute(seq++, "ChildContent", (RenderFragment)(b => b.AddContent(seq++, "Добавить подузел")));
-            __builder.CloseComponent();
+            builder.OpenComponent<MudButton>(seq++);
+            builder.AddAttribute(seq++, "Variant", Variant.Outlined);
+            builder.AddAttribute(seq++, "Color", Color.Primary);
+            builder.AddAttribute(seq++, "Size", Size.Small);
+            builder.AddAttribute(seq++, "Disabled", !isCreateChildEnabled);
+            builder.AddAttribute(seq++, "OnClick", EventCallback.Factory.Create<MouseEventArgs>(this, OnCreateChildClick));
+            builder.AddAttribute(seq++, "ChildContent", (RenderFragment)(b => b.AddContent(seq++, "Добавить подузел")));
+            builder.CloseComponent();
         }
 
         if (ActionContext.IsEditVisible)
         {
-            __builder.OpenComponent<MudButton>(seq++);
-            __builder.AddAttribute(seq++, "Variant", Variant.Outlined);
-            __builder.AddAttribute(seq++, "Color", Color.Info);
-            __builder.AddAttribute(seq++, "Size", Size.Small);
-            __builder.AddAttribute(seq++, "Disabled", !ActionContext.IsEditEnabled);
-            // ИСПРАВЛЕНО: Генерируем строго типизированный EventCallback<MouseEventArgs>
-            __builder.AddAttribute(seq++, "OnClick", EventCallback.Factory.Create<MouseEventArgs>(this, OnEditClick));
-            __builder.AddAttribute(seq++, "ChildContent", (RenderFragment)(b => b.AddContent(seq++, "Изменить")));
-            __builder.CloseComponent();
+            builder.OpenComponent<MudButton>(seq++);
+            builder.AddAttribute(seq++, "Variant", Variant.Outlined);
+            builder.AddAttribute(seq++, "Color", Color.Info);
+            builder.AddAttribute(seq++, "Size", Size.Small);
+            builder.AddAttribute(seq++, "Disabled", !ActionContext.IsEditEnabled);
+            builder.AddAttribute(seq++, "OnClick", EventCallback.Factory.Create<MouseEventArgs>(this, OnEditClick));
+            builder.AddAttribute(seq++, "ChildContent", (RenderFragment)(b => b.AddContent(seq++, "Изменить")));
+            builder.CloseComponent();
         }
 
         if (ActionContext.IsDeleteVisible)
         {
-            __builder.OpenComponent<MudButton>(seq++);
-            __builder.AddAttribute(seq++, "Variant", Variant.Outlined);
-            __builder.AddAttribute(seq++, "Color", Color.Error);
-            __builder.AddAttribute(seq++, "Size", Size.Small);
-            __builder.AddAttribute(seq++, "Disabled", !ActionContext.IsDeleteEnabled);
-            // ИСПРАВЛЕНО: Генерируем строго типизированный EventCallback<MouseEventArgs>
-            __builder.AddAttribute(seq++, "OnClick", EventCallback.Factory.Create<MouseEventArgs>(this, OnDeleteClick));
-            __builder.AddAttribute(seq++, "ChildContent", (RenderFragment)(b => b.AddContent(seq++, "Удалить")));
-            __builder.CloseComponent();
+            builder.OpenComponent<MudButton>(seq++);
+            builder.AddAttribute(seq++, "Variant", Variant.Outlined);
+            builder.AddAttribute(seq++, "Color", Color.Error);
+            builder.AddAttribute(seq++, "Size", Size.Small);
+            builder.AddAttribute(seq++, "Disabled", !ActionContext.IsDeleteEnabled);
+            builder.AddAttribute(seq++, "OnClick", EventCallback.Factory.Create<MouseEventArgs>(this, OnDeleteClick));
+            builder.AddAttribute(seq++, "ChildContent", (RenderFragment)(b => b.AddContent(seq++, "Удалить")));
+            builder.CloseComponent();
         }
 
         if (AdditionalContent != null)
         {
             if (ActionContext.IsCreateVisible || isCreateChildVisible || ActionContext.IsEditVisible || ActionContext.IsDeleteVisible)
             {
-                __builder.OpenComponent<MudDivider>(seq++);
-                __builder.AddAttribute(seq++, "Vertical", !IsVertical);
-                __builder.AddAttribute(seq++, "FlexItem", true);
-                __builder.AddAttribute(seq++, "Class", "mx-2 my-1");
-                __builder.CloseComponent();
+                builder.OpenComponent<MudDivider>(seq++);
+                builder.AddAttribute(seq++, "Vertical", !IsVertical);
+                builder.AddAttribute(seq++, "FlexItem", true);
+                builder.AddAttribute(seq++, "Class", "mx-2 my-1");
+                builder.CloseComponent();
             }
-            __builder.AddContent(seq++, AdditionalContent);
+            builder.AddContent(seq++, AdditionalContent);
         }
 
         if (ActionContext.CustomActions.Any(a => a.IsVisible) &&
             (ActionContext.IsCreateVisible || isCreateChildVisible || ActionContext.IsEditVisible || ActionContext.IsDeleteVisible || AdditionalContent != null))
         {
-            __builder.OpenComponent<MudDivider>(seq++);
-            __builder.AddAttribute(seq++, "Vertical", !IsVertical);
-            __builder.AddAttribute(seq++, "FlexItem", true);
-            __builder.AddAttribute(seq++, "Class", "mx-2 my-1");
-            __builder.CloseComponent();
+            builder.OpenComponent<MudDivider>(seq++);
+            builder.AddAttribute(seq++, "Vertical", !IsVertical);
+            builder.AddAttribute(seq++, "FlexItem", true);
+            builder.AddAttribute(seq++, "Class", "mx-2 my-1");
+            builder.CloseComponent();
         }
 
         foreach (ToolbarCustomAction action in ActionContext.CustomActions.Where(a => a.IsVisible))
         {
-            __builder.OpenComponent<MudButton>(seq++);
-            __builder.AddAttribute(seq++, "Variant", action.Variant);
-            __builder.AddAttribute(seq++, "Color", action.Color);
-            __builder.AddAttribute(seq++, "Size", Size.Small);
-            __builder.AddAttribute(seq++, "StartIcon", action.Icon);
-            __builder.AddAttribute(seq++, "Disabled", !action.IsEnabled);
-            // Для CustomActions оставляем плоский вызов, так как у них в контракте Func<Task> без MouseEventArgs,
-            // но фабрике явно указываем приведение к общему типу клика
-            __builder.AddAttribute(seq++, "OnClick", EventCallback.Factory.Create<MouseEventArgs>(this, action.OnExecute));
-            __builder.AddAttribute(seq++, "ChildContent", (RenderFragment)(b => b.AddContent(seq++, action.Title)));
-            __builder.CloseComponent();
+            builder.OpenComponent<MudButton>(seq++);
+            builder.AddAttribute(seq++, "Variant", action.Variant);
+            builder.AddAttribute(seq++, "Color", action.Color);
+            builder.AddAttribute(seq++, "Size", Size.Small);
+            builder.AddAttribute(seq++, "StartIcon", action.Icon);
+            builder.AddAttribute(seq++, "Disabled", !action.IsEnabled);
+            builder.AddAttribute(seq++, "OnClick", EventCallback.Factory.Create<MouseEventArgs>(this, action.OnExecute));
+            builder.AddAttribute(seq++, "ChildContent", (RenderFragment)(b => b.AddContent(seq++, action.Title)));
+            builder.CloseComponent();
         }
     };
 }

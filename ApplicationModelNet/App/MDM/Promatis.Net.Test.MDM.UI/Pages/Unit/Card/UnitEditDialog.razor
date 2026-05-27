@@ -1,0 +1,102 @@
+﻿@using Promatis.Net.MES.Domain.Interface
+@using Promatis.Net.Test.MDM.Domain
+<EditDialog Title="@Title"
+            IsNew="@IsNew"
+            Model="@Model"
+            Validator="@Validator"
+            OnSaveAction="@OnSaveAction">
+    <Tabs>
+        @* ВКЛАДКА 1: Общие поля по дизайн-стандарту Promatis.Net *@
+        <DialogTab Title="Основное" Icon="@Icons.Material.Filled.Info">
+            <Content>
+                <div class="d-flex flex-column gap-4 pt-2">
+
+                    <MudTextField Label="Наименование"
+                                  @bind-Value="Model.Name"
+                                  For="@(() => Model.Name)"
+                                  Margin="Margin.Dense"
+                                  Variant="Variant.Outlined"
+                                  Required="true" />
+
+                    <MudTextField Label="Системный код"
+                                  @bind-Value="Model.Code"
+                                  For="@(() => Model.Code)"
+                                  Margin="Margin.Dense"
+                                  Variant="Variant.Outlined"
+                                  Required="true"
+                                  HelperText="Только латиница в верхнем регистре, цифры и _" />
+
+                    <MudTextField Label="Описание / Примечание"
+                                  @bind-Value="Model.Description"
+                                  For="@(() => Model.Description)"
+                                  Margin="Margin.Dense"
+                                  Variant="Variant.Outlined"
+                                  Lines="3" />
+
+                    @* ВЫПАДАЮЩИЕ СПИСКИ ENUM С ПОЛНОЙ ЗАЩИТОЙ И ФИЛЬТРАЦИЕЙ ИЕРАРХИИ *@
+                    <div class="d-flex gap-4 mt-2">
+
+                        @* Категория (Kind): Скрыта для корня (всегда Департамент),
+                           активна при создании подузла, заблокирована при редактировании *@
+                        @if (Model.ParentId.HasValue && Model.ParentId.Value != Guid.Empty)
+                        {
+                            <MudSelect T="UnitKind"
+                                       Label="Категория (Kind)"
+                                       Value="Model.Kind"
+                                       ValueChanged="OnUnitKindChanged"
+                                       Disabled="@(!IsNew)"
+                                       Margin="Margin.Dense"
+                                       Variant="Variant.Outlined">
+                                @foreach (UnitKind kind in GetAllowedUnitKinds())
+                                {
+                                    <MudSelectItem Value="@kind">@kind.GetDescription()</MudSelectItem>
+                                }
+                            </MudSelect>
+                        }
+
+                        @* Тип объекта (Type): Всегда активен, фильтруется по маске выбранного Kind *@
+                        <MudSelect T="UnitType"
+                                   Label="Тип объекта (Type)"
+                                   @bind-Value="Model.Type"
+                                   For="@(() => Model.Type)"
+                                   Margin="Margin.Dense"
+                                   Variant="Variant.Outlined"
+                                   Required="true">
+                            @foreach (UnitType type in GetRenderedUnitTypes())
+                            {
+                                <MudSelectItem Value="@type">@type.GetDescription()</MudSelectItem>
+                            }
+                        </MudSelect>
+
+                    </div>
+                </div>
+            </Content>
+        </DialogTab>
+
+        @* ВКЛАДКА 2: Динамический полиморфный рендеринг специфичных свойств наследников *@
+        @if (Model is StorageUnit storageUnit)
+        {
+            <DialogTab Title="Параметры склада" Icon="@Icons.Material.Filled.Warehouse">
+                <Content>
+                    <div class="d-flex flex-column gap-4 pt-2">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="italic">
+                            Специфичные параметры адресации и складской логистики
+                        </MudText>
+                    </div>
+                </Content>
+            </DialogTab>
+        }
+        else if (Model is ProductionUnit productionUnit)
+        {
+            <DialogTab Title="Параметры производства" Icon="@Icons.Material.Filled.Factory">
+                <Content>
+                    <div class="d-flex flex-column gap-4 pt-2">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="italic">
+                            Специфичные параметры производственных мощностей и OEE
+                        </MudText>
+                    </div>
+                </Content>
+            </DialogTab>
+        }
+    </Tabs>
+</EditDialog>
