@@ -1,0 +1,30 @@
+﻿@page "/mes/mdm/units-of-measurement"
+
+@using Promatis.Net.MES.Domain
+
+@inject UnitOfMeasurementPageContext Context
+
+<CascadingValue Value="@Context" IsFixed="true">
+    <WorkspacePage>
+        
+        <TopContent>
+            <UiToolbar TEntity="UnitOfMeasurement" 
+                       ActionContext="@Context"
+                       OnCreateTriggered="@Context.OnCreateActionAsync"
+                       OnEditTriggered="@Context.OnUpdateActionAsync"
+                       OnDeleteTriggered="@Context.OnDeleteActionAsync" />
+        </TopContent>
+
+        <BodyContent>
+            @* ТАБЛИЦА: Данные прокидываются напрямую из контекста по требованию грида *@
+            <GridPage TEntity="UnitOfMeasurement">
+                <ColumnsContent>
+                    <PropertyColumn T="UnitOfMeasurement" TProperty="string" Property="x => x.Code" Title="Краткое обозначение" HeaderStyle="width: 150px;" Class="font-monospace" />
+                    <PropertyColumn T="UnitOfMeasurement" TProperty="string" Property="x => x.Name" Title="Полное наименование" HeaderStyle="width: 300px;" />
+                    <PropertyColumn T="UnitOfMeasurement" TProperty="string" Property="x => x.Description" Title="Описание / Примечание" />
+                </ColumnsContent>
+            </GridPage>
+        </BodyContent>
+
+    </WorkspacePage>
+</CascadingValue>

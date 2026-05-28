@@ -1,13 +1,14 @@
 ﻿using FluentValidation;
 using Microsoft.AspNetCore.Components;
+using Promatis.Net.MES.Domain.Interface;
 
 namespace Promatis.Net.MES.MDM.UI.Pages.TechnologicalParameter.Card;
 
 public partial class TechnologicalParameterDialog : ComponentBase
 {
-    [Parameter] public string Title { get; set; } = "Редактирование";
-    [Parameter] public bool IsNew { get; set; }
-    [Parameter] public Domain.TechnologicalParameter Model { get; set; } = null!;
-    [Parameter] public IValidator Validator { get; set; } = null!;
-    [Parameter] public Func<Task> OnSaveAction { get; set; } = null!;
+    [Parameter] public required string Title { get; set; }
+    [Parameter] public required bool IsNew { get; set; }
+    [Parameter] public required Domain.TechnologicalParameter Model { get; set; }
+    [Parameter] public required FluentValidation.IValidator Validator { get; set; }
+    [Parameter] public required Func<Task> OnSaveAction { get; set; }
 }

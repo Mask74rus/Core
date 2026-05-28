@@ -13,9 +13,7 @@ public abstract class TechnologicalParameterBaseValidator<T> : ReferenceBaseVali
         // 1. Валидация единицы измерения (доступна, так как T — это TechnologicalParameterBase)
         RuleFor(x => x.UnitOfMeasurement)
             .NotNull()
-            .WithMessage("Единица измерения не может быть null.")
-            .MaximumLength(20)
-            .WithMessage("Единица измерения не должна превышать 20 символов.");
+            .WithMessage("Единица измерения не может быть null.");
 
         // 2. Валидация типа данных
         RuleFor(x => x.DataType)

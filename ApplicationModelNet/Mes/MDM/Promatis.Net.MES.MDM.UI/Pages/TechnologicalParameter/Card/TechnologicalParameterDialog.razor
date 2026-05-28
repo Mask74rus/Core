@@ -1,26 +1,22 @@
-﻿@using Promatis.Net.UI.Components.EditDialog
-
-
-
+﻿
 <EditDialog Title="@Title"
             IsNew="@IsNew"
             Model="@Model"
             Validator="@Validator"
             OnSaveAction="@OnSaveAction">
-            
     <Tabs>
-        @* АБСОЛЮТНО ДЕКЛАРАТИВНЫЕ ВКЛАДКИ ТАМ, ГДЕ ИМ И МЕСТО *@
+        @* КОМПОНЕНТ ВКЛАДКИ 1 *@
         <DialogTab Title="Основное" Icon="@Icons.Material.Filled.Info">
             <Content>
                 <TechnologicalParameterGeneralTab Model="@Model" />
             </Content>
         </DialogTab>
-        
-        <DialogTab Title="Характеристики" Icon="@Icons.Material.Filled.Build">
+
+        @* КОМПОНЕНТ ВКЛАДКИ 2 *@
+        <DialogTab Title="Конфигурация DCA" Icon="@Icons.Material.Filled.Settings">
             <Content>
                 <TechnologicalParameterTechnicalTab Model="@Model" />
             </Content>
         </DialogTab>
     </Tabs>
-
 </EditDialog>

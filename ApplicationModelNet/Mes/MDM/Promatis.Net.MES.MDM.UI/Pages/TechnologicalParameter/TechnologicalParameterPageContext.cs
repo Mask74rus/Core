@@ -2,6 +2,7 @@
 using MudBlazor;
 using Promatis.Net.MES.MDM.Service;
 using Promatis.Net.MES.MDM.UI.Pages.TechnologicalParameter.Card;
+using Promatis.Net.MES.Service;
 using Promatis.Net.UI.Components.Grid;
 
 namespace Promatis.Net.MES.MDM.UI.Pages.TechnologicalParameter;
@@ -21,9 +22,9 @@ public class TechnologicalParameterPageContext : GridActionContext<Domain.Techno
         IDialogService dialogService,
         IValidator<Domain.TechnologicalParameter> globalValidator) : base()
     {
-        _parameterService = parameterService;
-        _dialogService = dialogService;
-        _globalValidator = globalValidator;
+        _parameterService = parameterService ?? throw new ArgumentNullException(nameof(parameterService));
+        _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
+        _globalValidator = globalValidator ?? throw new ArgumentNullException(nameof(globalValidator));
 
         PageTitle = "Технологические параметры";
 
@@ -31,7 +32,6 @@ public class TechnologicalParameterPageContext : GridActionContext<Domain.Techno
         IsEditVisible = true;
         IsDeleteVisible = true;
 
-        // Просто включаем ОЗУ-режим для текущего экрана
         DataBroker.ConfigureInMemoryMode();
     }
 
@@ -48,19 +48,36 @@ public class TechnologicalParameterPageContext : GridActionContext<Domain.Techno
         }
     }
 
-    public Task OpenCreateDialogAsync()
+    // =========================================================================
+    // ИСПРАВЛЕНО: ВСЕ МЕТОДЫ TASK ПОЛУЧИЛИ СУФФИКС ASYNC И СОВПАДАЮТ С UI-ТУЛБАРОМ
+    // =========================================================================
+
+    public Task OnCreateActionAsync()
     {
         var newParameter = new Domain.TechnologicalParameter();
-        return OpenDialogInternalAsync("Создание технологического параметра", true, newParameter, () => _parameterService.AddAsync(newParameter));
+        return OpenDialogInternalAsync("Создание technological параметра", true, newParameter, async () =>
+        {
+            newParameter.UnitOfMeasurement = null;
+            await _parameterService.AddAsync(newParameter);
+        });
     }
 
-    public Task OpenEditDialogAsync()
+    public Task OnUpdateActionAsync()
     {
         if (SelectedData == null) return Task.CompletedTask;
-        return OpenDialogInternalAsync($"Редактирование: {SelectedData.Name}", false, SelectedData, () => _parameterService.UpdateAsync(SelectedData));
+
+        var targetClone = CloneEntity(SelectedData);
+        targetClone.UnitOfMeasurementId = SelectedData.UnitOfMeasurementId;
+        targetClone.UnitOfMeasurement = SelectedData.UnitOfMeasurement;
+
+        return OpenDialogInternalAsync($"Редактирование: {targetClone.Name}", false, targetClone, async () =>
+        {
+            targetClone.UnitOfMeasurement = null;
+            await _parameterService.UpdateAsync(targetClone);
+        });
     }
 
-    public async Task OpenDeleteDialogAsync()
+    public async Task OnDeleteActionAsync()
     {
         if (SelectedData == null) return;
 
@@ -79,13 +96,13 @@ public class TechnologicalParameterPageContext : GridActionContext<Domain.Techno
     {
         var dialogOptions = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
         var dialogParameters = new DialogParameters<TechnologicalParameterDialog>
-        {
-            { x => x.Title, title },
-            { x => x.IsNew, isNew },
-            { x => x.Model, model },
-            { x => x.Validator, _globalValidator },
-            { x => x.OnSaveAction, onSave }
-        };
+            {
+                { x => x.Title, title },
+                { x => x.IsNew, isNew },
+                { x => x.Model, model },
+                { x => x.Validator, _globalValidator },
+                { x => x.OnSaveAction, onSave }
+            };
 
         await _dialogService.ShowAsync<TechnologicalParameterDialog>("", dialogParameters, dialogOptions);
     }

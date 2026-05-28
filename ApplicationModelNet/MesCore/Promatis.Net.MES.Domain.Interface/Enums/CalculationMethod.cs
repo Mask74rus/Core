@@ -1,39 +1,31 @@
-﻿namespace Promatis.Net.MES.Domain.Interface;
+﻿using System.ComponentModel;
 
+namespace Promatis.Net.MES.Domain.Interface;
+
+/// <summary>
+/// Методы расчета тех. параметров
+/// </summary>
+[Flags]
 public enum CalculationMethod
 {
-    /// <summary>
-    /// Значение по умолчанию. Означает не выбрано
-    /// </summary>
-    None = -1,
+    [Description("Не задан")]
+    None = 0,               // 00000000
 
-    /// <summary>
-    /// Максимальное значение
-    /// </summary>
-    Max = 0,
+    [Description("Максимальное значение (MAX)")]
+    Max = 1,
 
-    /// <summary>
-    /// Минимальное значение
-    /// </summary>
-    Min = 1,
+    [Description("Минимальное значение (MIN)")]
+    Min = 2,
 
-    /// <summary>
-    /// Среднее значение
-    /// </summary>
-    Avg = 2,
+    [Description("Среднее значение (AVG)")]
+    Avg = 4,
 
-    /// <summary>
-    /// Первое значение
-    /// </summary>
-    First = 3,
+    [Description("Первое значение (FIRST)")]
+    First = 8,
 
-    /// <summary>
-    /// Последнее значение
-    /// </summary>
-    Last = 4,
+    [Description("Последнее значение (LAST)")]
+    Last = 16,
 
-    /// <summary>
-    /// Все значения
-    /// </summary>
-    All = 5
+    [Description("Все значения (ALL)")]
+    All = 32
 }

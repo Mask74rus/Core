@@ -32,10 +32,7 @@ public abstract class BaseService<T, TKey, TContext>(IDbContextFactory<TContext>
     public virtual async Task UpdateAsync(T entity)
     {
         await using TContext context = await ContextFactory.CreateDbContextAsync();
-        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Вместо рекурсивного метода Update(), 
-        // мы явно переводим в состояние Modified только саму прилетевшую сущность.
-        // Это полностью блокирует коллизии трекинга (ChangeTracker) и исключает ошибки дублирования Id
-        context.Entry(entity).State = EntityState.Modified;
+        context.Set<T>().Update(entity);
         await context.SaveChangesAsync();
     }
 

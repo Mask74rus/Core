@@ -1,14 +1,52 @@
-﻿<div class="d-flex flex-column gap-4 pt-2">
-    <MudTextField Label="Единица измерения" @bind-Value="Model.UnitOfMeasurement" For="@(() => Model.UnitOfMeasurement)" Margin="Margin.Dense" Variant="Variant.Outlined" Required="true" />
-    <MudSelect T="string" Label="Тип данных параметра" @bind-Value="Model.DataType" For="@(() => Model.DataType)" Margin="Margin.Dense" Variant="Variant.Outlined" Required="true">
+﻿@using Promatis.Net.Domain.Interface
+@using Promatis.Net.MES.Domain
+@using Promatis.Net.MES.Domain.Interface
+
+<div class="d-flex flex-column gap-4 pt-2">
+
+    @* ВЫПАДАЮЩИЕ СПИСКИ СВЯЗЕЙ С НОВОЙ ЕД. ИЗМЕРЕНИЯ И ТИПОМ ДАННЫХ *@
+    <MudSelect T="Guid?" 
+               Label="Единица измерения" 
+               @bind-Value="Model.UnitOfMeasurementId" 
+               For="@(() => Model.UnitOfMeasurementId)"
+               Margin="Margin.Dense" 
+               Variant="Variant.Outlined" 
+               Required="true">
+        @foreach (UnitOfMeasurement uom in _availableUoms)
+        {
+            <MudSelectItem Value="@((Guid?)uom.Id)">@($"[{uom.Code}] {uom.Name}")</MudSelectItem>
+        }
+    </MudSelect>
+
+    <MudSelect T="string" 
+               Label="Тип данных параметра" 
+               @bind-Value="Model.DataType" 
+               For="@(() => Model.DataType)" 
+               Margin="Margin.Dense" 
+               Variant="Variant.Outlined" 
+               Required="true">
         @foreach (string type in AllowedDataTypes)
         {
             <MudSelectItem Value="@type">@type</MudSelectItem>
         }
     </MudSelect>
-</div>
 
-@code {
-    [Parameter] public Domain.TechnologicalParameter Model { get; set; } = null!;
-    protected readonly string[] AllowedDataTypes = ["Numeric", "String", "Boolean", "DateTime"];
-}
+    @* МНОЖЕСТВЕННЫЙ ВЫБОР ДЛЯ ПОБИТОВОГО ОГРАНИЧЕНИЯ СВЕРХУ *@
+    <MudSelect T="CalculationMethod" 
+               Label="Разрешенные методы агрегации DCA" 
+               MultiSelection="true"
+               SelectedValues="_selectedMethods"
+               SelectedValuesChanged="OnAllowedMethodsChanged"
+               Margin="Margin.Dense" 
+               Variant="Variant.Outlined"
+               HelperText="Выберите пул методов, доступных для производства">
+        @foreach (CalculationMethod method in Enum.GetValues(typeof(CalculationMethod)))
+        {
+            @if (method != CalculationMethod.None)
+            {
+                <MudSelectItem Value="@method">@method.GetDescription()</MudSelectItem>
+            }
+        }
+    </MudSelect>
+
+</div>

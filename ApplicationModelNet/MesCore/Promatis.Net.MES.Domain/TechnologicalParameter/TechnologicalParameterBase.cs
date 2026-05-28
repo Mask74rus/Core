@@ -9,12 +9,19 @@ namespace Promatis.Net.MES.Domain;
 public abstract class TechnologicalParameterBase : ReferenceBase, ITechnologicalParameter
 {
     /// <summary>
-    /// Единица измерения параметра (например: мм, об/мин, °C).
+    /// Внешний ключ на справочник единиц измерения.
     /// </summary>
-    public string UnitOfMeasurement { get; set; } = string.Empty;
+    public Guid? UnitOfMeasurementId { get; set; }
+
+    public virtual UnitOfMeasurement? UnitOfMeasurement { get; set; }
 
     /// <summary>
     /// Тип данных параметра (например: Число, Строка, Булево).
     /// </summary>
     public string DataType { get; set; } = "Numeric";
+
+    /// <summary>
+    /// Разрешенные методы рассчёта
+    /// </summary>
+    public CalculationMethod AllowedMethods { get; set; } = CalculationMethod.None;
 }

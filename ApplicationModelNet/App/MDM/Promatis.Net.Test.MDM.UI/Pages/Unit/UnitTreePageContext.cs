@@ -90,7 +90,7 @@ public class UnitTreePageContext : TreeActionContext<UnitBase>
         await OpenEditDialogAsync(targetUnit, dialogTitle, isNew: true);
     }
 
-    public async Task OnCreateChildActionAsync(UnitBase parent)
+    public async Task OnCreateChildActionAsync(UnitBase? parent)
     {
         if (parent == null) return;
 
@@ -100,7 +100,7 @@ public class UnitTreePageContext : TreeActionContext<UnitBase>
         await OpenEditDialogAsync(childUnit, $"Добавить дочерний узел в '{parent.Name}'", isNew: true);
     }
 
-    public async Task OnUpdateActionAsync(UnitBase node)
+    public async Task OnUpdateActionAsync(UnitBase? node)
     {
         if (node == null) return;
 
@@ -114,7 +114,7 @@ public class UnitTreePageContext : TreeActionContext<UnitBase>
         await OpenEditDialogAsync(targetClone, $"Редактирование: {node.Name}", isNew: false);
     }
 
-    public async Task OnDeleteActionAsync(UnitBase node)
+    public async Task OnDeleteActionAsync(UnitBase? node)
     {
         if (node == null) return;
 
@@ -143,6 +143,11 @@ public class UnitTreePageContext : TreeActionContext<UnitBase>
             ["Validator"] = _globalValidator,
             ["OnSaveAction"] = async () =>
             {
+                // ХИРУРГИЧЕСКАЯ ОЧИСТКА НАВИГАЦИИ ПЕРЕД ОТПРАВКОЙ В EF CORE
+                // Зануляем ссылки вверх и вниз, чтобы убрать рекурсивный обход трекера СУБД
+                model.Parent = null;
+                model.Children?.Clear();
+
                 if (isNew)
                     await _unitService.AddAsync(model);
                 else

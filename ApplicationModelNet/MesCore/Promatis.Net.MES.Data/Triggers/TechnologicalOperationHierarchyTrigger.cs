@@ -1,56 +1,55 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Promatis.Net.Data;
-using Promatis.Net.Domain;
-using Promatis.Net.MES.Domain.Interface;
-using System.Reflection;
+using Promatis.Net.MES.Domain;
 
 namespace Promatis.Net.MES.Data;
 
 /// <summary>
-/// Триггер контроля иерархии
+/// Универсальный перехватчик СУБД, контролирующий правила вложенности технологических операций.
 /// </summary>
-public class TechnologicalOperationHierarchyTrigger : IBeforeSaveTrigger<ITechnologicalOperation>
+public class TechnologicalOperationHierarchyTrigger<T, TOLink, TPLink> : IBeforeSaveTrigger<T>
+    where T : TechnologicalOperationBase<T, TOLink, TPLink>
+    where TOLink : class
+    where TPLink : class
 {
-    public async Task HandleAsync(EntityCancelEventArgs<ITechnologicalOperation> args)
+    public async Task HandleAsync(EntityCancelEventArgs<T> args)
     {
-        Type entityType = args.Entity.GetType();
+        T operation = args.Entity;
 
-        // 1. Через рефлексию извлекаем свойство ParentId.
-        // Если его нет (хотя по архитектуре оно обязано быть), то это не дерево, мы выходим.
-        PropertyInfo? parentIdProp = entityType.GetProperty("ParentId");
-        if (parentIdProp == null) return;
+        // Если операция корневая — пропускаем проверку
+        if (!operation.ParentId.HasValue || operation.ParentId == Guid.Empty) return;
 
-        Guid? parentId = (Guid?)parentIdProp.GetValue(args.Entity);
+        // Извлекаем из СУБД статус IsLeaf и Name родительской операции
+        var parentInfo = await args.Context.Set<T>()
+            .Where(x => x.Id == operation.ParentId)
+            .Select(x => new { x.IsLeaf, x.Name })
+            .FirstOrDefaultAsync();
 
-        // 2. Если у операции задан родительский узел — запускаем проверку бизнес-правила
-        if (parentId.HasValue && parentId.Value != Guid.Empty)
+        if (parentInfo != null)
         {
-            // Вычисляем корневой CLR-тип для корректного сканирования DbSet в EF Core
-            var entityTypeInModel = args.Context.Model.FindEntityType(entityType);
-            Type rootClrType = entityTypeInModel?.GetRootType()?.ClrType ?? entityType;
-
-            // Извлекаем DbSet для базового CLR-типа операции
-            IQueryable<object> dbSet = ((IQueryable)args.Context.GetType()
-                .GetMethod(nameof(DbContext.Set), Type.EmptyTypes)!
-                .MakeGenericMethod(rootClrType)
-                .Invoke(args.Context, null)!).Cast<object>();
-
-            // Выкачиваем родителя из базы данных, используя универсальный механизм EF.Property
-            var parentData = await dbSet
-                .Where(x => EF.Property<Guid>(x, "Id") == parentId.Value)
-                .Select(x => new
-                {
-                    Id = EF.Property<Guid>(x, "Id"),
-                    IsLeaf = EF.Property<bool>(x, "IsLeaf"),
-                    Name = EF.Property<string>(x, "Name")
-                })
-                .FirstOrDefaultAsync();
-
-            // 3. БИЗНЕС-ПРАВИЛО ПЛАТФОРМЫ: Проверяем флаг "листа" у родительского узла
-            if (parentData != null && parentData.IsLeaf)
+            // Используем наш доменный движок для проверки правил вложенности.
+            // Передаем статус IsLeaf родителя, вытащенный из базы.
+            if (parentInfo.IsLeaf)
             {
                 args.Cancel = true;
-                args.ErrorMessage = $"Критическая ошибка структуры: Нельзя добавить дочерний элемент в конечную операцию '{parentData.Name}' (IsLeaf = true).";
+                args.ErrorMessage = $"Нарушение иерархии MES: Технологическая операция '{operation.Name}' " +
+                                    $"не может быть вложена в '{parentInfo.Name}', так как она является терминальным узлом (Листом).";
+                return;
+            }
+        }
+
+        // Дополнительная защита на изменение: если операция становится Листом, 
+        // проверяем в ChangeTracker или БД, нет ли у нее дочерних элементов
+        if (operation.IsLeaf)
+        {
+            bool hasChildrenInDb = await args.Context.Set<T>()
+                .AnyAsync(x => x.ParentId == operation.Id);
+
+            if (!TechnologicalOperationHierarchyEngine.CanChangeLeafStatus(hasChildrenInDb, operation.IsLeaf))
+            {
+                args.Cancel = true;
+                args.ErrorMessage = $"Нарушение целостности данных: Невозможно сделать операцию '{operation.Name}' терминальной (Листом), " +
+                                    $"так как внутри нее уже содержатся другие технологические операции.";
             }
         }
     }

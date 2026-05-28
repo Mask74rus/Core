@@ -11,6 +11,8 @@ public class UiModule : IUiModule
     {
         return new List<(string Title, string Href, string Icon, string? Group)>
         {
+            // Плоский справочник технологических параметров
+            ("Единицы измерения", "/mes/mdm/units-of-measurement", Icons.Material.Filled.SettingsInputComponent, "Справочники")
         };
     }
 }
