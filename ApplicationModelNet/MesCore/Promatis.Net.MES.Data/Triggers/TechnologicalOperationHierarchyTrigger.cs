@@ -5,9 +5,10 @@ using Promatis.Net.MES.Domain;
 namespace Promatis.Net.MES.Data;
 
 /// <summary>
-/// Универсальный перехватчик СУБД, контролирующий правила вложенности технологических операций.
+/// Абстрактный базовый триггер иерархии технологических операций.
+/// Защищает структуру от некорректного добавления подузлов и контролирует статусы IsLeaf.
 /// </summary>
-public class TechnologicalOperationHierarchyTrigger<T, TOLink, TPLink> : IBeforeSaveTrigger<T>
+public abstract class TechnologicalOperationHierarchyTrigger<T, TOLink, TPLink> : IBeforeSaveTrigger<T>
     where T : TechnologicalOperationBase<T, TOLink, TPLink>
     where TOLink : class
     where TPLink : class

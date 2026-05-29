@@ -28,11 +28,13 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.8" />
+    <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.3.10" />
     <PackageReference Include="MudBlazor" Version="9.4.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\MesCore\Promatis.Net.MES.Service\Promatis.Net.MES.Service.csproj" />
+    <ProjectReference Include="..\Configuration\Promatis.Net.Configuration.csproj" />
     <ProjectReference Include="..\Service\Promatis.Net.Service.csproj" />
   </ItemGroup>
 

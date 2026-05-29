@@ -38,6 +38,9 @@ public class WebAppConfigurator<TRootComponent> : AppConfigurator, IWebAppConfig
 
         // 5. Шина UI-событий
         services.AddScoped<IUiCommandBus, UiCommandBus>();
+
+        // Регистрация системного аксессора для поддержки ленивого разрешения Scoped-сервисов
+        services.AddHttpContextAccessor();
     }
 
     /// <summary>

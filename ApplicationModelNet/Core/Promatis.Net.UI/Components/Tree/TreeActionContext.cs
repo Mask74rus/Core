@@ -1,4 +1,7 @@
-﻿using Promatis.Net.Domain.Interface;
+﻿using FluentValidation;
+using Microsoft.Extensions.DependencyInjection;
+using MudBlazor;
+using Promatis.Net.Domain.Interface;
 using Promatis.Net.UI.Components.Toolbar;
 
 namespace Promatis.Net.UI.Components.Tree;
@@ -16,6 +19,9 @@ public abstract class TreeActionContext<TEntity> : ToolbarActionContext<TEntity>
 
     // Динамический расчет доступности кнопки добавления подузла
     public virtual bool IsCreateChildEnabled => SelectedData != null;
+
+    protected IDialogService DialogService => ScopedProvider.GetRequiredService<IDialogService>();
+    protected IValidator<TEntity> GlobalValidator => ScopedProvider.GetRequiredService<IValidator<TEntity>>();
 
     /// <summary>
     /// Платформенный брокер данных, адаптированный под иерархические структуры.

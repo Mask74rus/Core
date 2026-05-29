@@ -11,6 +11,9 @@ public partial class TreePage<TEntity> : ComponentBase, IDisposable
 
     [Parameter] public Func<TEntity, string>? NodeTextSelector { get; set; }
 
+    [Inject]
+    public IServiceProvider SystemServiceProvider { get; set; } = null!;
+
     // Коллекция оберток для MudTreeView 9.4
     protected List<TreeItemData<TEntity>> _rootTreeViewItems = [];
 
@@ -27,6 +30,9 @@ public partial class TreePage<TEntity> : ComponentBase, IDisposable
             throw new ArgumentNullException(nameof(ActionContext),
                 $"Компонент {nameof(TreePage<TEntity>)} требует наличия {nameof(TreeActionContext<TEntity>)} в каскадных параметрах.");
         }
+
+        // Магия привязки: отдаем контексту дерева провайдер текущей живой сессии Blazor
+        ActionContext.ScopedProvider = SystemServiceProvider;
 
         ActionContext.OnContextUpdated += HandleContextUpdated;
         ActionContext.OnRefreshRequested += HandleRefreshRequested;

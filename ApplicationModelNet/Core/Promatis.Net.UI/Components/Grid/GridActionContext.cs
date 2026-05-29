@@ -1,4 +1,9 @@
-﻿using Promatis.Net.UI.Components.Toolbar;
+﻿using FluentValidation;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
+using MudBlazor;
+using Promatis.Net.Configuration;
+using Promatis.Net.UI.Components.Toolbar;
 
 namespace Promatis.Net.UI.Components.Grid;
 
@@ -8,6 +13,10 @@ namespace Promatis.Net.UI.Components.Grid;
 /// </summary>
 public abstract class GridActionContext<TEntity> : ToolbarActionContext<TEntity> where TEntity : class
 {
+    // Чистое нативное извлечение служб из контейнера текущей Blazor-сессии вкладки пользователя
+    protected IDialogService DialogService => ScopedProvider.GetRequiredService<IDialogService>();
+    protected IValidator<TEntity> GlobalValidator => ScopedProvider.GetRequiredService<IValidator<TEntity>>();
+
     public TEntity? SelectedItem
     {
         get => SelectedData;
@@ -19,14 +28,10 @@ public abstract class GridActionContext<TEntity> : ToolbarActionContext<TEntity>
     /// </summary>
     public UiDataBroker<TEntity> DataBroker { get; } = new();
 
-    public GridActionContext() : base()
-    {
-        Position = ToolbarPosition.Top;
-    }
+    protected GridActionContext() => Position = ToolbarPosition.Top;
 
-    // =========================================================================
-    // ПЛАТФОРМЕННЫЙ АВТОМАТИЧЕСКИЙ ДВИЖОК ОЗУ-МУТАЦИЙ (ПОДНЯТ НАВЕРХ)
-    // =========================================================================
+
+    // ПЛАТФОРМЕННЫЙ АВТОМАТИЧЕСКИЙ ДВИЖОК ОЗУ-МУТАЦИЙ 
 
     /// <summary>
     /// Глобальный перехватчик коммитов СУБД на уровне табличного ядра.
@@ -64,5 +69,30 @@ public abstract class GridActionContext<TEntity> : ToolbarActionContext<TEntity>
     {
         base.RecalculateButtonStates();
         NotifyUpdate();
+    }
+
+    protected async Task OpenEditDialogAsync<TDialog>(TEntity model, string title, bool isNew, Func<Task> saveDelegate)
+    where TDialog : Microsoft.AspNetCore.Components.IComponent
+    {
+        var parameters = new DialogParameters
+        {
+            ["Title"] = title,
+            ["IsNew"] = isNew,
+            ["Model"] = model,
+            ["Validator"] = GlobalValidator, 
+            ["OnSaveAction"] = async () =>
+            {
+                // Выполняем переданное прикладное действие сохранения (Add или Update)
+                await saveDelegate();
+
+                // Централизованно командуем гриду обновить данные в ОЗУ
+                RequestRefresh();
+            }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+
+        // Вызываем MudBlazor диалог для абстрактного компонента TDialog
+        await DialogService.ShowAsync<TDialog>(title, parameters, options);
     }
 }

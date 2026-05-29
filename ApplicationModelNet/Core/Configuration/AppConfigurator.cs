@@ -30,6 +30,11 @@ public class AppConfigurator : IAppConfigurator
 
     public virtual void ConfigureApp(IHost app)
     {
+        if (app == null) throw new ArgumentNullException(nameof(app));
+
+        // Инициализируем глобальный Service Locator при старте приложения
+        AppInfrastructure.Initialize(app.Services);
+
         using IServiceScope scope = app.Services.CreateScope();
         scope.ServiceProvider.AutoRegisterTriggers();
     }

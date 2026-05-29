@@ -6,9 +6,9 @@
 
 <CascadingValue Value="@Context" IsFixed="true">
     <WorkspacePage>
-        
+
         <TopContent>
-            <UiToolbar TEntity="UnitOfMeasurement" 
+            <UiToolbar TEntity="UnitOfMeasurement"
                        ActionContext="@Context"
                        OnCreateTriggered="@Context.OnCreateActionAsync"
                        OnEditTriggered="@Context.OnUpdateActionAsync"
@@ -16,12 +16,15 @@
         </TopContent>
 
         <BodyContent>
-            @* ТАБЛИЦА: Данные прокидываются напрямую из контекста по требованию грида *@
+            @* Чистая декларация: GridPage автоматически заберет данные из Context.DataBroker.InMemoryItems *@
             <GridPage TEntity="UnitOfMeasurement">
                 <ColumnsContent>
-                    <PropertyColumn T="UnitOfMeasurement" TProperty="string" Property="x => x.Code" Title="Краткое обозначение" HeaderStyle="width: 150px;" Class="font-monospace" />
-                    <PropertyColumn T="UnitOfMeasurement" TProperty="string" Property="x => x.Name" Title="Полное наименование" HeaderStyle="width: 300px;" />
-                    <PropertyColumn T="UnitOfMeasurement" TProperty="string" Property="x => x.Description" Title="Описание / Примечание" />
+                    <PropertyColumn T="UnitOfMeasurement" TProperty="string" Property="x => x.Code"
+                                    Title="Код единицы измерения" HeaderStyle="width: 150px;" Class="font-monospace" />
+                    <PropertyColumn T="UnitOfMeasurement" TProperty="string" Property="x => x.Name"
+                                    Title="Наименование ед. изм." HeaderStyle="width: 300px;" />
+                    <PropertyColumn T="UnitOfMeasurement" TProperty="string" Property="x => x.Description"
+                                    Title="Описание / Примечание" />
                 </ColumnsContent>
             </GridPage>
         </BodyContent>

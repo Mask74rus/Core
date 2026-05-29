@@ -9,6 +9,6 @@ public partial class TechnologicalParameterDialog : ComponentBase
     [Parameter] public required string Title { get; set; }
     [Parameter] public required bool IsNew { get; set; }
     [Parameter] public required Domain.TechnologicalParameter Model { get; set; }
-    [Parameter] public required FluentValidation.IValidator Validator { get; set; }
+    [Parameter] public required IValidator Validator { get; set; }
     [Parameter] public required Func<Task> OnSaveAction { get; set; }
 }

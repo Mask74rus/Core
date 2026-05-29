@@ -10,6 +10,9 @@ public partial class GridPage<TEntity> : ComponentBase, IDisposable where TEntit
 
     [CascadingParameter] protected GridActionContext<TEntity> ActionContext { get; set; } = null!;
 
+    [Inject]
+    public IServiceProvider SystemServiceProvider { get; set; } = null!;
+
     private MudDataGrid<TEntity> _grid = null!;
 
     protected override void OnInitialized()
@@ -21,6 +24,8 @@ public partial class GridPage<TEntity> : ComponentBase, IDisposable where TEntit
             throw new ArgumentNullException(nameof(ActionContext),
                 $"Компонент {nameof(GridPage<TEntity>)} требует наличия {nameof(GridActionContext<TEntity>)} в каскадных параметрах.");
         }
+        // Магия привязки: отдаем контексту страницы провайдер текущей живой сессии Blazor
+        ActionContext.ScopedProvider = SystemServiceProvider;
 
         ActionContext.OnContextUpdated += StateHasChanged;
         ActionContext.OnRefreshRequested += HandleRefreshRequested;

@@ -1,5 +1,4 @@
-﻿using FluentValidation;
-using MudBlazor;
+﻿using MudBlazor;
 using Promatis.Net.MES.Domain;
 using Promatis.Net.MES.Service;
 using Promatis.Net.MES.UI.Pages.UnitOfMeasurements.Card;
@@ -11,31 +10,34 @@ public class UnitOfMeasurementPageContext : GridActionContext<UnitOfMeasurement>
 {
     private readonly IUnitOfMeasurementService _uomService;
     private readonly IDialogService _dialogService;
-    private readonly IValidator<UnitOfMeasurement> _globalValidator;
 
     public UnitOfMeasurementPageContext(
         IUnitOfMeasurementService uomService,
-        IDialogService dialogService,
-        IValidator<UnitOfMeasurement> globalValidator) : base()
+        IDialogService dialogService)
     {
         _uomService = uomService ?? throw new ArgumentNullException(nameof(uomService));
         _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
-        _globalValidator = globalValidator ?? throw new ArgumentNullException(nameof(globalValidator));
 
         PageTitle = "Справочник единиц измерения";
+
+        // Включаем нативный ОЗУ-режим для привязки к GridPage
+        DataBroker.ConfigureInMemoryMode();
     }
 
     /// <summary>
-    /// Чистый прикладной метод загрузки данных из СУБД в ОЗУ-кэш для привязки к MudDataGrid
+    /// ТОЧЕЧНОЕ ДОБАВЛЕНИЕ: Метод первичного наполнения ОЗУ-кэша брокера данных
     /// </summary>
-    public async Task<GridData<UnitOfMeasurement>> GetUnitsOfMeasurementAsync()
+    public async Task InitializeInMemoryDataAsync()
     {
-        List<UnitOfMeasurement> data = await _uomService.GetAllAsync();
-        return new GridData<UnitOfMeasurement>
+        try
         {
-            Items = data,
-            TotalItems = data.Count
-        };
+            List<UnitOfMeasurement> data = await _uomService.GetAllAsync();
+            DataBroker.InMemoryItems = data;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ERROR] Ошибка инициализации ОЗУ-кэша единиц измерения: {ex.Message}");
+        }
     }
 
     // =========================================================================
@@ -45,51 +47,39 @@ public class UnitOfMeasurementPageContext : GridActionContext<UnitOfMeasurement>
     public async Task OnCreateActionAsync()
     {
         var newUom = new UnitOfMeasurement();
-        await OpenEditDialogAsync(newUom, "Добавление единицы измерения", isNew: true);
+        await OpenEditDialogAsync<UnitOfMeasurementEditDialog>(
+            newUom,
+            "Добавление единицы измерения",
+            isNew: true,
+            saveDelegate: () => _uomService.AddAsync(newUom)
+        );
     }
 
-    public async Task OnUpdateActionAsync(UnitOfMeasurement row)
+    public async Task OnUpdateActionAsync(UnitOfMeasurement? row)
     {
         if (row == null) return;
-        var targetClone = CloneEntity(row);
-        await OpenEditDialogAsync(targetClone, $"Редактирование: {row.Code}", isNew: false);
+        UnitOfMeasurement targetClone = CloneEntity(row);
+        await OpenEditDialogAsync<UnitOfMeasurementEditDialog>(
+            targetClone,
+            $"Редактирование: {row.Code}",
+            isNew: false,
+            saveDelegate: () => _uomService.UpdateAsync(targetClone)
+        );
     }
 
-    public async Task OnDeleteActionAsync(UnitOfMeasurement row)
+    public async Task OnDeleteActionAsync()
     {
-        if (row == null) return;
+        if (SelectedItem == null) return;
 
-        var parameters = new DialogParameters { ["ContentText"] = $"Удалить единицу измерения '{row.Name}' ({row.Code})?" };
-        var options = new DialogOptions { CloseOnEscapeKey = true };
+        bool? confirm = await _dialogService.ShowMessageBoxAsync(
+            "Удаление записи",
+            $"Вы действительно хотите удалить единицу измерения '{SelectedItem.Name}' ({SelectedItem.Code})?",
+            yesText: "Удалить", cancelText: "Отмена");
 
-        var dialog = await _dialogService.ShowAsync<MudMessageBox>("Удаление объекта", parameters, options);
-        var result = await dialog.Result;
-
-        if (result is not null && !result.Canceled)
+        if (confirm == true)
         {
-            await _uomService.DeleteAsync(row.Id);
-            RequestRefresh();
+            await _uomService.DeleteAsync(SelectedItem.Id);
         }
     }
 
-    private async Task OpenEditDialogAsync(UnitOfMeasurement model, string title, bool isNew)
-    {
-        var parameters = new DialogParameters
-        {
-            ["Title"] = title,
-            ["IsNew"] = isNew,
-            ["Model"] = model,
-            ["Validator"] = _globalValidator,
-            ["OnSaveAction"] = async () =>
-            {
-                if (isNew)
-                    await _uomService.AddAsync(model);
-                else
-                    await _uomService.UpdateAsync(model);
-            }
-        };
-
-        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
-        await _dialogService.ShowAsync<UnitOfMeasurementEditDialog>(title, parameters, options);
-    }
 }

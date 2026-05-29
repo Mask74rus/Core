@@ -9,6 +9,12 @@ namespace Promatis.Net.UI.Components.Workspace;
 public abstract class WorkspaceActionContext : IWorkspaceActionContext
 {
     /// <summary>
+    /// Провайдер служб текущей Scoped-сессии пользователя. 
+    /// Заполняется автоматически визуальным холстом при старте страницы.
+    /// </summary>
+    public IServiceProvider ScopedProvider { get; set; } = null!;
+
+    /// <summary>
     /// Уникальный идентификатор рабочей области в рантайме.
     /// </summary>
     public Guid WorkspaceId { get; init; } = Guid.NewGuid();
