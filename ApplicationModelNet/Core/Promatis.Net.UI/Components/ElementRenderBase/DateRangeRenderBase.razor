@@ -1,0 +1,10 @@
+﻿@inherits RenderBase
+
+<MudDateRangePicker Label="@Control.Title"
+                    DateRange="@GetDateRange()"
+                    DateRangeChanged="@HandleDateRangeChangedAsync"
+                    Disabled="@(!Control.IsEnabled || Control.IsRunning)"
+                    Margin="Margin.Dense"
+                    DateFormat="dd.MM.yyyy"
+                    Variant="Variant.Outlined"
+                    Style="max-width: 260px;" />

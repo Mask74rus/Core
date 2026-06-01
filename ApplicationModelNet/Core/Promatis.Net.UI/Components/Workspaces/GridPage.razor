@@ -1,0 +1,16 @@
+﻿@typeparam TEntity where TEntity : class
+
+<MudDataGrid Items="@Items"
+             SelectedItem="@SelectedRow"
+             SelectedItemChanged="@OnSelectedRowChanged"
+             T="TEntity"
+             Hover="true"
+             Dense="true"
+             Striped="true"
+             Virtualize="true"
+             Height="100%"
+             Class="flex-grow-1 w-100">
+    <Columns>
+        @GridColumns
+    </Columns>
+</MudDataGrid>

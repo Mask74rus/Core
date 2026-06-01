@@ -8,16 +8,12 @@
 
   <ItemGroup>
     <Compile Remove="AuditLog\**" />
-    <Compile Remove="Interfaces\**" />
     <Compile Remove="Models\**" />
     <Content Remove="AuditLog\**" />
-    <Content Remove="Interfaces\**" />
     <Content Remove="Models\**" />
     <EmbeddedResource Remove="AuditLog\**" />
-    <EmbeddedResource Remove="Interfaces\**" />
     <EmbeddedResource Remove="Models\**" />
     <None Remove="AuditLog\**" />
-    <None Remove="Interfaces\**" />
     <None Remove="Models\**" />
   </ItemGroup>
 
@@ -36,6 +32,10 @@
     <ProjectReference Include="..\..\MesCore\Promatis.Net.MES.Service\Promatis.Net.MES.Service.csproj" />
     <ProjectReference Include="..\Configuration\Promatis.Net.Configuration.csproj" />
     <ProjectReference Include="..\Service\Promatis.Net.Service.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Pages\AuditLogs\" />
   </ItemGroup>
 
 </Project>

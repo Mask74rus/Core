@@ -2,7 +2,6 @@
 using Promatis.Net.MES.Domain;
 using Promatis.Net.MES.Domain.Interface;
 using Promatis.Net.MES.Service;
-using Promatis.Net.Service;
 using Promatis.Net.Test.MDM.Data;
 using Promatis.Net.Test.MDM.Domain;
 

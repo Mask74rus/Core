@@ -1,6 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Promatis.Net.Domain.Interface;
-using System.Reflection;
+﻿using Promatis.Net.Domain.Interface;
 
 namespace Promatis.Net.Service;
 

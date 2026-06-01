@@ -1,0 +1,54 @@
+﻿<MudPaper Elevation="@GetPaperElevation()"
+          Class="@GetPaperClass()"
+          Style="@($"width: 100%; min-height: {GetWorkspaceHeight()}; overflow: hidden;")">
+
+    <!-- 1. ВЕРХНЯЯ ЗОНА (ЗАПОЛНЯЕТСЯ ТОЛЬКО ПРИ НАЛИЧИИ TOPCONTENT) -->
+    @if (TopContent != null && !IsTopCollapsed())
+    {
+        <div class="workspace-zone-top w-100 mb-2"
+             style="@($"height: {GetTopHeight()}; min-height: {GetTopHeight()}; max-height: {GetTopHeight()};")">
+            @TopContent
+        </div>
+    }
+
+    <!-- СРЕДНИЙ СЛОЙ (ЛЕВАЯ ЗОНА + БОДИ + ПРАВАЯ ЗОНА) -->
+    <div class="d-flex flex-row align-stretch flex-grow-1 gap-4 w-100" style="min-height: 0;">
+
+        <!-- 2. ЛЕВАЯ ЗОНА (НАВИГАЦИЯ / ДЕРЕВО) -->
+        @if (LeftContent != null && !IsLeftCollapsed())
+        {
+            <div class="workspace-zone-left d-flex flex-column align-stretch justify-space-between"
+                 style="@($"width: {GetLeftWidth()}; min-width: {GetLeftWidth()}; max-width: {GetLeftWidth()};")">
+                @LeftContent
+            </div>
+        }
+
+        <!-- 3. ЦЕНТРАЛЬНАЯ ЗОНА (БОДИ: ГРИД / МНЕМОСХЕМА) -->
+        <div class="workspace-zone-body flex-grow-1 h-100" style="min-width: 0; min-height: 0;">
+            @if (BodyContent != null)
+            {
+                @BodyContent
+            }
+        </div>
+
+        <!-- 4. ПРАВАЯ ЗОНА (ИНСПЕКТОР СВОЙСТВ) -->
+        @if (RightContent != null && !IsRightCollapsed())
+        {
+            <div class="workspace-zone-right d-flex flex-column align-stretch justify-space-between"
+                 style="@($"width: {GetRightWidth()}; min-width: {GetRightWidth()}; max-width: {GetRightWidth()};")">
+                @RightContent
+            </div>
+        }
+
+    </div>
+
+    <!-- 5. НИЖНЯЯ ЗОНА (СТАТУС-БАР) -->
+    @if (BottomContent != null && !IsBottomCollapsed())
+    {
+        <div class="workspace-zone-bottom w-100 mt-2"
+             style="@($"height: {GetBottomHeight()}; min-height: {GetBottomHeight()}; max-height: {GetBottomHeight()};")">
+            @BottomContent
+        </div>
+    }
+
+</MudPaper>

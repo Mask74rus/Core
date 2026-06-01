@@ -1,6 +1,5 @@
 ﻿using FluentValidation.TestHelper;
 using Promatis.Net.Domain;
-using Promatis.Net.Domain.Interface;
 using Xunit;
 
 namespace Promatis.Net.ApplicationModel.Tests.Domain;

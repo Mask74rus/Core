@@ -22,4 +22,8 @@
     <ProjectReference Include="..\Promatis.Net.Test.MDM.Service\Promatis.Net.Test.MDM.Service.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Pages\Unit\Card\" />
+  </ItemGroup>
+
 </Project>

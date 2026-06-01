@@ -1,0 +1,16 @@
+﻿@inherits RenderBase
+<MudTooltip Text="@(Control.Tooltip ?? Control.Title)" Arrow="true" Placement="Placement.Bottom">
+    <MudButton Variant="Variant.Text"
+               StartIcon="@(Control.IsRunning ? null : Control.Icon)"
+               Disabled="@(!Control.IsEnabled || Control.IsRunning || !Control.IsEnabledForData(CurrentSelectedData))"
+               Color="Color.Inherit"
+               OnClick="@HandleClickAsync">
+
+        @if (Control.IsRunning)
+        {
+            <MudProgressCircular Class="ms-n1 me-2" Size="Size.Small" Indeterminate="true" Color="Color.Inherit" />
+        }
+
+        @Control.Title
+    </MudButton>
+</MudTooltip>

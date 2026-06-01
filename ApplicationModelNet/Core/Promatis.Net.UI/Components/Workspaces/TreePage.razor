@@ -1,0 +1,19 @@
+﻿@typeparam TEntity where TEntity : class
+
+
+<MudTreeView T="TEntity"
+             Items="@TreeItems"
+             SelectedValue="@SelectedNode"
+             SelectedValueChanged="@OnSelectedNodeChanged"
+             Hover="true"
+             Dense="true"
+             SelectionMode="SelectionMode.SingleSelection"
+             Class="flex-grow-1 w-100 h-100 overflow-y-auto">
+    <ItemTemplate>
+        <MudTreeViewItem T="TEntity"
+                         Value="@context.Value"
+                         Icon="@GetNodeIcon(context.Value)"
+                         Text="@GetNodeText(context.Value)"
+                         Items="@GetChildTreeItemData(context.Value)" />
+    </ItemTemplate>
+</MudTreeView>

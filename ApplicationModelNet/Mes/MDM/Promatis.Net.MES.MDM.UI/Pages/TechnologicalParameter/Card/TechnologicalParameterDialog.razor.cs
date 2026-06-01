@@ -1,6 +1,5 @@
 ﻿using FluentValidation;
 using Microsoft.AspNetCore.Components;
-using Promatis.Net.MES.Domain.Interface;
 
 namespace Promatis.Net.MES.MDM.UI.Pages.TechnologicalParameter.Card;
 

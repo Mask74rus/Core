@@ -1,0 +1,72 @@
+﻿@inherits Microsoft.AspNetCore.Components.ComponentBase
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@(IsNew ? Icons.Material.Filled.Add : Icons.Material.Filled.Edit)" Class="mr-2 mb-n1" />
+            @Title
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        @* Скрытый сборщик вкладок из дочернего контента *@
+        <CascadingValue Value="this" IsFixed="true">
+            @Tabs
+        </CascadingValue>
+
+        <MudForm @ref="_form"
+                 Model="@Model"
+                 Validation="@(async (object m) => await ExecuteFluentValidationAsync(m))"
+                 ValidationDelay="200">
+
+            @* ИСПРАВЛЕНО: Внешний контейнер жестко держит высоту окна фиксированной *@
+            <div class="d-flex flex-column pt-2" style="min-height: 340px; max-height: 65vh; min-width: 0;">
+                @if (_isProcessing)
+                {
+                    <div class="d-flex justify-center my-4">
+                        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+                    </div>
+                }
+                else
+                {
+                    @* АВТОМАТИКА РЕНДЕРИНГА: Если вкладка одна — даем ей скроллбар напрямую *@
+                    @if (_collectedTabs.Count == 1)
+                    {
+                        <div style="max-height: 60vh; overflow-y: auto; padding-right: 4px;">
+                            @_collectedTabs.First().Content
+                        </div>
+                    }
+                    else if (_collectedTabs.Count > 1)
+                    {
+                        @* ИСПРАВЛЕНО: Задаем PanelStyle для намертво фиксированного скролла внутри вкладок *@
+                        <MudTabs Elevation="0"
+                                 Rounded="true"
+                                 ApplyEffectsToInnerContainer="true"
+                                 PanelClass="pa-4"
+                                 PanelStyle="max-height: 50vh; overflow-y: auto; padding-right: 4px;">
+                            @foreach (DialogTab tab in _collectedTabs)
+                            {
+                                <MudTabPanel Text="@tab.Title" Icon="@tab.Icon">
+                                    @tab.Content
+                                </MudTabPanel>
+                            }
+                        </MudTabs>
+                    }
+                }
+            </div>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="Cancel" Disabled="_isProcessing">Отмена</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Submit" Disabled="_isProcessing">
+            @if (_isProcessing)
+            {
+                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                <MudText Class="ms-2">Сохранение...</MudText>
+            }
+            else
+            {
+                <MudText>Сохранить</MudText>
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>

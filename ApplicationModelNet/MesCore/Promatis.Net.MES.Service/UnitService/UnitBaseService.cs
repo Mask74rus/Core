@@ -1,6 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Promatis.Net.Domain;
-using Promatis.Net.Domain.Interface;
 using Promatis.Net.MES.Domain;
 using Promatis.Net.MES.Domain.Interface;
 using Promatis.Net.Service;

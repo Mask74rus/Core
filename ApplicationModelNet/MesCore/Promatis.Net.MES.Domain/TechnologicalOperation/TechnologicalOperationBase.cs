@@ -1,5 +1,4 @@
 ﻿using Promatis.Net.Domain;
-using Promatis.Net.Domain.Interface;
 using Promatis.Net.MES.Domain.Interface;
 
 namespace Promatis.Net.MES.Domain;

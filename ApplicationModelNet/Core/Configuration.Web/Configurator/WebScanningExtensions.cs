@@ -1,5 +1,4 @@
 ﻿using Promatis.Net.UI;
-using Promatis.Net.UI.Components.Workspace;
 using System.Reflection;
 
 namespace Promatis.Net.Configuration.Web;
@@ -37,38 +36,6 @@ public static class WebInfrastructureExtensions
             .ToArray();
 
         Console.WriteLine($"[SCANNER] Сканирование завершено. Найдено {assemblies.Length} целевых UI-сборок.");
-
-        // АВТОМАТИЧЕСКАЯ РЕГИСТРАЦИЯ UI-КОНТЕКСТОВ ПЛАТФОРМЫ (ДОБАВЛЕНО)
-        Console.WriteLine("[SCANNER] Регистрация C#-контекстов страниц по маркеру IWorkspaceActionContext...");
-        var contextTypes = assemblies
-            .SelectMany(s => s.GetTypes())
-            .Where(t => typeof(IWorkspaceActionContext).IsAssignableFrom(t)
-                        && !t.IsAbstract
-                        && !t.IsInterface
-                        // ИСПРАВЛЕНО: Пропускаем открытые generic-шаблоны самого ядра платформы (`1, `2 и т.д.)
-                        && !t.IsGenericTypeDefinition);
-
-        int registeredContextsCount = 0;
-        foreach (Type type in contextTypes)
-        {
-            // 1. Регистрируем сам конкретный прикладной контекст (например, AuditLogPageContext)
-            services.AddTransient(type);
-            registeredContextsCount++;
-
-            Console.WriteLine($"          ├─ [КОНТЕКСТ] {type.Name}");
-
-            // 2. Берем строго ближайший базовый тип (например, GridActionContext<AuditLog>)
-            Type? baseType = type.BaseType;
-            if (baseType != null && baseType.IsGenericType)
-            {
-                services.AddTransient(baseType, type);
-
-                string genericArgs = string.Join(", ", baseType.GetGenericArguments().Select(a => a.Name));
-                string baseTypeName = baseType.Name.Split('`')[0];
-                Console.WriteLine($"          │  └─ Маска: {baseTypeName}<{genericArgs}>");
-            }
-        }
-        Console.WriteLine($"[SCANNER] Успешно развернуто {registeredContextsCount} контекстов управления в DI.");
 
         Console.WriteLine();
 

@@ -74,6 +74,7 @@ Set-Content -Path $nodeScriptPath -Value $nodeScriptContent -Encoding UTF8
 # 5. Определение слоев
 $layers = @(
     @{ Name = "1_Core";    Path = "Core" },
+	@{ Name = "1_Core_UI";    Path = "Core\Promatis.Net.UI" },
     @{ Name = "2_MesCore"; Path = "MesCore" },
     @{ Name = "3_MesMDM";  Path = "Mes/MDM" },
     @{ Name = "4_AppMDM";  Path = "App/MDM" }

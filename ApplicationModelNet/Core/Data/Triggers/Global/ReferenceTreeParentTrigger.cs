@@ -1,7 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.EntityFrameworkCore.Metadata;
-using Promatis.Net.Domain;
 using Promatis.Net.Domain.Interface;
 using System.Reflection;
 

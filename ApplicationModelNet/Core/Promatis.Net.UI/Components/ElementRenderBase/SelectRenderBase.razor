@@ -1,0 +1,15 @@
+﻿@inherits RenderBase
+<MudSelect T="string"
+           Value="@GetControlValue()"
+           ValueChanged="@HandleValueChangedAsync"
+           Disabled="@(!Control.IsEnabled || Control.IsRunning)"
+           Label="@Control.Title"
+           Margin="Margin.Dense"
+           Variant="Variant.Outlined"
+           Style="min-width: 160px; max-width: 250px;">
+
+    @foreach (string option in GetOptions())
+    {
+        <MudSelectItem T="string" Value="@option">@option</MudSelectItem>
+    }
+</MudSelect>
