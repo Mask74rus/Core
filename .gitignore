@@ -144,7 +144,7 @@ publish/
 
 
 **/.context-layers/*
-**/pdf/
+**/pdf/*
 
 
 # Visual Studio cache files
