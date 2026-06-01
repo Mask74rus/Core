@@ -142,8 +142,9 @@ publish/
 *.nuget.props
 *.nuget.targets
 
-**/.context-layers/pdf/*
+
 **/.context-layers/*
+**/.context-layers/pdf/
 
 
 # Visual Studio cache files
