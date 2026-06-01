@@ -142,8 +142,9 @@ publish/
 *.nuget.props
 *.nuget.targets
 
-**/.context-layers/*
 **/.context-layers/pdf/*
+**/.context-layers/*
+
 
 # Visual Studio cache files
 # files ending in .cache can be ignored
