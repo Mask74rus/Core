@@ -1,6 +1,7 @@
 ﻿@page "/mes/mdm/technological-parameters"
 
 @using Promatis.Net.MES.MDM.Domain
+@using Promatis.Net.UI
 @* Внедряем наш автоматически зарегистрированный в DI контекст «полноты власти» страницы *@
 @inject TechnologicalParameterPageContext Context
 
@@ -43,7 +44,7 @@
                                     Title="Тип данных"
                                     HeaderStyle="width: 120px;">
                         <CellTemplate>
-                            <MudChip T="string" Color="@Context.GetActionColor(context.Item.DataType)" Size="Size.Small" Variant="Variant.Text">
+                            <MudChip T="string" Color="@context.Item.DataType.GetActionColor()" Size="Size.Small" Variant="Variant.Text">
                                 @context.Item.DataType
                             </MudChip>
                         </CellTemplate>

@@ -1,6 +1,7 @@
 ﻿using FluentValidation;
 
 using MudBlazor;
+using Promatis.Net.Domain.Interface;
 using Promatis.Net.MES.MDM.Domain;
 using Promatis.Net.MES.MDM.UI.Pages.TechnologicalOperations.Card;
 using Promatis.Net.MES.Service;
@@ -14,6 +15,7 @@ public class TechnologicalOperationPageContext : TreeActionContext<Technological
     private readonly ITechnologicalOperationService<TechnologicalOperation, TechnologicalOperationUnit> _operationService;
     private readonly IDialogService _dialogService;
     private readonly IValidator<TechnologicalOperation> _globalValidator;
+    private readonly IEntityCloner _entityCloner;
 
     /// <summary>
     /// ДИНАМИЧЕСКИЙ РАСЧЕТ ДОСТУПНОСТИ КНОПКИ ДОБАВЛЕНИЯ ПОДУЗЛА.
@@ -26,11 +28,13 @@ public class TechnologicalOperationPageContext : TreeActionContext<Technological
     public TechnologicalOperationPageContext(
         ITechnologicalOperationService<TechnologicalOperation, TechnologicalOperationUnit> operationService,
         IDialogService dialogService,
-        IValidator<TechnologicalOperation> globalValidator) : base()
+        IValidator<TechnologicalOperation> globalValidator,
+        IEntityCloner entityCloner) : base()
     {
         _operationService = operationService ?? throw new ArgumentNullException(nameof(operationService));
         _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
         _globalValidator = globalValidator ?? throw new ArgumentNullException(nameof(globalValidator));
+        _entityCloner = entityCloner ?? throw new ArgumentNullException(nameof(entityCloner));
 
         PageTitle = "Справочник технологических операций";
     }
@@ -127,7 +131,7 @@ public class TechnologicalOperationPageContext : TreeActionContext<Technological
         if (node == null) return;
 
         // Вызываем централизованный движок глубокого клонирования ядра платформы (из WorkspaceActionContext)
-        var targetClone = CloneEntity(node);
+        var targetClone = _entityCloner.CloneEntity(node);
 
         // Восстанавливаем навигационные указатели на живое дерево в оперативной памяти
         targetClone.ParentId = node.ParentId;

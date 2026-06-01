@@ -1,5 +1,6 @@
 ﻿using FluentValidation;
 using MudBlazor;
+using Promatis.Net.Domain.Interface;
 using Promatis.Net.MES.Domain;
 using Promatis.Net.MES.Domain.Interface;
 using Promatis.Net.MES.Service;
@@ -15,15 +16,18 @@ public class UnitTreePageContext : TreeActionContext<UnitBase>
     private readonly IUnitBaseService<MdmApplicationDbContext> _unitService;
     private readonly IDialogService _dialogService;
     private readonly IValidator<UnitBase> _globalValidator;
+    private readonly IEntityCloner _entityCloner;
 
     public UnitTreePageContext(
         IUnitBaseService<MdmApplicationDbContext> unitService,
         IDialogService dialogService,
-        IValidator<UnitBase> globalValidator) : base()
+        IValidator<UnitBase> globalValidator,
+        IEntityCloner entityCloner) : base()
     {
         _unitService = unitService;
         _dialogService = dialogService;
         _globalValidator = globalValidator; // Сюда внедрится GlobalPolymorphicValidator<UnitBase>
+        _entityCloner = entityCloner;
 
         PageTitle = "Производственная структура (MES)";
     }
@@ -105,7 +109,7 @@ public class UnitTreePageContext : TreeActionContext<UnitBase>
         if (node == null) return;
 
         // Вызываем централизованный движок клонирования ядра платформы
-        var targetClone = CloneEntity(node);
+        var targetClone = _entityCloner.CloneEntity(node);
 
         // Восстанавливаем ссылки на живую структуру ОЗУ
         targetClone.ParentId = node.ParentId;

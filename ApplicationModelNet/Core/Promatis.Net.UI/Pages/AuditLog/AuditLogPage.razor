@@ -33,7 +33,7 @@
                     <PropertyColumn T="AuditLog" TProperty="string" Property="x => x.EntityName" Title="Сущность" Style="width: 200px;" />
                     <PropertyColumn T="AuditLog" TProperty="string" Property="x => x.Action" Title="Операция" Style="width: 120px;">
                         <CellTemplate>
-                            <MudChip T="string" Color="@Context.GetActionColor(context.Item.Action)" Size="Size.Small" Variant="Variant.Text">
+                            <MudChip T="string" Color="@context.Item.Action.GetActionColor()" Size="Size.Small" Variant="Variant.Text">
                                 @context.Item.Action
                             </MudChip>
                         </CellTemplate>

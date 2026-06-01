@@ -2,6 +2,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Promatis.Net.Data;
+using Promatis.Net.Domain;
+using Promatis.Net.Domain.Interface;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -26,6 +28,9 @@ public class AppConfigurator : IAppConfigurator
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
             WriteIndented = false
         });
+
+        // РЕГИСТРАЦИЯ ПЛАТФОРМЕННОГО КЛОНЕРА СУЩНОСТЕЙ
+        services.AddSingleton<IEntityCloner, JsonEntityCloner>();
     }
 
     public virtual void ConfigureApp(IHost app)

@@ -1,4 +1,5 @@
 ﻿using MudBlazor;
+using Promatis.Net.Domain.Interface;
 using Promatis.Net.MES.Domain;
 using Promatis.Net.MES.Service;
 using Promatis.Net.MES.UI.Pages.UnitOfMeasurements.Card;
@@ -10,13 +11,16 @@ public class UnitOfMeasurementPageContext : GridActionContext<UnitOfMeasurement>
 {
     private readonly IUnitOfMeasurementService _uomService;
     private readonly IDialogService _dialogService;
+    private readonly IEntityCloner _entityCloner;
 
     public UnitOfMeasurementPageContext(
         IUnitOfMeasurementService uomService,
-        IDialogService dialogService)
+        IDialogService dialogService,
+        IEntityCloner entityCloner)
     {
         _uomService = uomService ?? throw new ArgumentNullException(nameof(uomService));
         _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
+        _entityCloner = entityCloner ?? throw new ArgumentNullException(nameof(entityCloner));
 
         PageTitle = "Справочник единиц измерения";
 
@@ -58,7 +62,7 @@ public class UnitOfMeasurementPageContext : GridActionContext<UnitOfMeasurement>
     public async Task OnUpdateActionAsync(UnitOfMeasurement? row)
     {
         if (row == null) return;
-        UnitOfMeasurement targetClone = CloneEntity(row);
+        UnitOfMeasurement targetClone = _entityCloner.CloneEntity(row);
         await OpenEditDialogAsync<UnitOfMeasurementEditDialog>(
             targetClone,
             $"Редактирование: {row.Code}",

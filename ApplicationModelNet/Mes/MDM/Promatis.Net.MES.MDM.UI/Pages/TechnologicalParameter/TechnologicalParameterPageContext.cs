@@ -1,4 +1,5 @@
 ﻿using MudBlazor;
+using Promatis.Net.Domain.Interface;
 using Promatis.Net.MES.MDM.Service;
 using Promatis.Net.MES.MDM.UI.Pages.TechnologicalParameter.Card;
 using Promatis.Net.UI.Components.Grid;
@@ -13,13 +14,17 @@ public class TechnologicalParameterPageContext : GridActionContext<Domain.Techno
 {
     private readonly TechnologicalParameterService _parameterService;
     private readonly IDialogService _dialogService;
+    private readonly IEntityCloner _entityCloner;
+
 
     public TechnologicalParameterPageContext(
         TechnologicalParameterService parameterService,
-        IDialogService dialogService)
+        IDialogService dialogService,
+        IEntityCloner entityCloner)
     {
         _parameterService = parameterService ?? throw new ArgumentNullException(nameof(parameterService));
         _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
+        _entityCloner = entityCloner ?? throw new ArgumentNullException(nameof(entityCloner));
 
         PageTitle = "Технологические параметры";
 
@@ -65,7 +70,7 @@ public class TechnologicalParameterPageContext : GridActionContext<Domain.Techno
     {
         if (SelectedItem == null) return Task.CompletedTask;
 
-        Domain.TechnologicalParameter targetClone = CloneEntity(SelectedItem);
+        Domain.TechnologicalParameter targetClone = _entityCloner.CloneEntity(SelectedItem);
         targetClone.UnitOfMeasurementId = SelectedItem.UnitOfMeasurementId;
         targetClone.UnitOfMeasurement = SelectedItem.UnitOfMeasurement;
 
