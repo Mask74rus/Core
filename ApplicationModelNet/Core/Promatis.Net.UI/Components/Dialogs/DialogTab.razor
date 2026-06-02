@@ -1,0 +1,22 @@
+﻿@code {
+    [Parameter] public required string Title { get; set; }
+    [Parameter] public string? Icon { get; set; }
+    [Parameter] public required RenderFragment Content { get; set; }
+
+    [CascadingParameter]
+    protected IDialogActionContext ParentContext { get; set; } = null!;
+
+    [CascadingParameter]
+    protected DynamicEditDialog ParentDialog { get; set; } = null!;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+
+        if (ParentDialog != null)
+        {
+            // Передаем ссылку на себя в UI-коллекцию родительского диалога
+            ParentDialog.RegisterTab(this);
+        }
+    }
+}
