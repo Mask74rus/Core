@@ -55,8 +55,37 @@ public abstract class BaseService<T, TKey, TContext>(IDbContextFactory<TContext>
 
     public virtual async Task UpdateAsync(T entity)
     {
+        if (entity == null) throw new ArgumentNullException(nameof(entity));
+
         await using TContext context = await ContextFactory.CreateDbContextAsync();
-        context.Set<T>().Update(entity);
+
+        // 1. Извлекаем АКТУАЛЬНЫЙ оригинальный объект из базы данных по его первичному ключу.
+        // Благодаря constraints у нас гарантированно есть доступ к x.Id
+        T? dbEntity = await context.Set<T>().FindAsync(entity.Id);
+
+        if (dbEntity == null)
+        {
+            throw new InvalidOperationException($"Не удалось обновить объект: сущность '{typeof(T).Name}' с ID '{entity.Id}' не найдена в базе данных.");
+        }
+
+        // 2. Считываем метаданные отслеживания для оригинального объекта СУБД
+        var entry = context.Entry(dbEntity);
+
+        // 3. Переносим значения ТОЛЬКО ПРИМИТИВНЫХ свойств из клона в оригинальный объект.
+        // Метод SetValues автоматически проигнорирует навигационные свойства (Parent, Children)
+        // и коллекции отношений, которые ваш клонер вырезал! Он обновит только плоские поля.
+        entry.CurrentValues.SetValues(entity);
+
+        // 4. Дополнительная защита: проверяем, изменилось ли хоть что-то.
+        // Если пользователь открыл диалог, ничего не менял и нажал Сохранить,
+        // мы вообще не будем дёргать транзакцию PostgreSQL!
+        if (entry.State == EntityState.Unchanged)
+        {
+            return;
+        }
+
+        // 5. EF Core сгенерирует хирургический SQL-запрос, обновив в БД ТОЛЬКО измененные колонки.
+        // Существующие связи и изменения других пользователей в этот момент не пострадают!
         await context.SaveChangesAsync();
     }
 

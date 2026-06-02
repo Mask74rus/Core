@@ -1,6 +1,4 @@
-﻿using MudBlazor;
-using Promatis.Net.Data;
-using System.Reflection;
+﻿using Promatis.Net.Data;
 
 namespace Promatis.Net.UI;
 
@@ -15,11 +13,27 @@ public class UiDataBroker<TEntity, TQueryState, TResultData> : IUiDataBroker<TEn
     private Func<TQueryState, CancellationToken, Task<TResultData>>? _serverDataProvider;
     private Func<TQueryState, List<TEntity>, TResultData>? _inMemoryEvaluator;
     private IUiOzuCache<TEntity>? _ozuCache;
+    private readonly Action? _onDataChangedNotifier; // Ссылка на NotifyStateChanged контекста
 
     private bool _isInitialized;
     private bool _isInMemoryMode;
 
     public bool IsInMemoryMode => _isInMemoryMode;
+
+    // Внедряем notifier в конструктор для реактивного пинка UI
+    public UiDataBroker(Action? onDataChangedNotifier = null)
+    {
+        _onDataChangedNotifier = onDataChangedNotifier;
+
+        // ГЛОБАЛЬНЫЙ ПЕРЕХВАТ: Каждый брокер в системе нативно начинает слушать СУБД
+        DatabaseTriggerService.OnEntityCommitted += HandleGlobalEntityCommitted;
+    }
+
+    private void HandleGlobalEntityCommitted(EntityStateChangeEnum state, object entity)
+    {
+        // Вызываем наш внутренний метод обработки мутаций
+        HandleDatabaseCommit(state, entity);
+    }
 
     public void ConfigureServerMode(Func<TQueryState, CancellationToken, Task<TResultData>> serverDataProvider)
     {
@@ -41,7 +55,6 @@ public class UiDataBroker<TEntity, TQueryState, TResultData> : IUiDataBroker<TEn
 
     public async Task<TResultData> FetchDataAsync(TQueryState state, CancellationToken cancellationToken = default)
     {
-        // КРИТИЧЕСКОЕ ТРЕБОВАНИЕ: Если программист забыл вызвать метод конфигурации — жестко падаем!
         if (!_isInitialized)
         {
             throw new InvalidOperationException(
@@ -49,17 +62,13 @@ public class UiDataBroker<TEntity, TQueryState, TResultData> : IUiDataBroker<TEn
                 $"Вы обязаны вызвать ConfigureServerMode или ConfigureInMemoryMode в конструкторе контекста формы.");
         }
 
-        // РЕЖИМ 1: Прямая работа с сервером (База данных / API)
         if (_serverDataProvider != null)
         {
             return await _serverDataProvider(state, cancellationToken);
         }
 
-        // РЕЖИМ 2: Работа через локальный ОЗУ-кэш формы (Стратегия расчета полностью снаружи!)
         if (_isInMemoryMode && _ozuCache != null && _inMemoryEvaluator != null)
         {
-            // Просто отдаем стейт и ОЗУ-список наружу — пусть прикладной селектор сам решает,
-            // как сделать пагинацию грида или вытащить детей дерева
             return _inMemoryEvaluator(state, _ozuCache.InMemoryItems);
         }
 
@@ -68,14 +77,24 @@ public class UiDataBroker<TEntity, TQueryState, TResultData> : IUiDataBroker<TEn
 
     public void HandleDatabaseCommit(EntityStateChangeEnum state, object entity)
     {
-        // Если форма работает напрямую с сервером — глобальные мутации ОЗУ полностью игнорируются!
-        if (!_isInMemoryMode || _ozuCache == null) return;
-
         // Проверяем: относится ли прилетевший из СУБД объект к типу данных текущего экрана?
-        if (entity is TEntity typedEntity)
+        if (entity is not TEntity typedEntity) return;
+
+        // МОДИФИЦИРОВАНО: Если мы в режиме In-Memory, точечно обновляем локальный кэш ОЗУ
+        if (_isInMemoryMode && _ozuCache != null)
         {
-            // Перенаправляем дельту изменений в изолированное хранилище этой конкретной вкладки
             _ozuCache.ApplyOzuDelta(state, typedEntity);
         }
+
+        // В ОБОИХ РЕЖИМАХ (И Server-Side, и In-Memory):
+        // Даем реактивный импульс на уровень UI-контекста, чтобы MudDataGrid плавно обновил строки на экране!
+        _onDataChangedNotifier?.Invoke();
+    }
+
+    public void Dispose()
+    {
+        // КРИТИЧЕСКИ ВАЖНО: Отписываемся от статического эвента службы триггеров при закрытии брокера,
+        // полностью исключая утечки оперативной памяти в Blazor
+        DatabaseTriggerService.OnEntityCommitted -= HandleGlobalEntityCommitted;
     }
 }

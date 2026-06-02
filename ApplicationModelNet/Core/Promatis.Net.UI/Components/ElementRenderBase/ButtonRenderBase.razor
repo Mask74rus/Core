@@ -1,9 +1,9 @@
 ﻿@inherits RenderBase
 <MudTooltip Text="@(Control.Tooltip ?? Control.Title)" Arrow="true" Placement="Placement.Bottom">
-    <MudButton Variant="Variant.Text"
+    <MudButton Variant="@Variant"
                StartIcon="@(Control.IsRunning ? null : Control.Icon)"
                Disabled="@(!Control.IsEnabled || Control.IsRunning || !Control.IsEnabledForData(CurrentSelectedData))"
-               Color="Color.Inherit"
+               Color="@Color" 
                OnClick="@HandleClickAsync">
 
         @if (Control.IsRunning)

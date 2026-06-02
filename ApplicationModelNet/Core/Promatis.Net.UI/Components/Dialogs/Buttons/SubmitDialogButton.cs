@@ -1,4 +1,5 @@
-﻿using Promatis.Net.UI.Components.ElementRenderBase;
+﻿using MudBlazor;
+using Promatis.Net.UI.Components.ElementRenderBase;
 
 namespace Promatis.Net.UI.Components.Dialogs.Buttons;
 
@@ -18,8 +19,8 @@ public class SubmitDialogButton : BaseUiControl, IDisposable
         // Подписываемся на реактивное изменение состояния контекста
         _dialogContext.OnContextStateChanged += SyncEnabledState;
 
-        ComponentParameters.Add("Color", "Color.Primary");
-        ComponentParameters.Add("Variant", "Variant.Filled");
+        ComponentParameters.Add("Color", Color.Primary);
+        ComponentParameters.Add("Variant", Variant.Filled);
 
         // Задаем первичное состояние
         IsEnabled = !_dialogContext.IsProcessing;

@@ -7,13 +7,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Pages\**" />
     <Compile Remove="UnitBase\**" />
-    <Content Remove="Pages\**" />
     <Content Remove="UnitBase\**" />
-    <EmbeddedResource Remove="Pages\**" />
     <EmbeddedResource Remove="UnitBase\**" />
-    <None Remove="Pages\**" />
     <None Remove="UnitBase\**" />
   </ItemGroup>
 

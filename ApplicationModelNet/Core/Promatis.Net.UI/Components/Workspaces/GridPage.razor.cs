@@ -47,7 +47,14 @@ public partial class GridPage<TEntity> : ComponentBase where TEntity : class
         if (ActionContext is IHasSelectedData<TEntity> bindableContext)
         {
             bindableContext.SelectedData = newSelection;
-            bindableContext.OnContextUpdated?.Invoke();
+
+            // ИСПРАВЛЕНО: Заворачиваем уведомление об обновлении контекста холста в InvokeAsync.
+            // Это разводит во времени рендеринг таблицы и запуск команд кнопок/диалогов, 
+            // полностью ликвидируя конфликт RenderTreeDiffBuilder!
+            InvokeAsync(() =>
+            {
+                bindableContext.OnContextUpdated?.Invoke();
+            });
         }
     }
 }

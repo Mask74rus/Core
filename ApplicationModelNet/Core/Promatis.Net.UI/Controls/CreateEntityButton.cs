@@ -9,22 +9,27 @@ namespace Promatis.Net.UI.Controls;
 /// </summary>
 public class CreateEntityButton<TEntity> : BaseUiControl where TEntity : class, new()
 {
+    private Func<Task>? _command; // Наш исполнитель диалога
+
     public override string Id => $"crud_create_{typeof(TEntity).Name.ToLower()}";
-    public override Type ComponentType => typeof(ButtonRenderBase); // Привязка к рендереру кнопок
+    public override Type ComponentType => typeof(ButtonRenderBase);
     public override string Title => "Создать";
     public override string Icon => Icons.Material.Filled.Add;
-    public override string Tooltip => $"Создать новую запись ({typeof(TEntity).Name})";
+    public override string Tooltip => $"Создать новую запись";
 
-    public CreateEntityButton()
+    public CreateEntityButton() { IsEnabled = true; }
+
+    // Метод для внедрения реального действия из контекста
+    public CreateEntityButton<TEntity> OnExecute(Func<Task> command)
     {
-        IsEnabled = true;
+        _command = command;
+        return this;
     }
 
     public override bool IsEnabledForData(object? targetData) => true;
 
-    protected override Task HandleTriggerAsync(object? targetData)
+    protected override async Task HandleTriggerAsync(object? targetData)
     {
-        // UI-заглушка: в будущем здесь будет открытие диалога EditDialog
-        return Task.CompletedTask;
+        if (_command != null) await _command.Invoke();
     }
 }

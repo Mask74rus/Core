@@ -3,19 +3,20 @@
     [Parameter] public string? Icon { get; set; }
     [Parameter] public required RenderFragment Content { get; set; }
 
-    [CascadingParameter]
-    protected IDialogActionContext ParentContext { get; set; } = null!;
+    // --- НАШ НОВЫЙ ПАРАМЕТР МЕТАДАННЫХ ---
+    /// <summary>
+    /// Список доменных свойств (полей), которые физически расположены на этой вкладке.
+    /// Необходим для автоматического фокуса вкладки при ошибках валидации.
+    /// </summary>
+    [Parameter] public string[] PropertyNames { get; set; } = Array.Empty<string>();
 
-    [CascadingParameter]
-    protected DynamicEditDialog ParentDialog { get; set; } = null!;
+    [CascadingParameter] protected DynamicEditDialog ParentDialog { get; set; } = null!;
 
     protected override void OnInitialized()
     {
         base.OnInitialized();
-
         if (ParentDialog != null)
         {
-            // Передаем ссылку на себя в UI-коллекцию родительского диалога
             ParentDialog.RegisterTab(this);
         }
     }

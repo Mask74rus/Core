@@ -1,4 +1,5 @@
 ﻿using FluentValidation;
+using FluentValidation.Results;
 using MudBlazor;
 using Severity = MudBlazor.Severity;
 
@@ -17,6 +18,8 @@ public abstract class DialogActionContextBase<TModel> : IDialogActionContext
     private bool _isProcessing;
 
     public TModel Model { get; }
+
+    public string? FirstFailedPropertyName { get; private set; }
     public object ModelObject => Model;
     public bool IsProcessing => _isProcessing;
     public IReadOnlyCollection<IUiControl> Actions => _actions.AsReadOnly();
@@ -36,7 +39,7 @@ public abstract class DialogActionContextBase<TModel> : IDialogActionContext
     public void AddAction(IUiControl action) => _actions.Add(action);
     public void NotifyStateChanged() => OnContextStateChanged?.Invoke();
 
-    public async Task<bool> ValidateFormAsync()
+    public virtual async Task<bool> ValidateFormAsync()
     {
         if (_form == null) return true;
 
@@ -53,7 +56,7 @@ public abstract class DialogActionContextBase<TModel> : IDialogActionContext
     /// <summary>
     /// НАША РЕАЛИЗАЦИЯ ДЛЯ ИНТЕРФЕЙСА: Срабатывает при клике на SubmitDialogButton
     /// </summary>
-    public async Task ExecuteSubmitAsync()
+    public virtual async Task ExecuteSubmitAsync()
     {
         // 1. Запускаем валидацию всей формы (включая FluentValidation через MudForm)
         bool isFormValid = await ValidateFormAsync();
@@ -90,11 +93,44 @@ public abstract class DialogActionContextBase<TModel> : IDialogActionContext
     public void CloseSuccess() => _dialogInstance?.Close(DialogResult.Ok(Model));
     public void CloseCancel() => _dialogInstance?.Cancel();
 
-    public async Task<IEnumerable<string>> ExecuteFluentValidationAsync(object model)
+    public virtual async Task<IEnumerable<string>> ExecuteFluentValidationAsync(object model)
     {
-        if (_validator == null) return [];
+        if (_validator == null || model == null || model is string) return Array.Empty<string>();
+
         var context = new ValidationContext<object>(model);
-        var result = await _validator.ValidateAsync(context);
-        return result.IsValid ? [] : result.Errors.Select(e => e.ErrorMessage);
+        ValidationResult result = await _validator.ValidateAsync(context);
+
+        if (!result.IsValid)
+        {
+            // Запоминаем имя первого завалившегося свойства бэкенда для авто-фокуса вкладок
+            FirstFailedPropertyName = result.Errors.FirstOrDefault()?.PropertyName;
+        }
+        else
+        {
+            FirstFailedPropertyName = null;
+        }
+
+        return result.IsValid ? Array.Empty<string>() : result.Errors.Select(e => e.ErrorMessage);
     }
+
+    /// <summary>
+    /// НАШ НОВЫЙ НАТИВНЫЙ МЕТОД: Валидация конкретного свойства для MudTextField
+    /// </summary>
+    public virtual async Task<IEnumerable<string>> ValidatePropertyAsync(string propertyName)
+    {
+        if (_validator == null) return Array.Empty<string>();
+
+        // Создаем контекст FluentValidation для нашей КОРНЕВОЙ доменной модели Model
+        var context = new ValidationContext<object>(Model, new FluentValidation.Internal.PropertyChain(), new FluentValidation.Internal.MemberNameValidatorSelector(new[] { propertyName }));
+
+        // Запускаем наш GlobalPolymorphicValidator абсолютно нативно над сущностью UnitOfMeasurement!
+        ValidationResult result = await _validator.ValidateAsync(context);
+
+        // Отбираем ошибки ТЛЬКО для этого конкретного свойства (например, "Code")
+        return result.Errors
+            .Where(e => e.PropertyName == propertyName)
+            .Select(e => e.ErrorMessage);
+    }
+
+
 }

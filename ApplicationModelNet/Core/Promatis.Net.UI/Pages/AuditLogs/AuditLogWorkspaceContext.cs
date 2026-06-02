@@ -37,7 +37,7 @@ public class AuditLogWorkspaceContext : WorkspaceActionContext, IHasSelectedData
         _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
         _onFilterChanged = onFilterChanged;
 
-        Broker = new UiDataBroker<AuditLog, GridState<AuditLog>, GridData<AuditLog>>();
+        Broker = new UiDataBroker<AuditLog, GridState<AuditLog>, GridData<AuditLog>>(NotifyStateChanged);
         Broker.ConfigureServerMode(FetchAuditDataFromServerAsync);
 
         // Заменяем new ToolbarDivider() на новый специализированный правый разделитель

@@ -75,4 +75,13 @@ public interface IDialogActionContext
     /// Точка асинхронного перехвата валидации FluentValidation для MudForm.
     /// </summary>
     Task<IEnumerable<string>> ExecuteFluentValidationAsync(object model);
+
+    // --- НАШ НАВИГАЦИОННЫЙ МЕТОД ---
+    Task<IEnumerable<string>> ValidatePropertyAsync(string propertyName);
+
+    /// <summary>
+    /// Имя первого доменного свойства, завалившего проверку FluentValidation.
+    /// Необходим UI-слою для автоматического фокуса на вкладку с ошибкой.
+    /// </summary>
+    string? FirstFailedPropertyName { get; }
 }

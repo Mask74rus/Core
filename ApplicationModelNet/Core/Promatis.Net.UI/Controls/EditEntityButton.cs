@@ -9,23 +9,27 @@ namespace Promatis.Net.UI.Controls;
 /// </summary>
 public class EditEntityButton<TEntity> : BaseUiControl where TEntity : class
 {
+    private Func<TEntity, Task>? _command;
+
     public override string Id => $"crud_edit_{typeof(TEntity).Name.ToLower()}";
     public override Type ComponentType => typeof(ButtonRenderBase);
     public override string Title => "Редактировать";
     public override string Icon => Icons.Material.Filled.Edit;
     public override string Tooltip => "Редактировать выбранную запись";
 
-    public override bool IsEnabledForData(object? targetData)
+    public EditEntityButton<TEntity> OnExecute(Func<TEntity, Task> command)
     {
-        return targetData is TEntity;
+        _command = command;
+        return this;
     }
 
-    protected override Task HandleTriggerAsync(object? targetData)
+    public override bool IsEnabledForData(object? targetData) => targetData is TEntity;
+
+    protected override async Task HandleTriggerAsync(object? targetData)
     {
-        if (targetData is TEntity typedEntity)
+        if (_command != null && targetData is TEntity typedEntity)
         {
-            // UI-заглушка для будущего открытия EditDialog с данными сущности
+            await _command.Invoke(typedEntity);
         }
-        return Task.CompletedTask;
     }
 }

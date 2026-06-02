@@ -1,4 +1,5 @@
-﻿using Promatis.Net.UI.Components.ElementRenderBase;
+﻿using MudBlazor;
+using Promatis.Net.UI.Components.ElementRenderBase;
 
 namespace Promatis.Net.UI.Components.Dialogs.Buttons;
 
@@ -16,8 +17,8 @@ public class CancelDialogButton : BaseUiControl, IDisposable
         _dialogContext = dialogContext ?? throw new ArgumentNullException(nameof(dialogContext));
         _dialogContext.OnContextStateChanged += SyncEnabledState;
 
-        ComponentParameters.Add("Color", "Color.Default");
-        ComponentParameters.Add("Variant", "Variant.Text");
+        ComponentParameters.Add("Color", Color.Default);
+        ComponentParameters.Add("Variant", Variant.Text);
 
         IsEnabled = !_dialogContext.IsProcessing;
     }

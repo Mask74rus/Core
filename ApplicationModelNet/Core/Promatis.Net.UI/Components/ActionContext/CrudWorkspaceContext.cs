@@ -18,7 +18,7 @@ public abstract class CrudWorkspaceContext<TEntity, TKey> : WorkspaceActionConte
     private TEntity? _selectedData;
     private bool _isLoading;
 
-    public UiDataBroker<TEntity, GridState<TEntity>, GridData<TEntity>> Broker { get; }
+    public UiDataBroker<TEntity, GridState<TEntity>, GridData<TEntity>> Broker { get; protected set; }
     public IUiOzuCache<TEntity> OzuCache { get; }
 
     public TEntity? SelectedData
@@ -87,7 +87,7 @@ public abstract class CrudWorkspaceContext<TEntity, TKey> : WorkspaceActionConte
         }
     }
 
-    private GridData<TEntity> EvaluateGridStateInMemory(GridState<TEntity> state, List<TEntity> inMemoryList)
+    protected GridData<TEntity> EvaluateGridStateInMemory(GridState<TEntity> state, List<TEntity> inMemoryList)
     {
         return new GridData<TEntity>
         {
@@ -107,4 +107,5 @@ public abstract class CrudWorkspaceContext<TEntity, TKey> : WorkspaceActionConte
             TotalItems = pagedResult.TotalCount
         };
     }
+
 }
