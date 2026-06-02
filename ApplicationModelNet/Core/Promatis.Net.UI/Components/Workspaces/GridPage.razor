@@ -1,12 +1,18 @@
 ﻿@typeparam TEntity where TEntity : class
 
-<MudDataGrid Items="@Items"
-             @bind-SelectedItem="@SelectedRow"
+
+<MudDataGrid @ref="_mudGrid"
+             ServerData="@ServerDataProvider"
              T="TEntity"
+             SelectedItem="@SelectedRow"
+             SelectedItemChanged="@OnSelectedRowChanged"
+             RowStyleFunc="@FormatSelectedRowStyle"
              SelectOnRowClick="true"
              Hover="true"
              Dense="true"
-             Virtualize="true"
+             Bordered="true"
+             Elevation="0"
+             FixedHeader="true"
              Height="100%"
              Class="flex-grow-1 w-100 cursor-pointer">
     <Columns>

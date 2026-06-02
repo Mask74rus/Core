@@ -19,6 +19,8 @@ public abstract class BaseUiControl : IUiControl
 
     public Dictionary<string, object> ComponentParameters { get; } = new();
 
+    public virtual UiControlAlignment Alignment { get; init; } = UiControlAlignment.Left;
+
     public bool IsVisible
     {
         get => _isVisible;

@@ -12,6 +12,11 @@ public class AuditExportButton : BaseUiControl
     public override string Icon => Icons.Material.Filled.Download;
     public override string Tooltip => "Выгрузить отфильтрованные логи в Excel";
 
+    public AuditExportButton()
+    {
+        Alignment = UiControlAlignment.Right; // Сдвигаем кнопку экспорта вправо
+    }
+
     protected override async Task HandleTriggerAsync(object? targetData)
     {
         // Имитируем долгую выгрузку — кнопка автоматически заблокируется и покажет спиннер ядра

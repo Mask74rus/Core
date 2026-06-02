@@ -17,6 +17,8 @@ public interface IUiControl
     bool IsEnabled { get; set; }
     bool IsRunning { get; }
 
+    UiControlAlignment Alignment { get; }
+
     bool IsEnabledForData(object? targetData);
     Task TriggerAsync(object? targetData);
 

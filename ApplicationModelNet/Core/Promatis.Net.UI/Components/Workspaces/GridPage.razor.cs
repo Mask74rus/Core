@@ -1,55 +1,47 @@
 ﻿using Microsoft.AspNetCore.Components;
+using MudBlazor;
 
 namespace Promatis.Net.UI.Components.Workspaces;
 
 public partial class GridPage<TEntity> : ComponentBase where TEntity : class
 {
+    private MudDataGrid<TEntity>? _mudGrid;
+
     [CascadingParameter]
     protected IWorkspaceActionContext? ActionContext { get; set; }
 
+    /// <summary>
+    /// Фоновое серверное событие загрузки данных (мапится на MudBlazor ServerData).
+    /// </summary>
     [Parameter]
-    public IEnumerable<TEntity>? Items { get; set; }
+    public Func<GridState<TEntity>, CancellationToken, Task<GridData<TEntity>>>? ServerDataProvider { get; set; }
 
     [Parameter]
     public RenderFragment? GridColumns { get; set; }
 
-    private TEntity? _selectedRow;
+    protected TEntity? SelectedRow { get; set; }
 
     /// <summary>
-    /// Переводим в свойство. Сеттер вызывается автоматически движком MudBlazor при клике пользователя.
+    /// Публичный метод, позволяющий страницам-владельцам принудительно обновить грид при смене фильтров.
     /// </summary>
-    protected TEntity? SelectedRow
+    public Task ReloadServerData()
     {
-        get => _selectedRow;
-        set
-        {
-            // КРИТИЧЕСКАЯ ЗАЩИТА: Блокируем рассинхронизацию и сброс в null при повторном клике
-            if (value == null && _selectedRow != null)
-            {
-                return;
-            }
-
-            if (_selectedRow != value)
-            {
-                _selectedRow = value;
-
-                // Передаем импульс в тулбар для активации кнопок CRUD
-                if (ActionContext is IHasSelectedData<TEntity> bindableContext)
-                {
-                    bindableContext.SelectedData = value;
-                    bindableContext.OnContextUpdated?.Invoke();
-                }
-            }
-        }
+        return _mudGrid != null ? _mudGrid.ReloadServerData() : Task.CompletedTask;
     }
 
-    protected override void OnInitialized()
+    protected string FormatSelectedRowStyle(TEntity item, int rowNumber)
+        => item == SelectedRow ? "background-color: var(--mud-palette-action-disabled-background); font-weight: 500;" : string.Empty;
+
+    protected void OnSelectedRowChanged(TEntity? newSelection)
     {
-        base.OnInitialized();
+        if (newSelection == null && SelectedRow != null) return;
+
+        SelectedRow = newSelection;
 
         if (ActionContext is IHasSelectedData<TEntity> bindableContext)
         {
-            _selectedRow = bindableContext.SelectedData;
+            bindableContext.SelectedData = newSelection;
+            bindableContext.OnContextUpdated?.Invoke();
         }
     }
 }

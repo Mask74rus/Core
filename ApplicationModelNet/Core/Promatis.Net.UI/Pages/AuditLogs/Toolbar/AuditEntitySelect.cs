@@ -8,22 +8,26 @@ public class AuditEntitySelect : BaseUiControl, IHasValue, IHasOptions
     private readonly Action _onChanged;
 
     public override string Id => "audit_filter_entity";
-    public override Type ComponentType => typeof(SelectRenderBase); // Рендерер ядра
+    public override Type ComponentType => typeof(SelectRenderBase);
     public override string Title => "Тип сущности";
 
     public object? Value { get; set; }
-    public IEnumerable<string> Options { get; }
+    public IEnumerable<string> Options { get; set; }
 
-    public AuditEntitySelect(Action onChanged)
+    public AuditEntitySelect(List<string> availableEntities, Action onChanged)
     {
         _onChanged = onChanged;
         Value = "Все сущности";
-        Options = new List<string> { "Все сущности", "User", "Document", "Equipment" };
+
+        // Формируем динамический список опций на основе данных из БД
+        var list = new List<string> { "Все сущности" };
+        list.AddRange(availableEntities);
+        Options = list;
     }
 
     protected override Task HandleTriggerAsync(object? targetData)
     {
-        _onChanged.Invoke(); // Фильтр изменился — даем импульс странице
+        _onChanged.Invoke();
         return Task.CompletedTask;
     }
 }

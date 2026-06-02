@@ -1,14 +1,24 @@
 ﻿
-<div class="mud-toolbar mud-toolbar-dense gap-4 pa-0 w-100 align-center" style="display: flex; min-height: 48px;">
+<div class="d-flex align-center justify-space-between gap-4 pa-0 w-100" style="min-height: 48px; width: 100%;">
+
     @if (Controls != null)
     {
-        @foreach (IUiControl control in Controls)
-        {
-            @if (!control.IsVisible) continue;
+        @* Левая группа: фильтры выстраиваются в ряд с фиксированным зазором *@
+        <div class="d-flex align-center gap-4">
+            @foreach (IUiControl control in Controls.Where(c => c.Alignment == UiControlAlignment.Left))
+            {
+                @if (!control.IsVisible) continue;
+                <DynamicComponent Type="@control.ComponentType" Parameters="@control.ComponentParameters" />
+            }
+        </div>
 
-            <!-- Динамический маршалинг компонента и параметров любого уровня (Core, MES, MDM) -->
-            <DynamicComponent Type="@control.ComponentType"
-                              Parameters="@control.ComponentParameters" />
-        }
+        @* Правая группа: разделитель и кнопки выгрузки *@
+        <div class="d-flex align-center gap-4">
+            @foreach (IUiControl control in Controls.Where(c => c.Alignment == UiControlAlignment.Right))
+            {
+                @if (!control.IsVisible) continue;
+                <DynamicComponent Type="@control.ComponentType" Parameters="@control.ComponentParameters" />
+            }
+        </div>
     }
 </div>

@@ -4,14 +4,16 @@
 <CascadingValue Value="Context">
     <WorkspacePage>
 
-        <!-- 1. ВЕРХНЯЯ ЗОНА: Автоматический полиморфный тулбар ядра -->
+        <!-- 1. ВЕРХНЯЯ ЗОНА: Автоматический полиморфный тулбар (Динамические контролы) -->
         <TopContent>
             <UiToolbar Controls="@Context.Controls" />
         </TopContent>
 
-        <!-- 2. ЦЕНТРАЛЬНАЯ ЗОНА: Чистая табличная сетка ядра -->
+        <!-- 2. ЦЕНТРАЛЬНАЯ ЗОНА: Табличная сетка, работающая в фоновом серверном режиме -->
         <BodyContent>
-            <GridPage Items="@Logs" TEntity="AuditLog">
+            <GridPage TEntity="AuditLog"
+                      @ref="_grid"
+                      ServerDataProvider="@Context.Broker.FetchDataAsync">
                 <GridColumns>
                     <PropertyColumn T="AuditLog" TProperty="DateTime" Property="x => x.ChangedAt" Title="Дата и время" Format="dd.MM.yyyy HH:mm:ss" HeaderStyle="width: 160px;" />
                     <PropertyColumn T="AuditLog" TProperty="string" Property="x => x.ChangedBy" Title="Пользователь" HeaderStyle="width: 150px;" />

@@ -1,5 +1,6 @@
-﻿using System.Reflection;
-using MudBlazor;
+﻿using MudBlazor;
+using Promatis.Net.Data;
+using System.Reflection;
 
 namespace Promatis.Net.UI;
 
@@ -8,100 +9,73 @@ namespace Promatis.Net.UI;
 /// Полностью абстрагирует UI от конкретных интерфейсов доменных служб бэкенда.
 /// </summary>
 /// <typeparam name="TEntity">Тип доменной сущности</typeparam>
-public class UiDataBroker<TEntity> where TEntity : class
+public class UiDataBroker<TEntity, TQueryState, TResultData> : IUiDataBroker<TEntity, TQueryState, TResultData>
+    where TEntity : class
 {
-    private Func<GridState<TEntity>, CancellationToken, Task<GridData<TEntity>>>? _customServerDataProvider;
+    private Func<TQueryState, CancellationToken, Task<TResultData>>? _serverDataProvider;
+    private Func<TQueryState, List<TEntity>, TResultData>? _inMemoryEvaluator;
+    private IUiOzuCache<TEntity>? _ozuCache;
 
-    public List<TEntity>? InMemoryItems { get; set; }
-    public bool IsInMemoryMode { get; private set; }
+    private bool _isInitialized;
+    private bool _isInMemoryMode;
 
-    public void ConfigureServerMode(Func<GridState<TEntity>, CancellationToken, Task<GridData<TEntity>>> dataProvider)
+    public bool IsInMemoryMode => _isInMemoryMode;
+
+    public void ConfigureServerMode(Func<TQueryState, CancellationToken, Task<TResultData>> serverDataProvider)
     {
-        _customServerDataProvider = dataProvider ?? throw new ArgumentNullException(nameof(dataProvider));
-        InMemoryItems = null;
-        IsInMemoryMode = false;
+        _serverDataProvider = serverDataProvider ?? throw new ArgumentNullException(nameof(serverDataProvider));
+        _inMemoryEvaluator = null;
+        _ozuCache = null;
+        _isInMemoryMode = false;
+        _isInitialized = true;
     }
 
-    public void ConfigureInMemoryMode()
+    public void ConfigureInMemoryMode(IUiOzuCache<TEntity> ozuCache, Func<TQueryState, List<TEntity>, TResultData> inMemoryEvaluator)
     {
-        _customServerDataProvider = null;
-        IsInMemoryMode = true;
+        _ozuCache = ozuCache ?? throw new ArgumentNullException(nameof(ozuCache));
+        _inMemoryEvaluator = inMemoryEvaluator ?? throw new ArgumentNullException(nameof(inMemoryEvaluator));
+        _serverDataProvider = null;
+        _isInMemoryMode = true;
+        _isInitialized = true;
     }
 
-    public async Task<GridData<TEntity>> FetchDataAsync(GridState<TEntity> state, CancellationToken ct = default)
+    public async Task<TResultData> FetchDataAsync(TQueryState state, CancellationToken cancellationToken = default)
     {
-        if (_customServerDataProvider != null)
+        // КРИТИЧЕСКОЕ ТРЕБОВАНИЕ: Если программист забыл вызвать метод конфигурации — жестко падаем!
+        if (!_isInitialized)
         {
-            return await _customServerDataProvider(state, ct);
+            throw new InvalidOperationException(
+                $"Брокер данных для '{typeof(TEntity).Name}' не был сконфигурирован. " +
+                $"Вы обязаны вызвать ConfigureServerMode или ConfigureInMemoryMode в конструкторе контекста формы.");
         }
 
-        if (IsInMemoryMode)
+        // РЕЖИМ 1: Прямая работа с сервером (База данных / API)
+        if (_serverDataProvider != null)
         {
-            return new GridData<TEntity>
-            {
-                Items = InMemoryItems ?? [],
-                TotalItems = InMemoryItems?.Count ?? 0
-            };
+            return await _serverDataProvider(state, cancellationToken);
         }
 
-        return new GridData<TEntity> { Items = Array.Empty<TEntity>(), TotalItems = 0 };
+        // РЕЖИМ 2: Работа через локальный ОЗУ-кэш формы (Стратегия расчета полностью снаружи!)
+        if (_isInMemoryMode && _ozuCache != null && _inMemoryEvaluator != null)
+        {
+            // Просто отдаем стейт и ОЗУ-список наружу — пусть прикладной селектор сам решает,
+            // как сделать пагинацию грида или вытащить детей дерева
+            return _inMemoryEvaluator(state, _ozuCache.InMemoryItems);
+        }
+
+        throw new InvalidOperationException("Критический сбой внутренней конфигурации брокера данных.");
     }
 
-    // =========================================================================
-    // ВЫСОКОПРОИЗВОДИТЕЛЬНЫЙ ОЗУ-ДВИЖОК МУТАЦИЙ ПЛАТФОРМЫ (ДОБАВЛЕНО)
-    // =========================================================================
-
-    /// <summary>
-    /// Хирургически точно модифицирует локальный кэш оперативной памяти за 0 мс.
-    /// Полностью исключает необходимость повторных тяжелых SELECT-запросов к СУБД.
-    /// </summary>
-    /// <param name="stateStr">Строковое состояние транзакции ("Added", "Modified", "Deleted", "SoftDeleted")</param>
-    /// Сам пришедший доменный объект</param>
-    public void ApplyIncrementalOzuDelta(string stateStr, TEntity entity)
+    public void HandleDatabaseCommit(EntityStateChangeEnum state, object entity)
     {
-        // Если мы работаем в серверном режиме (например, логи аудита), ОЗУ-мутации пропускаются
-        if (!IsInMemoryMode || InMemoryItems == null) return;
+        // Если форма работает напрямую с сервером — глобальные мутации ОЗУ полностью игнорируются!
+        if (!_isInMemoryMode || _ozuCache == null) return;
 
-        // Извлекаем свойство Id с помощью рефлексии (выполняется один раз на сущность)
-        PropertyInfo? idProperty = typeof(TEntity).GetProperty("Id");
-        if (idProperty == null) return;
-
-        Guid entityId = (Guid)idProperty.GetValue(entity)!;
-
-        switch (stateStr)
+        // Проверяем: относится ли прилетевший из СУБД объект к типу данных текущего экрана?
+        if (entity is TEntity typedEntity)
         {
-            case "Added":
-                // Защита от дублирования при асинхронных всплесках
-                if (!InMemoryItems.Any(x => (Guid)idProperty.GetValue(x)! == entityId))
-                {
-                    InMemoryItems.Add(entity);
-                }
-                break;
-
-            case "Modified":
-                TEntity? existingItem = InMemoryItems.FirstOrDefault(x => (Guid)idProperty.GetValue(x)! == entityId);
-                if (existingItem != null)
-                {
-                    // Находим все значимые и строковые свойства для точечного копирования состояния
-                    IEnumerable<PropertyInfo> properties = typeof(TEntity).GetProperties()
-                        .Where(p => p.CanWrite && p.CanRead)
-                        .Where(p => p.PropertyType.IsValueType || p.PropertyType == typeof(string));
-
-                    foreach (PropertyInfo prop in properties)
-                    {
-                        prop.SetValue(existingItem, prop.GetValue(entity));
-                    }
-                }
-                break;
-
-            case "Deleted":
-            case "SoftDeleted":
-                TEntity? itemToRemove = InMemoryItems.FirstOrDefault(x => (Guid)idProperty.GetValue(x)! == entityId);
-                if (itemToRemove != null)
-                {
-                    InMemoryItems.Remove(itemToRemove);
-                }
-                break;
+            // Перенаправляем дельту изменений в изолированное хранилище этой конкретной вкладки
+            _ozuCache.ApplyOzuDelta(state, typedEntity);
         }
     }
 }
