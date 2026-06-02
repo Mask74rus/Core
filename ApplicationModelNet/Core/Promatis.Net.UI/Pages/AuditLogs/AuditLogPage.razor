@@ -13,7 +13,9 @@
         <BodyContent>
             <GridPage TEntity="AuditLog"
                       @ref="_grid"
-                      ServerDataProvider="@Context.Broker.FetchDataAsync">
+                      ServerDataProvider="@Context.Broker.FetchDataAsync"
+                      WithPagination="true"
+                      RowsPerPage="20">
                 <GridColumns>
                     <PropertyColumn T="AuditLog" TProperty="DateTime" Property="x => x.ChangedAt" Title="Дата и время" Format="dd.MM.yyyy HH:mm:ss" HeaderStyle="width: 160px;" />
                     <PropertyColumn T="AuditLog" TProperty="string" Property="x => x.ChangedBy" Title="Пользователь" HeaderStyle="width: 150px;" />

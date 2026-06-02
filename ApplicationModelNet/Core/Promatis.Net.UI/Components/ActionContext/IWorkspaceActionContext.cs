@@ -25,8 +25,8 @@ public interface IWorkspaceActionContext
     string LeftZoneWidth { get; }
     string RightZoneWidth { get; }
 
-    bool IsTopZoneCollapsed { get; }
-    bool IsBottomZoneCollapsed { get; }
-    bool IsLeftZoneCollapsed { get; }
-    bool IsRightZoneCollapsed { get; }
+    bool IsTopZoneCollapsed { get; set; }
+    bool IsBottomZoneCollapsed { get; set; }
+    bool IsLeftZoneCollapsed { get; set; }
+    bool IsRightZoneCollapsed { get; set; }
 }

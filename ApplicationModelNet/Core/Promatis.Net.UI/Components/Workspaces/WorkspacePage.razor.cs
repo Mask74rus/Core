@@ -42,7 +42,7 @@ public partial class WorkspacePage : ComponentBase, IDisposable
 
     // --- МЕТОДЫ РАСЧЕТА ВИЗУАЛЬНОГО СТИЛЯ ПОДЛОЖКИ ---
     protected int GetPaperElevation() => ActionContext?.PaperElevation ?? 1;
-    protected string GetPaperClass() => ActionContext?.PaperClass ?? "pa-4 d-flex flex-column flex-grow-1 w-100 h-100";
+    protected string GetPaperClass() => ActionContext?.PaperClass ?? "pa-4 d-flex flex-column flex-grow-1 w-100";
 
     // --- МЕТОДЫ РАСЧЕТА ГЕОМЕТРИИ КАРКАСА ХОЛСТА ---
     protected string GetWorkspaceHeight() => ActionContext?.WorkspaceHeight ?? "100%";
@@ -51,8 +51,10 @@ public partial class WorkspacePage : ComponentBase, IDisposable
     protected string GetLeftWidth() => ActionContext?.LeftZoneWidth ?? "250px";
     protected string GetRightWidth() => ActionContext?.RightZoneWidth ?? "300px";
 
-    protected bool IsTopCollapsed() => ActionContext?.IsTopZoneCollapsed ?? false;
-    protected bool IsBottomCollapsed() => ActionContext?.IsBottomZoneCollapsed ?? false;
-    protected bool IsLeftCollapsed() => ActionContext?.IsLeftZoneCollapsed ?? false;
-    protected bool IsRightCollapsed() => ActionContext?.IsRightZoneCollapsed ?? false;
+    // Если контент НЕ передан, зона СВЕРНУТА автоматически. 
+    // Если контент есть, её состояние берется из контекста (по умолчанию false - открыта).
+    protected bool IsTopCollapsed() => TopContent == null || (ActionContext?.IsTopZoneCollapsed ?? false);
+    protected bool IsBottomCollapsed() => BottomContent == null || (ActionContext?.IsBottomZoneCollapsed ?? false);
+    protected bool IsLeftCollapsed() => LeftContent == null || (ActionContext?.IsLeftZoneCollapsed ?? false);
+    protected bool IsRightCollapsed() => RightContent == null || (ActionContext?.IsRightZoneCollapsed ?? false);
 }

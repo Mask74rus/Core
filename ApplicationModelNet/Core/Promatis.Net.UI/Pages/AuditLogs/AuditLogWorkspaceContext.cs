@@ -31,9 +31,6 @@ public class AuditLogWorkspaceContext : WorkspaceActionContext, IHasSelectedData
     public Action? OnContextUpdated { get; set; }
 
     public override string TopZoneHeight => "48px";
-    public override bool IsLeftZoneCollapsed => true;
-    public override bool IsRightZoneCollapsed => true;
-    public override bool IsBottomZoneCollapsed => true;
 
     public AuditLogWorkspaceContext(IAuditLogService auditLogService, Action onFilterChanged)
     {
@@ -61,9 +58,9 @@ public class AuditLogWorkspaceContext : WorkspaceActionContext, IHasSelectedData
     /// </summary>
     private async Task<GridData<AuditLog>> FetchAuditDataFromServerAsync(GridState<AuditLog> state, CancellationToken ct)
     {
-        var entityControl = Controls.FirstOrDefault(c => c.Id == "audit_filter_entity");
-        var actionControl = Controls.FirstOrDefault(c => c.Id == "audit_filter_action");
-        var periodControl = Controls.FirstOrDefault(c => c.Id == "audit_filter_period");
+        IUiControl? entityControl = Controls.FirstOrDefault(c => c.Id == "audit_filter_entity");
+        IUiControl? actionControl = Controls.FirstOrDefault(c => c.Id == "audit_filter_action");
+        IUiControl? periodControl = Controls.FirstOrDefault(c => c.Id == "audit_filter_period");
 
         string? selectedEntity = entityControl is IHasValue ev ? ev.Value as string : null;
         DateRange? selectedPeriod = periodControl is IHasValue pv ? pv.Value as DateRange : null;
@@ -72,9 +69,7 @@ public class AuditLogWorkspaceContext : WorkspaceActionContext, IHasSelectedData
         string? selectedAction = actionControl is AuditActionSelect av ? av.GetSelectedActionValue() : null;
 
         if (selectedEntity == "Все сущности") // Строка-заглушка из вашего кода
-        {
             selectedEntity = null;
-        }
 
         DateTime fromDate = selectedPeriod?.Start ?? DateTime.Today.AddDays(-7);
         DateTime toDate = selectedPeriod?.End ?? DateTime.Today;

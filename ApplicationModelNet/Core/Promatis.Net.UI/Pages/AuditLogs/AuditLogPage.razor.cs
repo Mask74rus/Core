@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Components;
-using MudBlazor;
 using Promatis.Net.Domain;
 using Promatis.Net.Service;
 using Promatis.Net.UI.Components.Workspaces;

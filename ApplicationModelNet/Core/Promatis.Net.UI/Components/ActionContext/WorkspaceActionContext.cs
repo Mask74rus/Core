@@ -23,10 +23,10 @@ public class WorkspaceActionContext : IWorkspaceActionContext
     public virtual string LeftZoneWidth => "250px";
     public virtual string RightZoneWidth => "300px";
 
-    public virtual bool IsTopZoneCollapsed => false;
-    public virtual bool IsBottomZoneCollapsed => false;
-    public virtual bool IsLeftZoneCollapsed => false;
-    public virtual bool IsRightZoneCollapsed => false;
+    public bool IsTopZoneCollapsed { get; set; } = false;
+    public bool IsBottomZoneCollapsed { get; set; } = false;
+    public bool IsLeftZoneCollapsed { get; set; } = false;
+    public bool IsRightZoneCollapsed { get; set; } = false;
 
     // --- МЕТОДЫ УПРАВЛЕНИЯ ПАНЕЛЬЮ ДЛЯ ПОТОМКОВ ---
     protected void AddControl(IUiControl control)

@@ -7,6 +7,7 @@
              SelectedItem="@SelectedRow"
              SelectedItemChanged="@OnSelectedRowChanged"
              RowStyleFunc="@FormatSelectedRowStyle"
+             RowsPerPage="@RowsPerPage"
              SelectOnRowClick="true"
              Hover="true"
              Dense="true"
@@ -18,4 +19,11 @@
     <Columns>
         @GridColumns
     </Columns>
+    @* Включаем пагинатор только по требованию конечной формы *@
+    <PagerContent>
+        @if (WithPagination)
+        {
+            <MudDataGridPager T="TEntity" InfoFormat="{first_item}-{last_item} из {all_items}" RowsPerPageString="Строк:" />
+        }
+    </PagerContent>
 </MudDataGrid>

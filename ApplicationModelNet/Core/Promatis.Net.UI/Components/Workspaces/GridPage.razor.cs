@@ -19,6 +19,12 @@ public partial class GridPage<TEntity> : ComponentBase where TEntity : class
     [Parameter]
     public RenderFragment? GridColumns { get; set; }
 
+    [Parameter]
+    public bool WithPagination { get; set; } = false;
+
+    [Parameter]
+    public int RowsPerPage { get; set; } = 10000;
+
     protected TEntity? SelectedRow { get; set; }
 
     /// <summary>

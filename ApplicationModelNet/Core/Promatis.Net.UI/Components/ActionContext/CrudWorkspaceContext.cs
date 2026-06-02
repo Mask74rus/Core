@@ -18,11 +18,9 @@ public abstract class CrudWorkspaceContext<TEntity, TKey> : WorkspaceActionConte
     private TEntity? _selectedData;
     private bool _isLoading;
 
-    // Инфраструктурные компоненты данных инстанса формы
     public UiDataBroker<TEntity, GridState<TEntity>, GridData<TEntity>> Broker { get; }
     public IUiOzuCache<TEntity> OzuCache { get; }
 
-    // Реализация контракта фокуса строки
     public TEntity? SelectedData
     {
         get => _selectedData;
@@ -38,10 +36,6 @@ public abstract class CrudWorkspaceContext<TEntity, TKey> : WorkspaceActionConte
     }
 
     public Action? OnContextUpdated { get; set; }
-
-    /// <summary>
-    /// Флаг фоновой загрузки для отображения скелетона или крутилки в GridPage.
-    /// </summary>
     public bool IsLoading => _isLoading;
 
     protected CrudWorkspaceContext(IBaseService<TEntity, TKey> baseService, bool isInMemoryMode)
@@ -50,13 +44,9 @@ public abstract class CrudWorkspaceContext<TEntity, TKey> : WorkspaceActionConte
         OzuCache = new UiOzuCache<TEntity>();
         Broker = new UiDataBroker<TEntity, GridState<TEntity>, GridData<TEntity>>();
 
-        // Декларативно наполняем тулбар стандартными CRUD-кнопками ядра
-        AddControl(new CreateEntityButton<TEntity>());
-        AddControl(new EditEntityButton<TEntity>());
-        AddControl(new DeleteEntityButton<TEntity>());
-        AddControl(new ToolbarDivider());
+        // Инициализируем элементы управления через виртуальный метод
+        InitializeToolbarControls();
 
-        // НАСТРОЙКА ПОВЕДЕНИЯ: Выбор источника данных на основе решения программиста
         if (isInMemoryMode)
         {
             Broker.ConfigureInMemoryMode(OzuCache, EvaluateGridStateInMemory);
@@ -68,34 +58,37 @@ public abstract class CrudWorkspaceContext<TEntity, TKey> : WorkspaceActionConte
     }
 
     /// <summary>
-    /// Точка ленивой, безопасной фоновой загрузки первичных данных.
-    /// Вызывается страницей при инициализации и гарантированно не блокирует UI Blazor.
+    /// Наполнение тулбара кнопками по умолчанию. Наследники могут подавить или изменить состав кнопок.
     /// </summary>
+    protected virtual void InitializeToolbarControls()
+    {
+        AddControl(new CreateEntityButton<TEntity>());
+        AddControl(new EditEntityButton<TEntity>());
+        AddControl(new DeleteEntityButton<TEntity>());
+        AddControl(new ToolbarDivider());
+    }
+
     public async Task LoadInitialDataAsync()
     {
-        if (!Broker.IsInMemoryMode) return; // В серверном режиме фоновое наполнение кэша не требуется
+        if (!Broker.IsInMemoryMode) return;
 
         try
         {
             _isLoading = true;
-            NotifyStateChanged(); // Включаем индикатор загрузки в таблице
+            NotifyStateChanged();
 
-            // Выкачиваем весь справочник через ваш реальный метод GetAllAsync()
             List<TEntity> serverItems = await _baseService.GetAllAsync();
             OzuCache.InMemoryItems = serverItems ?? new List<TEntity>();
         }
         finally
         {
             _isLoading = false;
-            NotifyStateChanged(); // Выключаем индикатор, таблица плавно отображает строки из ОЗУ
+            NotifyStateChanged();
         }
     }
 
-    // --- СТАНДАРТНЫЕ МЕТОДЫ-ВЫЧИСЛИТЕЛИ ДЛЯ БРОКЕРА ---
-
     private GridData<TEntity> EvaluateGridStateInMemory(GridState<TEntity> state, List<TEntity> inMemoryList)
     {
-        // Пагинация плоского списка LINQ методами в памяти ОЗУ конкретной вкладки
         return new GridData<TEntity>
         {
             Items = inMemoryList.Skip(state.Page * state.PageSize).Take(state.PageSize).ToList(),
@@ -105,12 +98,13 @@ public abstract class CrudWorkspaceContext<TEntity, TKey> : WorkspaceActionConte
 
     private async Task<GridData<TEntity>> FetchGridDataFromServerAsync(GridState<TEntity> state, CancellationToken ct)
     {
-        // Прямой серверный режим: при каждом запросе идем в СУБД (например, для тяжелых логов)
-        List<TEntity> serverData = await _baseService.GetAllAsync();
+        // Теперь здесь работает честная серверная пагинация без утечек памяти
+        PagedResult<TEntity> pagedResult = await _baseService.GetPagedAsync(state.Page, state.PageSize, ct);
+
         return new GridData<TEntity>
         {
-            Items = serverData.Skip(state.Page * state.PageSize).Take(state.PageSize).ToList(),
-            TotalItems = serverData.Count
+            Items = pagedResult.Items,
+            TotalItems = pagedResult.TotalCount
         };
     }
 }

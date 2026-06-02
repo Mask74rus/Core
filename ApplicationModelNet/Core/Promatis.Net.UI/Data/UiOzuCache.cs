@@ -60,7 +60,7 @@ public class UiOzuCache<TEntity> : IUiOzuCache<TEntity> where TEntity : class
     /// </summary>
     private object? GetEntityId(TEntity item)
     {
-        var hasKeyInterface = item.GetType()
+        Type? hasKeyInterface = item.GetType()
             .GetInterfaces()
             .FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IDomainObjectHasKey<>));
 

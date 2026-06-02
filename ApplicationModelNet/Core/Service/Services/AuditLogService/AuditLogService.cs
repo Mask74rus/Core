@@ -28,10 +28,15 @@ public class AuditLogService(IDbContextFactory<ApplicationDbContext> contextFact
         int totalCount = await query.CountAsync(cancellationToken);
 
         if (totalCount == 0)
+        {
+            // Используем Array.Empty или пустую коллекцию без лишних аллокаций списков
             return new PagedResult<AuditLog>([], 0);
+        }
 
+        // ИСПРАВЛЕНО: Добавлена вторичная сортировка по Id для устранения эффекта "перемешивания" страниц СУБД
         List<AuditLog> items = await query
             .OrderByDescending(l => l.ChangedAt)
+            .ThenByDescending(l => l.Id)
             .Skip(request.PageIndex * request.PageSize)
             .Take(request.PageSize)
             .ToListAsync(cancellationToken);

@@ -7,6 +7,8 @@ public interface IBaseService<T, in TKey> where T : class
 
     Task<List<T>> GetAllAsync();
 
+    Task<PagedResult<T>> GetPagedAsync(int pageIndex, int pageSize, CancellationToken ct = default);
+
     Task AddAsync(T entity);
 
     Task UpdateAsync(T entity);

@@ -31,7 +31,7 @@ public class AuditActionSelect : BaseUiControl, IHasValue, IHasOptions
     // Метод для получения системного значения (строки для API) из выбранного текста
     public string? GetSelectedActionValue()
     {
-        if (Value is string selectedText && _actionMapping.TryGetValue(selectedText, out var sysValue))
+        if (Value is string selectedText && _actionMapping.TryGetValue(selectedText, out string? sysValue))
         {
             return string.IsNullOrEmpty(sysValue) ? null : sysValue;
         }
