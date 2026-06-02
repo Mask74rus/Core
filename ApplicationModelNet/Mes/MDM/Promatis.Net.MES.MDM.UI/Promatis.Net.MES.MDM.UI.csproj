@@ -6,6 +6,13 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Compile Remove="Pages\TechnologicalOperations\**" />
+    <Content Remove="Pages\TechnologicalOperations\**" />
+    <EmbeddedResource Remove="Pages\TechnologicalOperations\**" />
+    <None Remove="Pages\TechnologicalOperations\**" />
+  </ItemGroup>
+
 
   <ItemGroup>
     <SupportedPlatform Include="browser" />
@@ -23,7 +30,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Pages\TechnologicalOperations\Card\" />
+    <Folder Include="Pages\TechnologicalParameter\Card\" />
   </ItemGroup>
 
 </Project>

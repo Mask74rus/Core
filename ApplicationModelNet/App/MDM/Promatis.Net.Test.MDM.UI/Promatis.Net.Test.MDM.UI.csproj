@@ -6,6 +6,13 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Compile Remove="Pages\**" />
+    <Content Remove="Pages\**" />
+    <EmbeddedResource Remove="Pages\**" />
+    <None Remove="Pages\**" />
+  </ItemGroup>
+
 
   <ItemGroup>
     <SupportedPlatform Include="browser" />
@@ -20,10 +27,6 @@
     <ProjectReference Include="..\..\..\Core\Configuration.Web\Promatis.Net.Configuration.Web.csproj" />
     <ProjectReference Include="..\..\..\Mes\MDM\Promatis.Net.MES.MDM.UI\Promatis.Net.MES.MDM.UI.csproj" />
     <ProjectReference Include="..\Promatis.Net.Test.MDM.Service\Promatis.Net.Test.MDM.Service.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Pages\Unit\Card\" />
   </ItemGroup>
 
 </Project>
