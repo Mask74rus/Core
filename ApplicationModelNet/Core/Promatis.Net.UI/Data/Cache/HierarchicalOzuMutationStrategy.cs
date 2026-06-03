@@ -58,7 +58,7 @@ public class HierarchicalOzuMutationStrategy<TEntity> : IOzuMutationStrategy<TEn
 
     private TEntity? FindNodeRecursive(List<TEntity> nodes, object targetId, Func<TEntity, object?> idSelector)
     {
-        foreach (var node in nodes)
+        foreach (TEntity node in nodes)
         {
             if (Equals(idSelector(node), targetId)) return node;
 

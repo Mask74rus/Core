@@ -1,0 +1,69 @@
+﻿@typeparam TModel where TModel : Promatis.Net.Domain.ReferenceBase
+
+@* Оборачиваем всё в базовый каркас ядра, пробрасывая модель, заголовок и валидатор *@
+<BaseDialogLayout TModel="TModel"
+                  Model="@Model"
+                  Title="@Title"
+                  Validator="@Validator">
+
+    @* Внутренний контент каркаса: определяем, нужно ли разворачивать вкладки MudTabs *@
+    @if (CustomTabs == null || !CustomTabs.Any())
+    {
+        @* СЦЕНАРИЙ А: Кастомных вкладок нет. Выводим только базовые поля справочника *@
+        <div class="flex-grow-1" style="height: 100%; overflow-y: auto; padding-right: 4px;">
+            @RenderBaseFields()
+        </div>
+    }
+    else
+    {
+        @* СЦЕНАРИЙ Б: Наследник передал свои вкладки. Разворачиваем многостраничный интерфейс MudTabs *@
+        <MudTabs Elevation="0"
+                 Rounded="true"
+                 Class="d-flex flex-column flex-grow-1 h-100"
+                 @bind-ActivePanelIndex="_activeTabIndex">
+
+            @* Системная Вкладка 1: Поля ReferenceBase от ядра системы *@
+            <MudTabPanel Text="Основное" Icon="@Icons.Material.Filled.Info" PanelClass="pa-4 flex-grow-1">
+                <div style="max-height: 48vh; overflow-y: auto; padding-right: 4px;">
+                    @RenderBaseFields()
+                </div>
+            </MudTabPanel>
+
+            @* Динамические Вкладки 2+: Перебираем и рендерим все кастомные табы справочника *@
+            @foreach (DialogTabConfig<TModel> tab in CustomTabs)
+            {
+                <MudTabPanel Text="@tab.Title" Icon="@tab.Icon" PanelClass="pa-4 flex-grow-1">
+                    <div style="max-height: 48vh; overflow-y: auto; padding-right: 4px;">
+                        @tab.Content(Model)
+                    </div>
+                </MudTabPanel>
+            }
+
+        </MudTabs>
+    }
+
+</BaseDialogLayout>
+
+@code {
+    /// <summary>
+    /// Стандартизированная разметка базовых полей НСИ, общая для всех 100+ справочников.
+    /// </summary>
+    private RenderFragment RenderBaseFields() => __builder =>
+    {
+        <div class="d-flex flex-column gap-4">
+            <MudTextField @bind-Value="Model.Name"
+                          Label="Наименование"
+                          For="@(() => Model.Name)"
+                          Required="true" />
+
+            <MudTextField @bind-Value="Model.Code"
+                          Label="Системный код (Уникальный)"
+                          For="@(() => Model.Code)" />
+
+            <MudTextField @bind-Value="Model.Description"
+                          Label="Описание / Дополнительное примечание"
+                          Lines="4"
+                          For="@(() => Model.Description)" />
+        </div>
+    };
+}

@@ -17,11 +17,11 @@
                       WithPagination="true"
                       RowsPerPage="20">
                 <GridColumns>
-                    <PropertyColumn T="AuditLog" TProperty="DateTime" Property="x => x.ChangedAt" Title="Дата и время" Format="dd.MM.yyyy HH:mm:ss" HeaderStyle="width: 160px;" />
+                    <PropertyColumn T="AuditLog" TProperty="DateTime" Property="x => x.ChangedAt" Title="Дата и время" Format="dd.MM.yyyy HH:mm:ss" HeaderStyle="width: 200px;" />
                     <PropertyColumn T="AuditLog" TProperty="string" Property="x => x.ChangedBy" Title="Пользователь" HeaderStyle="width: 150px;" />
-                    <PropertyColumn T="AuditLog" TProperty="string" Property="x => x.EntityName" Title="Тип сущности" HeaderStyle="width: 150px;" />
+                    <PropertyColumn T="AuditLog" TProperty="string" Property="x => x.EntityName" Title="Тип сущности" HeaderStyle="width: 200px;" />
                     <PropertyColumn T="AuditLog" TProperty="string" Property="x => x.Action" Title="Операция" HeaderStyle="width: 120px;" />
-                    <PropertyColumn T="AuditLog" TProperty="Guid" Property="x => x.EntityId" Title="ID Сущности" HeaderStyle="width: 300px;" />
+                    <PropertyColumn T="AuditLog" TProperty="Guid" Property="x => x.EntityId" Title="ID Сущности" HeaderStyle="width: 330px;" />
                     <PropertyColumn T="AuditLog" TProperty="string" Property="x => x.ChangesJson" Title="Изменения (JSON)" HeaderStyle="width: auto;" Class="text-truncate" />
                 </GridColumns>
             </GridPage>

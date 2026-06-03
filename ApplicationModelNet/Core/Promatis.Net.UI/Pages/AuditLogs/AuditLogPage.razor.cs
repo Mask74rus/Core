@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.DependencyInjection;
 using Promatis.Net.Domain;
 using Promatis.Net.Service;
 using Promatis.Net.UI.Components.Workspaces;
@@ -11,6 +12,9 @@ public partial class AuditLogPage : ComponentBase
     private bool _isLoaded;
 
     [Inject]
+    protected IServiceProvider PageServiceProvider { get; set; } = null!;
+
+    [Inject]
     protected IAuditLogService AuditLogService { get; set; } = null!;
 
     protected AuditLogWorkspaceContext Context { get; set; } = null!;
@@ -20,7 +24,7 @@ public partial class AuditLogPage : ComponentBase
         base.OnInitialized();
 
         // МГНОВЕННО создаем пустой контекст. Страница рендерится без задержек за 0 мс
-        Context = new AuditLogWorkspaceContext(AuditLogService, onFilterChanged: RefreshGrid);
+        Context = new AuditLogWorkspaceContext(PageServiceProvider, onFilterChanged: RefreshGrid);
     }
 
     /// <summary>

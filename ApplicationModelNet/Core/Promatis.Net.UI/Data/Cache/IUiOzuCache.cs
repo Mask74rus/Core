@@ -19,4 +19,6 @@ public interface IUiOzuCache<TEntity> where TEntity : class
     /// принимая системный стейт транзакции СУБД.
     /// </summary>
     void ApplyOzuDelta(EntityStateChangeEnum state, TEntity entity);
+
+    void SetMutationStrategy(IOzuMutationStrategy<TEntity> strategy);
 }

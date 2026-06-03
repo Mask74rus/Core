@@ -1,0 +1,39 @@
+﻿@typeparam TModel where TModel : class
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            @Title
+        </MudText>
+    </TitleContent>
+
+    <DialogContent>
+        @* Интегрируем FluentValidation напрямую в нативную форму MudBlazor *@
+        <MudForm @ref="_form"
+                 Model="@Model"
+                 Validation="@(async (object model) => await ValidateModelViaFluentAsync())"
+                 ValidationDelay="0">
+
+            @* Строгий геометрический контейнер ядра — защищает форму от прыжков *@
+            <div class="d-flex flex-column pt-2" style="min-height: 340px; height: 60vh; max-height: 60vh; min-width: 0; overflow: hidden;">
+                @ChildContent
+            </div>
+
+        </MudForm>
+    </DialogContent>
+
+    <DialogActions>
+        @* Нативное каскадное управление окном MudBlazor *@
+        <MudButton Variant="Variant.Text"
+                   Color="Color.Default"
+                   OnClick="HandleCancelAsync">
+            Отмена
+        </MudButton>
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   OnClick="HandleSubmitAsync">
+            Сохранить
+        </MudButton>
+    </DialogActions>
+</MudDialog>
