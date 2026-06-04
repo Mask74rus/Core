@@ -11,14 +11,13 @@ namespace Promatis.Net.MES.UI.Pages.UnitOfMeasurements;
 public class UnitOfMeasurementContext : ReferenceContext<UnitOfMeasurement>
 {
     /// <summary>
-    /// Конструктор принимает единственный IServiceProvider и пробрасывает параметры 
-    /// в обновленный эталонный ReferenceContext, включая режим InMemory по умолчанию.
+    /// Конструктор принимает только единственный IServiceProvider и коллбек обновления.
+    /// Передает isInMemoryMode: true, так как справочник НСИ идеально кэшируется в ОЗУ.
     /// </summary>
     public UnitOfMeasurementContext(
         IServiceProvider serviceProvider,
-        bool isInMemoryMode = true,
         Action? onDataChangedNotifier = null)
-        : base(serviceProvider, isInMemoryMode, onDataChangedNotifier)
+        : base(serviceProvider, isInMemoryMode: true, onDataChangedNotifier: onDataChangedNotifier)
     {
     }
 
@@ -26,28 +25,40 @@ public class UnitOfMeasurementContext : ReferenceContext<UnitOfMeasurement>
     /// Точка конкретизации визуального окна. 
     /// Связывает абстрактные CRUD-команды создания/изменения ядра с нативным generic-диалогом MudBlazor.
     /// </summary>
+    /// <summary>
+    /// Точка конкретизации визуального окна. 
+    /// ИСПРАВЛЕНО (Честный коммит в СУБД): Ловит успешный результат закрытия диалога 
+    /// и транслирует валидную модель в Брокер данных для фиксации в PostgreSQL!
+    /// </summary>
     protected override async Task OpenDialogWindowAsync(UnitOfMeasurement model, bool isNew)
     {
-        // Создаем контейнер параметров для нашего нативного Razor-диалога формы
-        var parameters = new DialogParameters<UnitOfMeasurementDialog>
+        var parameters = new DialogParameters<UnitOfMeasurementDialog> { { "Model", model } };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+
+        // 1. Открываем окно
+        IDialogReference dialog = await DialogService.ShowAsync<UnitOfMeasurementDialog>("...", parameters, options);
+
+        // 2. Ждем, пока BaseDialogLayout проверит форму через FluentValidation и закроет окно
+        DialogResult result = await dialog.Result;
+
+        // 3. Если окно закрылось по кнопке "Сохранить" (результат валиден)
+        if (!result.Canceled && result.Data is UnitOfMeasurement validatedModel)
         {
-            { "Model", model } // Передаем чистую модель или её изолированный клон от IEntityCloner
-        };
+            // 4. СТРОГО ПО НАШЕЙ АРХИТЕКТУРЕ: Вызываем базовый CRUD-сервис репозитория для коммита в PostgreSQL!
+            if (isNew)
+            {
+                // Вызываем метод базового сервиса, который мы вытащили из DI в DataContext (Шаг 12)
+                await GetBaseService().AddAsync(validatedModel);
+            }
+            else
+            {
+                await GetBaseService().UpdateAsync(validatedModel);
+            }
 
-        var options = new DialogOptions
-        {
-            CloseButton = true,
-            MaxWidth = MaxWidth.Small,
-            FullWidth = true
-        };
-
-        // Вызываем диалог напрямую по его нативному Razor-типу через службу диалогов MudBlazor
-        IDialogReference dialog = await DialogService.ShowAsync<UnitOfMeasurementDialog>(
-            isNew ? "Создание единицы измерения" : "Редактирование единицы измерения",
-            parameters,
-            options);
-
-        // Ждем закрытия окна. Брокер сам обновит ОЗУ-кэш формы при успешном коммите в СУБД.
-        await dialog.Result;
+            // 5. Оповещаем систему. Наш Брокер/Стратегия мутаций (Шаг 13) обновят ОЗУ за O(1),
+            // контекст вызовет OnContextUpdated, и страница автоматически обновит грид!
+            NotifyStateChanged();
+            OnContextUpdated?.Invoke();
+        }
     }
 }

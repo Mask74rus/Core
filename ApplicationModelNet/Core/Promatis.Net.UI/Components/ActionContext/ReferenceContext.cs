@@ -14,10 +14,11 @@ public abstract class ReferenceContext<TEntity> : GridContext<TEntity, Guid>
     // позволяя справочникам НСИ использовать все преимущества кэширования в ОЗУ.
     protected ReferenceContext(
         IServiceProvider serviceProvider,
-        bool isInMemoryMode = true,
+        bool isInMemoryMode,
         Action? onDataChangedNotifier = null)
         : base(serviceProvider, isInMemoryMode, onDataChangedNotifier)
-    { }
+    {
+    }
 
     /// <summary>
     /// Автоматически вызывается базовым холстом (WorkspacePage) в событии OnInitialized,

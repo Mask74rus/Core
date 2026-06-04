@@ -1,6 +1,11 @@
 ﻿@page "/mes/mdm/units-of-measurement"
 @using Promatis.Net.MES.Domain
+@using Promatis.Net.UI.Components
 
 @* ИСПРАВЛЕНО: Наследуем переименованную базовую бизнес-абстракцию справочников *@
 @inherits ReferencePage<UnitOfMeasurement>
+
+@{
+    base.BuildRenderTree(__builder);
+}
 

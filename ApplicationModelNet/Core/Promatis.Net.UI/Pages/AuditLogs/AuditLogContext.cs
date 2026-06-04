@@ -14,40 +14,43 @@ namespace Promatis.Net.UI.Pages.AuditLogs;
 public class AuditLogContext : GridContext<AuditLog, Guid>
 {
     private readonly IAuditLogService _auditLogService;
-    private readonly Action? _onFilterChanged; // ИСПРАВЛЕНО: Сделано nullable для DI-контейнера
+    private readonly Action _onFilterChanged; // ИСПРАВЛЕНО: Снова строгое readonly свойство
 
     public override string TopZoneHeight => "48px";
 
     /// <summary>
-    /// ИСПРАВЛЕНО: Параметр onFilterChanged сделан необязательным (= null).
-    /// Это заставляет .NET DI успешно проходить валидацию дескрипторов при старте ядра платформы,
-    /// но сохраняет возможность для страницы передать туда живой коллбек через оператор new!
+    /// ИСПРАВЛЕНО: Конструктор принимает строго Action коллбек для прямой реактивности.
+    /// Никаких значений по умолчанию (= null) для DI-валидации больше нет!
     /// </summary>
-    public AuditLogContext(IServiceProvider serviceProvider, Action? onFilterChanged = null)
+    public AuditLogContext(IServiceProvider serviceProvider, Action onFilterChanged)
         : base(serviceProvider, isInMemoryMode: false, onDataChangedNotifier: onFilterChanged)
     {
-        _onFilterChanged = onFilterChanged;
+        _onFilterChanged = onFilterChanged ?? throw new ArgumentNullException(nameof(onFilterChanged));
         _auditLogService = serviceProvider.GetRequiredService<IAuditLogService>();
 
+        // Сразу наполняем тулбар статическими элементами
         AddControl(new AuditToolbarDivider());
         AddControl(new AuditExportButton());
     }
 
+    /// <summary>
+    /// ИСПРАВЛЕНО: Ваша оригинальная динамическая дособирка тулбара.
+    /// Вызывается из OnAfterRenderAsync Razor-страницы, когда экран уже гарантированно отрисован.
+    /// </summary>
     public void InitializeFilters(List<string> entityNames)
     {
-        // Защитная проверка: если контекст был создан без коллбека (в DI), фильтры будут использовать NotifyStateChanged
-        Action callback = _onFilterChanged ?? NotifyStateChanged;
-
-        _controls.Insert(0, new AuditEntitySelect(entityNames, callback));
-        _controls.Insert(1, new AuditActionSelect(callback));
-        _controls.Insert(2, new AuditPeriodPicker(callback));
+        // Потокобезопасно через инкапсулированный метод базового класса (или напрямую, если восстановили доступ)
+        // возвращаем нативную вставку фильтров в самое начало тулбара слева направо
+        _controls.Insert(0, new AuditEntitySelect(entityNames, _onFilterChanged));
+        _controls.Insert(1, new AuditActionSelect(_onFilterChanged));
+        _controls.Insert(2, new AuditPeriodPicker(_onFilterChanged));
 
         NotifyStateChanged();
     }
 
     protected override async Task<GridData<AuditLog>> FetchDataFromServerAsync(GridState<AuditLog> state, CancellationToken ct)
     {
-        // 1. Считываем элементы управления из коллекции по их жестким Id
+        // ИСПРАВЛЕНО: Возвращаем ваш оригинальный, работающий поиск контролов по жестким Id
         IUiControl? entityControl = Controls.FirstOrDefault(c => c.Id == "audit_filter_entity");
         IUiControl? actionControl = Controls.FirstOrDefault(c => c.Id == "audit_filter_action");
         IUiControl? periodControl = Controls.FirstOrDefault(c => c.Id == "audit_filter_period");
@@ -59,14 +62,12 @@ public class AuditLogContext : GridContext<AuditLog, Guid>
         if (selectedEntity == "Все сущности")
             selectedEntity = null;
 
-        // Выставляем временные границы (минимум за 7 дней, если период не выбран)
         DateTime fromDate = selectedPeriod?.Start ?? DateTime.Today.AddDays(-7);
         DateTime toDate = selectedPeriod?.End ?? DateTime.Today;
 
         fromDate = DateTime.SpecifyKind(fromDate.Date, DateTimeKind.Utc);
         toDate = DateTime.SpecifyKind(toDate.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
 
-        // 2. Строим специализированный DTO-запрос
         var searchRequest = new AuditLogSearchRequest(
             FromDate: fromDate,
             ToDate: toDate,
@@ -76,31 +77,14 @@ public class AuditLogContext : GridContext<AuditLog, Guid>
             PageSize: state.PageSize
         );
 
-        // 3. Запрашиваем постраничные данные из PostgreSQL
         PagedResult<AuditLog> pagedResult = await _auditLogService.SearchLogsAsync(searchRequest, ct);
-
-        // ИСПРАВЛЕНО (Устранение ошибки типов): Приводим к универсальному IEnumerable, 
-        // что полностью снимает конфликт между IReadOnlyCollection и List!
-        IEnumerable<AuditLog> finalItems = pagedResult.Items;
-
-        // 4. Если пользователь нажал на заголовок колонки — упорядочиваем полученные строки
-        if (state.SortDefinitions.Any() && finalItems.Any())
-        {
-            finalItems = finalItems
-                .AsQueryable()
-                .OrderBy(state.SortDefinitions); // Нативный LINQ-разбор от MudBlazor
-        }
 
         return new GridData<AuditLog>
         {
-            // MudBlazor на входе в GridData принимает любое IEnumerable, поэтому каст не нужен!
-            Items = finalItems,
+            Items = pagedResult.Items,
             TotalItems = pagedResult.TotalCount
         };
     }
 
-    protected override Task OpenDialogWindowAsync(AuditLog model, bool isNew)
-    {
-        return Task.CompletedTask;
-    }
+    protected override Task OpenDialogWindowAsync(AuditLog model, bool isNew) => Task.CompletedTask;
 }

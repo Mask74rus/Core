@@ -18,9 +18,6 @@ public abstract class DataContext<TEntity, TKey, TQueryState, TResultData> : Wor
     private bool _isLoading;
     private bool _isDisposed;
 
-    // ИСПРАВЛЕНО: Запоминаем режим работы для отложенной безопасной инициализации
-    private readonly bool _isInMemoryModeScheduled;
-
     public IUiDataBroker<TEntity, TQueryState, TResultData> Broker { get; }
     public IUiOzuCache<TEntity> OzuCache { get; }
 
@@ -53,20 +50,8 @@ public abstract class DataContext<TEntity, TKey, TQueryState, TResultData> : Wor
         OzuCache = serviceProvider.GetRequiredService<IUiOzuCache<TEntity>>();
         Broker = serviceProvider.GetRequiredService<IUiDataBroker<TEntity, TQueryState, TResultData>>();
 
-        // ИСПРАВЛЕНО: Просто фиксируем режим работы. Никакой привязки абстрактных методов в конструкторе!
-        _isInMemoryModeScheduled = isInMemoryMode;
-    }
-
-    /// <summary>
-    /// ИСПРАВЛЕНО (Проблема 3): Единая и безопасная точка инициализации жизненного цикла.
-    /// Конфигурирует брокер и привязывает делегаты только тогда, когда конструкторы 
-    /// абсолютно всех классов-наследников гарантированно и полностью завершили свою работу.
-    /// </summary>
-    public override void InitializeContext()
-    {
-        base.InitializeContext(); // Поднимаем вызов к базовому WorkspaceContext
-
-        if (_isInMemoryModeScheduled)
+        // ИСПРАВЛЕНО: Возвращаем конфигурацию на её законное место. Брокер готов к работе с первой секунды!
+        if (isInMemoryMode)
         {
             Broker.ConfigureInMemoryMode(OzuCache, LoadInitialDataForBrokerAsync, EvaluateDataStateInMemory);
         }

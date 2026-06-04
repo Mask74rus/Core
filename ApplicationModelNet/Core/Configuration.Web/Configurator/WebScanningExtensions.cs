@@ -39,7 +39,7 @@ public static class WebInfrastructureExtensions
         Console.WriteLine($"[SCANNER] Сканирование завершено. Найдено {assemblies.Length} целевых UI-сборок.");
 
         Console.WriteLine();
-
+        /*
         // АВТОМАТИЧЕСКАЯ РЕГИСТРАЦИЯ UI-КОНТЕКСТОВ ПЛАТФОРМЫ
         Console.WriteLine("[SCANNER] Регистрация C#-контекстов страниц по маркеру IWorkspaceContext...");
 
@@ -73,7 +73,7 @@ public static class WebInfrastructureExtensions
         }
         Console.WriteLine($"[SCANNER] Успешно развернуто {registeredContextsCount} контекстов управления в DI.");
 
-        Console.WriteLine();
+        Console.WriteLine();*/
 
         Console.WriteLine("[SCANNER] Регистрация UI-компонентов и модулей навигации через Scrutor...");
 
