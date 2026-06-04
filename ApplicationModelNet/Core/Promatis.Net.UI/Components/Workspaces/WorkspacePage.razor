@@ -1,7 +1,6 @@
 ﻿<MudPaper Elevation="@GetPaperElevation()"
           Class="@GetPaperClass()"
           Style="@($"width: 100%; height: {GetWorkspaceHeight()}; overflow: hidden;")">
-    @* ИСПРАВЛЕНО: min-height заменена на height *@
 
     <!-- 1. ВЕРХНЯЯ ЗОНА (ЗАПОЛНЯЕТСЯ ТОЛЬКО ПРИ НАЛИЧИИ TOPCONTENT) -->
     @if (TopContent != null && !IsTopCollapsed())
@@ -18,7 +17,6 @@
         <!-- 2. ЛЕВАЯ ЗОНА (НАВИГАЦИЯ / ДЕРЕВО) -->
         @if (LeftContent != null && !IsLeftCollapsed())
         {
-            @* ИСПРАВЛЕНО: Добавлен скролл overflow-y: auto для защиты от переполнения деревом *@
             <div class="workspace-zone-left d-flex flex-column align-stretch justify-space-between"
                  style="@($"width: {GetLeftWidth()}; min-width: {GetLeftWidth()}; max-width: {GetLeftWidth()}; overflow-y: auto;")">
                 @LeftContent
@@ -26,18 +24,26 @@
         }
 
         <!-- 3. ЦЕНТРАЛЬНАЯ ЗОНА (БОДИ: ГРИД / МНЕМОСХЕМА) -->
-        @* ИСПРАВЛЕНО: Убран h-100, добавлены классы d-flex flex-column для каскадной передачи высоты внутрь GridPage *@
-        <div class="workspace-zone-body flex-grow-1 h-100" style="min-width: 0; min-height: 0;">
+        <!-- ИСПРАВЛЕНО: Добавлен класс position-relative для абсолютного позиционирования MudOverlay внутри зоны -->
+        <div class="workspace-zone-body flex-grow-1 h-100 position-relative" style="min-width: 0; min-height: 0;">
             @if (BodyContent != null)
             {
                 @BodyContent
             }
+
+            <!-- ИСПРАВЛЕНО: Централизованный реактивный индикатор загрузки для всей системы. -->
+            <!-- Блокирует интерфейс зоны от повторных кликов во время тяжелых серверных gRPC/API-запросов. -->
+            <MudOverlay Visible="@(ActionContext?.IsLoading ?? false)"
+                        DarkBackground="false"
+                        LightBackground="true"
+                        Absolute="true">
+                <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" />
+            </MudOverlay>
         </div>
 
         <!-- 4. ПРАВАЯ ЗОНА (ИНСПЕКТОР СВОЙСТВ) -->
         @if (RightContent != null && !IsRightCollapsed())
         {
-            @* ИСПРАВЛЕНО: Добавлен скролл overflow-y: auto для защиты от переполнения инспектором *@
             <div class="workspace-zone-right d-flex flex-column align-stretch justify-space-between"
                  style="@($"width: {GetRightWidth()}; min-width: {GetRightWidth()}; max-width: {GetRightWidth()}; overflow-y: auto;")">
                 @RightContent

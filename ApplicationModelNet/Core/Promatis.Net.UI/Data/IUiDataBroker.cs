@@ -6,7 +6,7 @@ namespace Promatis.Net.UI;
 /// Контракт брокера данных, управляющего выбором источника (Server/OZU) и стратегией отображения.
 /// Не содержит дефолтных режимов — программист обязан явно сконфигурировать поведение формы.
 /// </summary>
-public interface IUiDataBroker<TEntity, TQueryState, TResultData> where TEntity : class
+public interface IUiDataBroker<TEntity, TQueryState, TResultData> : IDisposable where TEntity : class
 {
     /// <summary>
     /// Признак, указывающий, что текущий инстанс брокера на форме работает в режиме оперативной памяти.
@@ -21,7 +21,11 @@ public interface IUiDataBroker<TEntity, TQueryState, TResultData> where TEntity 
     /// <summary>
     /// Жесткая конфигурация работы через изолированное локальное ОЗУ-хранилище (InMemory Mode).
     /// </summary>
-    void ConfigureInMemoryMode(IUiOzuCache<TEntity> ozuCache, Func<TQueryState, List<TEntity>, TResultData> inMemoryEvaluator);
+    void ConfigureInMemoryMode(
+        IUiOzuCache<TEntity> ozuCache,
+        Func<TQueryState, CancellationToken, Task<List<TEntity>>> serverDataLoader, // Передаем знание О ТОМ, КАК загрузить
+        Func<TQueryState, IReadOnlyList<TEntity>, TResultData> inMemoryEvaluator // Работает с IReadOnlyList
+    );
 
     /// <summary>
     /// Универсальная точка асинхронного запроса данных визуализаторами интерфейса (GridPage / TreePage).

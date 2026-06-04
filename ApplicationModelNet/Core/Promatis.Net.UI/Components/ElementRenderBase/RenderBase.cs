@@ -17,7 +17,7 @@ public abstract class RenderBase : ComponentBase, IDisposable
     /// Каскадный контекст холста рабочей области.
     /// </summary>
     [CascadingParameter]
-    protected IWorkspaceActionContext? ActionContext { get; set; }
+    protected IWorkspaceContext? ActionContext { get; set; }
 
     /// <summary>
     /// Безопасно извлекает текущие выделенные данные из контекста формы.

@@ -8,14 +8,17 @@ namespace Promatis.Net.MES.UI.Pages.UnitOfMeasurements;
 /// Прикладной контекст управления справочником единиц измерения (Штуки, Килограммы, Метры).
 /// Содержит 0 строк инфраструктурной рутины. Фокусируется только на связи со своим диалогом.
 /// </summary>
-public class UnitOfMeasurementWorkspaceContext : ReferenceWorkspaceContext<UnitOfMeasurement>
+public class UnitOfMeasurementContext : ReferenceContext<UnitOfMeasurement>
 {
     /// <summary>
-    /// Конструктор принимает только единственный IServiceProvider, полностью ликвидируя ад зависимостей.
-    ///Параметр onDataChangedNotifier (RefreshGrid страницы) автоматически пробрасывается в брокер данных ядра.
+    /// Конструктор принимает единственный IServiceProvider и пробрасывает параметры 
+    /// в обновленный эталонный ReferenceContext, включая режим InMemory по умолчанию.
     /// </summary>
-    public UnitOfMeasurementWorkspaceContext(IServiceProvider serviceProvider, Action? onDataChangedNotifier = null)
-        : base(serviceProvider, onDataChangedNotifier: onDataChangedNotifier)
+    public UnitOfMeasurementContext(
+        IServiceProvider serviceProvider,
+        bool isInMemoryMode = true,
+        Action? onDataChangedNotifier = null)
+        : base(serviceProvider, isInMemoryMode, onDataChangedNotifier)
     {
     }
 
@@ -28,7 +31,7 @@ public class UnitOfMeasurementWorkspaceContext : ReferenceWorkspaceContext<UnitO
         // Создаем контейнер параметров для нашего нативного Razor-диалога формы
         var parameters = new DialogParameters<UnitOfMeasurementDialog>
         {
-            { "Model", model } // Передаем чистую модель или её изолированный клон
+            { "Model", model } // Передаем чистую модель или её изолированный клон от IEntityCloner
         };
 
         var options = new DialogOptions
@@ -38,7 +41,7 @@ public class UnitOfMeasurementWorkspaceContext : ReferenceWorkspaceContext<UnitO
             FullWidth = true
         };
 
-        // Вызываем диалог напрямую по его нативному Razor-типу
+        // Вызываем диалог напрямую по его нативному Razor-типу через службу диалогов MudBlazor
         IDialogReference dialog = await DialogService.ShowAsync<UnitOfMeasurementDialog>(
             isNew ? "Создание единицы измерения" : "Редактирование единицы измерения",
             parameters,

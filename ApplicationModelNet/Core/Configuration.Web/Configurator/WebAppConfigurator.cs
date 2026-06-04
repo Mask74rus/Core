@@ -1,6 +1,7 @@
-﻿using System.Reflection;
-using Microsoft.AspNetCore.Components;
+﻿using Microsoft.AspNetCore.Components;
 using MudBlazor.Services;
+using Promatis.Net.UI;
+using System.Reflection;
 
 namespace Promatis.Net.Configuration.Web;
 
@@ -36,7 +37,16 @@ public class WebAppConfigurator<TRootComponent> : AppConfigurator, IWebAppConfig
             config.SnackbarConfiguration.VisibleStateDuration = 5000;
         });
 
-        // 5. Шина UI-событий
+        // --- РЕГИСТРАЦИЯ ИНФРАСТРУКТУРНОГО ЯДРА ПЛАТФОРМЫ PROMATIS UI ---
+
+        // 1. Регистрация ОЗУ-кэша и дефолтной плоской стратегии мутаций
+        services.AddTransient(typeof(IUiOzuCache<>), typeof(UiOzuCache<>));
+        services.AddTransient(typeof(IOzuMutationStrategy<>), typeof(FlatOzuMutationStrategy<>));
+
+        // 2. Регистрация универсального Брокера данных (3 генерик-параметра: TEntity, TQueryState, TResultData)
+        services.AddTransient(typeof(IUiDataBroker<,,>), typeof(UiDataBroker<,,>));
+
+        // 3. Шина UI-событий
         services.AddScoped<IUiCommandBus, UiCommandBus>();
 
         // Регистрация системного аксессора для поддержки ленивого разрешения Scoped-сервисов

@@ -1,6 +1,5 @@
 ﻿@typeparam TEntity where TEntity : class
 
-
 <MudDataGrid @ref="_mudGrid"
              ServerData="@ServerDataProvider"
              T="TEntity"
@@ -19,6 +18,7 @@
     <Columns>
         @GridColumns
     </Columns>
+
     @* Включаем пагинатор только по требованию конечной формы *@
     <PagerContent>
         @if (WithPagination)

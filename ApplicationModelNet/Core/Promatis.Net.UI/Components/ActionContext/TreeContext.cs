@@ -1,31 +1,32 @@
-﻿namespace Promatis.Net.UI.Components;
+﻿using Microsoft.Extensions.DependencyInjection;
+
+namespace Promatis.Net.UI.Components;
 
 /// <summary>
 /// Промежуточный контекст представления для древовидных страниц (Tree Mode).
 /// Переводит абстрактные данные ядра на язык иерархических визуализаторов.
 /// </summary>
-public abstract class TreeWorkspaceContext<TEntity, TKey>
-    : EntityWorkspaceContext<TEntity, TKey, object, List<TEntity>>
+public abstract class TreeContext<TEntity, TKey>
+    : EntityContext<TEntity, TKey, object, IReadOnlyList<TEntity>> 
     where TEntity : class, new()
     where TKey : notnull
 {
-    protected TreeWorkspaceContext(
+    protected TreeContext(
         IServiceProvider serviceProvider,
         bool isInMemoryMode,
-        IOzuMutationStrategy<TEntity> treeStrategy,
         Action? onDataChangedNotifier = null)
         : base(serviceProvider, isInMemoryMode, onDataChangedNotifier)
     {
-        if (treeStrategy == null) throw new ArgumentNullException(nameof(treeStrategy));
-
-        // Переключаем плоский ОЗУ-кэш ядра на строго типизированную иерархическую стратегию мутаций
+        // ИСПРАВЛЕНО: Инверсия зависимостей. Извлекаем иерархическую стратегию мутаций из DI
+        var treeStrategy = serviceProvider.GetRequiredService<IOzuMutationStrategy<TEntity>>();
         OzuCache.SetMutationStrategy(treeStrategy);
     }
 
     /// <summary>
+    /// ИСПРАВЛЕНО: Метод принимает и возвращает безопасный IReadOnlyList.
     /// Для дерева в памяти мы просто возвращаем весь накопленный граф объектов.
     /// </summary>
-    protected override List<TEntity> EvaluateDataStateInMemory(object state, List<TEntity> inMemoryList)
+    protected override IReadOnlyList<TEntity> EvaluateDataStateInMemory(object state, IReadOnlyList<TEntity> inMemoryList)
     {
         return inMemoryList;
     }
@@ -34,8 +35,10 @@ public abstract class TreeWorkspaceContext<TEntity, TKey>
     /// Честный серверный запрос для дерева. Загружает весь линейный список записей из СУБД,
     /// на основе которого визуализатор построит граф связей ParentId -> Children.
     /// </summary>
-    protected override async Task<List<TEntity>> FetchDataFromServerAsync(object state, CancellationToken ct)
+    protected override async Task<IReadOnlyList<TEntity>> FetchDataFromServerAsync(object state, CancellationToken ct)
     {
-        return await GetBaseService().GetAllAsync();
+        // Вызов приведен в соответствие с сервисным контрактом без параметров
+        List<TEntity> result = await GetBaseService().GetAllAsync();
+        return result ?? [];
     }
 }

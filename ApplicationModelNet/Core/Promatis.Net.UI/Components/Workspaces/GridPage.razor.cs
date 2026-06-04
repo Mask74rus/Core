@@ -3,16 +3,14 @@ using MudBlazor;
 
 namespace Promatis.Net.UI.Components.Workspaces;
 
-public partial class GridPage<TEntity> : ComponentBase where TEntity : class
+public partial class GridPage<TEntity> : ComponentBase, IDisposable where TEntity : class
 {
     private MudDataGrid<TEntity>? _mudGrid;
+    private IWorkspaceContext? _currentContext;
 
     [CascadingParameter]
-    protected IWorkspaceActionContext? ActionContext { get; set; }
+    protected IWorkspaceContext? ActionContext { get; set; }
 
-    /// <summary>
-    /// Фоновое серверное событие загрузки данных (мапится на MudBlazor ServerData).
-    /// </summary>
     [Parameter]
     public Func<GridState<TEntity>, CancellationToken, Task<GridData<TEntity>>>? ServerDataProvider { get; set; }
 
@@ -28,8 +26,37 @@ public partial class GridPage<TEntity> : ComponentBase where TEntity : class
     protected TEntity? SelectedRow { get; set; }
 
     /// <summary>
-    /// Публичный метод, позволяющий страницам-владельцам принудительно обновить грид при смене фильтров.
+    /// Контроль подписок на изменения контекста для защиты от утечек памяти.
+    /// Переподписывается на лету, если Blazor подменит CascadingParameter контекста.
     /// </summary>
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+
+        if (ActionContext != _currentContext)
+        {
+            if (_currentContext != null)
+            {
+                _currentContext.OnContextStateChanged -= HandleContextStateChanged;
+            }
+
+            _currentContext = ActionContext;
+
+            if (ActionContext != null)
+            {
+                ActionContext.OnContextStateChanged += HandleContextStateChanged;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Реагирует на любые изменения состояния контекста (например, включение/выключение IsLoading).
+    /// </summary>
+    private void HandleContextStateChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
     public Task ReloadServerData()
     {
         return _mudGrid != null ? _mudGrid.ReloadServerData() : Task.CompletedTask;
@@ -40,21 +67,23 @@ public partial class GridPage<TEntity> : ComponentBase where TEntity : class
 
     protected void OnSelectedRowChanged(TEntity? newSelection)
     {
+        // СОХРАНЕНО: Ваш намеренно спроектированный UX-шаг фиксации фокуса
         if (newSelection == null && SelectedRow != null) return;
 
         SelectedRow = newSelection;
 
+        // Транслируем стейт напрямую в ядро. Контекст сам синхронно обновит состояние кнопок тулбара!
         if (ActionContext is IHasSelectedData<TEntity> bindableContext)
         {
             bindableContext.SelectedData = newSelection;
+        }
+    }
 
-            // ИСПРАВЛЕНО: Заворачиваем уведомление об обновлении контекста холста в InvokeAsync.
-            // Это разводит во времени рендеринг таблицы и запуск команд кнопок/диалогов, 
-            // полностью ликвидируя конфликт RenderTreeDiffBuilder!
-            InvokeAsync(() =>
-            {
-                bindableContext.OnContextUpdated?.Invoke();
-            });
+    public void Dispose()
+    {
+        if (_currentContext != null)
+        {
+            _currentContext.OnContextStateChanged -= HandleContextStateChanged;
         }
     }
 }

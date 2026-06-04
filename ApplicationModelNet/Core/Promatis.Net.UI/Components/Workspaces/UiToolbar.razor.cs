@@ -15,7 +15,7 @@ public partial class UiToolbar : ComponentBase, IDisposable
     /// Каскадный контекст холста для отслеживания смены выделения данных.
     /// </summary>
     [CascadingParameter]
-    protected IWorkspaceActionContext? ActionContext { get; set; }
+    protected IWorkspaceContext? ActionContext { get; set; }
 
     /// <summary>
     /// Извлекает текущий выделенный объект для передачи в бизнес-логику контролов.

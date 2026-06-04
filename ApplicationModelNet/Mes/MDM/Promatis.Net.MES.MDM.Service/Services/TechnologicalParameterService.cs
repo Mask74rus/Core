@@ -12,12 +12,12 @@ namespace Promatis.Net.MES.MDM.Service;
 public class TechnologicalParameterService(IDbContextFactory<MesMdmApplicationDbContext> contextFactory)
     : TechnologicalParameterService<TechnologicalParameter, MesMdmApplicationDbContext>(contextFactory)
 {
-    public override async Task<List<TechnologicalParameter>> GetAllAsync()
+    public override async Task<List<TechnologicalParameter>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        await using MesApplicationDbContext context = await ContextFactory.CreateDbContextAsync();
+        await using MesApplicationDbContext context = await ContextFactory.CreateDbContextAsync(cancellationToken);
 
         return await context.Set<TechnologicalParameter>()
             .Include(x => x.UnitOfMeasurement) // Жадная загрузка справочника Ед. Изм.
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
     }
 }

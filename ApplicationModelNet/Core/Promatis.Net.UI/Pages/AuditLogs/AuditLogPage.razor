@@ -13,7 +13,7 @@
         <BodyContent>
             <GridPage TEntity="AuditLog"
                       @ref="_grid"
-                      ServerDataProvider="@Context.Broker.FetchDataAsync"
+                      ServerDataProvider="@Context.GetDataAsync"
                       WithPagination="true"
                       RowsPerPage="20">
                 <GridColumns>

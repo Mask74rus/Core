@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Promatis.Net.Domain.Interface;
 
 namespace Promatis.Net.Service;
@@ -16,21 +17,23 @@ public abstract class BaseService<T, TKey, TContext>(IDbContextFactory<TContext>
         return await context.Set<T>().FindAsync(id);
     }
 
-    public virtual async Task<List<T>> GetAllAsync()
+    public virtual async Task<List<T>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        await using TContext context = await ContextFactory.CreateDbContextAsync();
-        return await context.Set<T>().ToListAsync();
+        await using TContext context = await ContextFactory.CreateDbContextAsync(cancellationToken);
+
+        // ИСПРАВЛЕНО: Токен транслируется напрямую в драйвер базы данных (EF Core / PostgreSQL)
+        return await context.Set<T>().ToListAsync(cancellationToken);
     }
 
-    public virtual async Task<PagedResult<T>> GetPagedAsync(int pageIndex, int pageSize, CancellationToken ct = default)
+    public virtual async Task<PagedResult<T>> GetPagedAsync(int pageIndex, int pageSize, CancellationToken cancellationToken = default)
     {
-        await using TContext context = await ContextFactory.CreateDbContextAsync();
+        await using TContext context = await ContextFactory.CreateDbContextAsync(cancellationToken);
 
         // 1. Создаем базовый запрос к таблице сущности
         IQueryable<T> query = context.Set<T>();
 
         // 2. Получаем общее количество записей в БД для пагинатора
-        int totalCount = await query.CountAsync(ct);
+        int totalCount = await query.CountAsync(cancellationToken);
 
         // 3. Сортируем по первичному ключу (ID) для детерминированного порядка страниц.
         // Так как у нас есть ограничение where T : IDomainObjectHasKey<TKey>, мы можем безопасно использовать x.Id
@@ -40,7 +43,7 @@ public abstract class BaseService<T, TKey, TContext>(IDbContextFactory<TContext>
         List<T> items = await query
             .Skip(pageIndex * pageSize)
             .Take(pageSize)
-            .ToListAsync(ct);
+            .ToListAsync(cancellationToken);
 
         // 5. Возвращаем упакованный результат
         return new PagedResult<T>(items, totalCount);
@@ -69,7 +72,7 @@ public abstract class BaseService<T, TKey, TContext>(IDbContextFactory<TContext>
         }
 
         // 2. Считываем метаданные отслеживания для оригинального объекта СУБД
-        var entry = context.Entry(dbEntity);
+        EntityEntry<T> entry = context.Entry(dbEntity);
 
         // 3. Переносим значения ТОЛЬКО ПРИМИТИВНЫХ свойств из клона в оригинальный объект.
         // Метод SetValues автоматически проигнорирует навигационные свойства (Parent, Children)

@@ -9,17 +9,31 @@ namespace Promatis.Net.UI;
 public class UiOzuCache<TEntity> : IUiOzuCache<TEntity> where TEntity : class
 {
     private IOzuMutationStrategy<TEntity> _mutationStrategy = new FlatOzuMutationStrategy<TEntity>();
+    private readonly List<TEntity> _inMemoryItems = [];
 
-    public List<TEntity> InMemoryItems { get; set; } = new();
+    // Единый объект синхронизации для потоков чтения и записи
+    private readonly Lock _lockObject = new();
+
+    public IReadOnlyList<TEntity> InMemoryItems => _inMemoryItems;
 
     public UiOzuCache() { }
 
     public UiOzuCache(List<TEntity> initialItems)
     {
-        InMemoryItems = initialItems ?? throw new ArgumentNullException(nameof(initialItems));
+        Initialize(initialItems);
     }
 
-    // Метод для динамической смены стратегии (вызывается контекстом дерева)
+    public void Initialize(List<TEntity> initialItems)
+    {
+        if (initialItems == null) throw new ArgumentNullException(nameof(initialItems));
+
+        lock (_lockObject)
+        {
+            _inMemoryItems.Clear();
+            _inMemoryItems.AddRange(initialItems);
+        }
+    }
+
     public void SetMutationStrategy(IOzuMutationStrategy<TEntity> strategy)
     {
         _mutationStrategy = strategy ?? throw new ArgumentNullException(nameof(strategy));
@@ -27,8 +41,22 @@ public class UiOzuCache<TEntity> : IUiOzuCache<TEntity> where TEntity : class
 
     public void ApplyOzuDelta(EntityStateChangeEnum state, TEntity entity)
     {
-        // Делегируем работу выбранной стратегии мутации
-        _mutationStrategy.ApplyDelta(InMemoryItems, state, entity, GetEntityId);
+        // Поток СУБД монопольно захватывает замок на время мутации
+        lock (_lockObject)
+        {
+            _mutationStrategy.ApplyDelta(_inMemoryItems, state, entity, GetEntityId);
+        }
+    }
+
+    public TResult ExecuteInLock<TResult>(Func<IReadOnlyList<TEntity>, TResult> evaluator)
+    {
+        if (evaluator == null) throw new ArgumentNullException(nameof(evaluator));
+
+        // Поток UI (Blazor) монопольно захватывает замок на время фильтрации/вычисления данных экрана
+        lock (_lockObject)
+        {
+            return evaluator(_inMemoryItems);
+        }
     }
 
     private object? GetEntityId(TEntity item)

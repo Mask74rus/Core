@@ -1,7 +1,5 @@
-﻿using MudBlazor;
-using Promatis.Net.Domain;
+﻿using Promatis.Net.Domain;
 using Promatis.Net.UI.Controls;
-using Microsoft.AspNetCore.Components;
 
 namespace Promatis.Net.UI.Components;
 
@@ -9,21 +7,25 @@ namespace Promatis.Net.UI.Components;
 /// Бизнес-Агрегатор для всех древовидных (иерархических) справочников НСИ системы.
 /// Фиксирует типы данных, настраивает рекурсивный ОЗУ-кэш и автоматически собирает дерево-тулбар.
 /// </summary>
-public abstract class ReferenceTreeWorkspaceContext<TEntity> : TreeWorkspaceContext<TEntity, Guid>
+public abstract class ReferenceTreeContext<TEntity> : TreeContext<TEntity, Guid>
     where TEntity : ReferenceTreeBase<TEntity>, new()
 {
-    protected ReferenceTreeWorkspaceContext(IServiceProvider serviceProvider, Action? onDataChangedNotifier = null)
-        : base(
-            serviceProvider,
-            isInMemoryMode: true,
-            // Передаем строго типизированную стратегию обхода графа дерева для ОЗУ-кэша ядра
-            treeStrategy: new HierarchicalOzuMutationStrategy<TEntity>(
-                parentIdSelector: x => x.ParentId,
-                childrenSelector: x => x.Children.ToList()
-            ),
-            onDataChangedNotifier: onDataChangedNotifier)
+    // ИСПРАВЛЕНО: Конструктор стал кристально чистым. Настройка стратегий мутаций 
+    // и вызовы виртуальных методов отсюда полностью удалены!
+    protected ReferenceTreeContext(
+        IServiceProvider serviceProvider,
+        Action? onDataChangedNotifier = null)
+        : base(serviceProvider, isInMemoryMode: true, onDataChangedNotifier)
     {
-        // Автоматически наполняем тулбар специализированными командами управления деревом
+    }
+
+    /// <summary>
+    /// ИСПРАВЛЕНО: Безопасный метод жизненного цикла контекста.
+    /// Автоматически вызывается базовым холстом (WorkspacePage) в событии OnInitialized,
+    /// гарантируя защиту классов-наследников от NullReferenceException.
+    /// </summary>
+    public override void InitializeContext()
+    {
         PopulateDefaultTreeToolbar();
     }
 
@@ -39,11 +41,11 @@ public abstract class ReferenceTreeWorkspaceContext<TEntity> : TreeWorkspaceCont
         // 2. Кнопка создания дочернего подузла (автоматически завязана на наличие SelectedData)
         AddControl(new CreateChildButton<TEntity>().OnExecute(ExecuteCreateChildRecordAsync));
 
-        // 3. Кнопка изменения выделенного узла
-        AddControl(new EditEntityButton<TEntity>().OnExecute(async (row) => await ExecuteEditRecordAsync(row)));
+        // 3. ИСПРАВЛЕНО: Прямая передача ссылок на методы без анонимных лямбда-замыканий
+        AddControl(new EditEntityButton<TEntity>().OnExecute(ExecuteEditRecordAsync));
 
-        // 4. Кнопка удаления ( MessageBox подтверждения и команда удаления в СУБД)
-        AddControl(new DeleteEntityButton<TEntity>().OnExecute(async (row) => await ExecuteDeleteRecordAsync(row)));
+        // 4. Кнопка удаления (MessageBox подтверждения и команда удаления в СУБД)
+        AddControl(new DeleteEntityButton<TEntity>().OnExecute(ExecuteDeleteRecordAsync));
 
         // Стандартный визуальный разделитель
         AddControl(new ToolbarDivider());
@@ -57,8 +59,9 @@ public abstract class ReferenceTreeWorkspaceContext<TEntity> : TreeWorkspaceCont
     {
         if (SelectedData == null) return;
 
-        // Создаем чистый объект, но жестко привязываем его к текущему выделенному узлу
-        var childModel = new TEntity
+        // Создаем чистый объект, используя новый синтаксис C# целевого типа, 
+        // и привязываем его к текущему выделенному узлу
+        TEntity childModel = new()
         {
             ParentId = SelectedData.Id
         };

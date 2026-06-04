@@ -17,14 +17,14 @@ public partial class AuditLogPage : ComponentBase
     [Inject]
     protected IAuditLogService AuditLogService { get; set; } = null!;
 
-    protected AuditLogWorkspaceContext Context { get; set; } = null!;
+    protected AuditLogContext Context { get; set; } = null!;
 
     protected override void OnInitialized()
     {
         base.OnInitialized();
 
         // МГНОВЕННО создаем пустой контекст. Страница рендерится без задержек за 0 мс
-        Context = new AuditLogWorkspaceContext(PageServiceProvider, onFilterChanged: RefreshGrid);
+        Context = new AuditLogContext(PageServiceProvider, onFilterChanged: RefreshGrid);
     }
 
     /// <summary>

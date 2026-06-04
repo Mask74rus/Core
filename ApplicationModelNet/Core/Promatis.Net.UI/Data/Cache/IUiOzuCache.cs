@@ -10,15 +10,27 @@ namespace Promatis.Net.UI;
 public interface IUiOzuCache<TEntity> where TEntity : class
 {
     /// <summary>
-    /// Прямой доступ к текущему массиву данных, хранящемуся в оперативной памяти конкретной формы.
+    /// Прямой доступ к текущему массиву данных только для чтения. 
+    /// Ни одна форма больше не может перезаписать или очистить этот список вручную.
     /// </summary>
-    List<TEntity> InMemoryItems { get; set; }
+    IReadOnlyList<TEntity> InMemoryItems { get; }
 
     /// <summary>
-    /// Автономный ОЗУ-движок мутаций. Хирургически точно обновляет коллекцию в памяти,
-    /// принимая системный стейт транзакции СУБД.
+    /// Точка первоначального наполнения кэша данными, полученными от формы.
+    /// Вызывается строго один раз при инициализации.
+    /// </summary>
+    void Initialize(List<TEntity> initialItems);
+
+    /// <summary>
+    /// Автономный ОЗУ-движок мутаций. Хирургически точно обновляет коллекцию в памяти.
     /// </summary>
     void ApplyOzuDelta(EntityStateChangeEnum state, TEntity entity);
 
     void SetMutationStrategy(IOzuMutationStrategy<TEntity> strategy);
+
+    /// <summary>
+    /// Выполняет произвольную операцию чтения/фильтрации над кэшем внутри потокобезопасного периметра.
+    /// Перехватывает поток UI и защищает его от параллельных мутаций из фоновых потоков СУБД.
+    /// </summary>
+    TResult ExecuteInLock<TResult>(Func<IReadOnlyList<TEntity>, TResult> evaluator);
 }

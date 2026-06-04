@@ -1,0 +1,22 @@
+﻿@typeparam TEntity where TEntity : Promatis.Net.Domain.ReferenceTreeBase<TEntity>, new()
+
+@* Каскадно пробрасываем иерархический контекст. Его поймают и UiToolbar, и ваш TreePage! *@
+<CascadingValue Value="@((IWorkspaceContext)Context)">
+    <WorkspacePage>
+
+        @* 1. ВЕРХНЯЯ ЗОНА: Автоматический тулбар кнопок управления деревом (Корень, Подузел, CRUD) *@
+        <TopContent>
+            <UiToolbar Controls="@Context.Controls" />
+        </TopContent>
+
+        @* 2. ЦЕНТРАЛЬНАЯ ЗОНА: Древовидная структура с автоматическим выводом полей ReferenceBase *@
+        <BodyContent>
+            @* ИСПРАВЛЕНО: RootItems удален. TreePage сам лениво потянет данные после рендеринга через Context.GetDataAsync *@
+            <TreePage TEntity="TEntity"
+                      ChildSelector="@(x => x.Children)"
+                      TextSelector="@(x => string.IsNullOrWhiteSpace(x.Code) ? x.Name : $"[{x.Code}] {x.Name}")"
+                      IconSelector="@(x => x.Children != null && x.Children.Any() ? Icons.Material.Filled.Folder : Icons.Material.Filled.InsertDriveFile)" />
+        </BodyContent>
+
+    </WorkspacePage>
+</CascadingValue>

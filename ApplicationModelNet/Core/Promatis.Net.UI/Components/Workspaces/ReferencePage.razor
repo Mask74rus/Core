@@ -1,0 +1,35 @@
+﻿@typeparam TEntity where TEntity : Promatis.Net.Domain.ReferenceBase, new()
+
+@* Каскадно пробрасываем контекст вниз. Его поймают и UiToolbar, и ваш GridPage! *@
+<CascadingValue Value="@((IWorkspaceContext)Context)">
+    <WorkspacePage>
+
+        @* 1. ВЕРХНЯЯ ЗОНА: Автоматический тулбар кнопок справочника НСИ *@
+        <TopContent>
+            <UiToolbar Controls="@Context.Controls" />
+        </TopContent>
+
+        @* 2. ЦЕНТРАЛЬНАЯ ЗОНА: Табличная сетка с системными полями по умолчанию *@
+        <BodyContent>
+            @* ИСПРАВЛЕНО: ServerDataProvider теперь вызывает GetDataAsync, запуская крутилку MudOverlay *@
+            <GridPage TEntity="TEntity"
+                      @ref="_grid"
+                      ServerDataProvider="@Context.GetDataAsync"
+                      WithPagination="true"
+                      RowsPerPage="20">
+                <GridColumns>
+
+                    @* СИСТЕМНЫЕ КОЛОНКИ: Выводятся автоматически для ВСЕХ справочников системы *@
+                    <PropertyColumn T="TEntity" TProperty="string" Property="x => x.Code" Title="Системный код" HeaderStyle="width: 180px;" />
+                    <PropertyColumn T="TEntity" TProperty="string" Property="x => x.Name" Title="Наименование" HeaderStyle="width: 350px;" />
+                    <PropertyColumn T="TEntity" TProperty="string" Property="x => x.Description" Title="Описание / Примечание" HeaderStyle="width: auto;" />
+
+                    @* КАСТОМНЫЕ КОЛОНКИ: Специфичные поля, которые добавит дочерняя форма *@
+                    @CustomColumns
+
+                </GridColumns>
+            </GridPage>
+        </BodyContent>
+
+    </WorkspacePage>
+</CascadingValue>

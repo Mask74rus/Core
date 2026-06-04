@@ -5,70 +5,174 @@ namespace Promatis.Net.UI;
 public class HierarchicalOzuMutationStrategy<TEntity> : IOzuMutationStrategy<TEntity> where TEntity : class
 {
     private readonly Func<TEntity, object?> _parentIdSelector;
-    private readonly Func<TEntity, List<TEntity>> _childrenSelector;
 
-    public HierarchicalOzuMutationStrategy(Func<TEntity, object?> parentIdSelector, Func<TEntity, List<TEntity>> childrenSelector)
+    // Работаем строго с живой ICollection навигационного свойства, без клонирования
+    private readonly Func<TEntity, ICollection<TEntity>> _childrenSelector;
+
+    // Быстрый индекс для мгновенного поиска за O(1)
+    private readonly Dictionary<object, TEntity> _nodeIndex = [];
+    private readonly Dictionary<object, object> _childToParentMap = []; // Карта связей: IdУзла -> IdРодителя
+
+    private bool _isIndexBuilt;
+
+    public HierarchicalOzuMutationStrategy(
+        Func<TEntity, object?> parentIdSelector,
+        Func<TEntity, ICollection<TEntity>> childrenSelector)
     {
         _parentIdSelector = parentIdSelector ?? throw new ArgumentNullException(nameof(parentIdSelector));
         _childrenSelector = childrenSelector ?? throw new ArgumentNullException(nameof(childrenSelector));
     }
 
-    public void ApplyDelta(List<TEntity> inMemoryItems, EntityStateChangeEnum state, TEntity entity, Func<TEntity, object?> idSelector)
+    public void ApplyDelta(ICollection<TEntity> inMemoryItems, EntityStateChangeEnum state, TEntity entity, Func<TEntity, object?> idSelector)
     {
         object? entityId = idSelector(entity);
         if (entityId == null) return;
 
-        // Если объект корневой (ParentId == null), обрабатываем его на верхнем уровне списка
-        object? parentId = _parentIdSelector(entity);
-        if (parentId == null)
+        // Ленивая сборка плоского индекса при первой мутации данных формы
+        if (!_isIndexBuilt)
         {
-            ProcessNodeInList(inMemoryItems, state, entity, entityId, idSelector);
-            return;
+            BuildIndexRecursive(inMemoryItems, idSelector);
+            _isIndexBuilt = true;
         }
 
-        // Если у объекта есть родитель, ищем этого родителя по всему дереву рекурсивно
-        TEntity? parentNode = FindNodeRecursive(inMemoryItems, parentId, idSelector);
-        if (parentNode != null)
-        {
-            List<TEntity> siblings = _childrenSelector(parentNode) ?? new List<TEntity>();
-            ProcessNodeInList(siblings, state, entity, entityId, idSelector);
-        }
-    }
-
-    private void ProcessNodeInList(List<TEntity> list, EntityStateChangeEnum state, TEntity entity, object entityId, Func<TEntity, object?> idSelector)
-    {
         switch (state)
         {
             case EntityStateChangeEnum.Added:
-                if (!list.Any(x => Equals(idSelector(x), entityId))) list.Add(entity);
+                HandleAdded(inMemoryItems, entity, entityId, idSelector);
                 break;
 
             case EntityStateChangeEnum.Modified:
-                int idx = list.FindIndex(x => Equals(idSelector(x), entityId));
-                if (idx >= 0) list[idx] = entity;
+                HandleModified(inMemoryItems, entity, entityId, idSelector);
                 break;
 
             case EntityStateChangeEnum.Deleted:
             case EntityStateChangeEnum.SoftDeleted:
-                TEntity? toRemove = list.FirstOrDefault(x => Equals(idSelector(x), entityId));
-                if (toRemove != null) list.Remove(toRemove);
+                HandleDeleted(inMemoryItems, entityId, idSelector);
                 break;
         }
     }
 
-    private TEntity? FindNodeRecursive(List<TEntity> nodes, object targetId, Func<TEntity, object?> idSelector)
+    private void HandleAdded(ICollection<TEntity> rootItems, TEntity entity, object entityId, Func<TEntity, object?> idSelector)
     {
-        foreach (TEntity node in nodes)
-        {
-            if (Equals(idSelector(node), targetId)) return node;
+        if (_nodeIndex.ContainsKey(entityId)) return; // Защита от дублирования в памяти
 
-            List<TEntity> children = _childrenSelector(node);
-            if (children != null && children.Any())
+        object? newParentId = _parentIdSelector(entity);
+
+        if (newParentId == null)
+        {
+            // Объект корневой — добавляем в корень ОЗУ
+            rootItems.Add(entity);
+        }
+        else if (_nodeIndex.TryGetValue(newParentId, out var parentNode))
+        {
+            // Объект дочерний — добавляем в живую коллекцию его родителя
+            var children = _childrenSelector(parentNode);
+            children?.Add(entity);
+            _childToParentMap[entityId] = newParentId;
+        }
+
+        // Каскадно регистрируем узел и его поддерево в быстром индексе O(1)
+        UpdateIndexForSubtree(entity, idSelector);
+    }
+
+    private void HandleModified(ICollection<TEntity> rootItems, TEntity entity, object entityId, Func<TEntity, object?> idSelector)
+    {
+        // ИСПРАВЛЕНО: Никакого маппинга. Если узел уже существовал, хирургически удаляем старую ссылку
+        if (_nodeIndex.TryGetValue(entityId, out var oldNodeReference))
+        {
+            object? oldParentId = _childToParentMap.TryGetValue(entityId, out var pId) ? pId : null;
+
+            if (oldParentId == null)
             {
-                TEntity? found = FindNodeRecursive(children, targetId, idSelector);
-                if (found != null) return found;
+                rootItems.Remove(oldNodeReference);
+            }
+            else if (_nodeIndex.TryGetValue(oldParentId, out var oldParentNode))
+            {
+                _childrenSelector(oldParentNode)?.Remove(oldNodeReference);
+            }
+
+            // Вычищаем старую ссылку и её связи из индекса перед добавлением новой
+            RemoveFromIndexRecursive(oldNodeReference, idSelector);
+        }
+
+        // Вставляем новую ссылку по актуальному ParentId (идеально обрабатывает и Re-parenting, и изменение полей)
+        HandleAdded(rootItems, entity, entityId, idSelector);
+    }
+
+    private void HandleDeleted(ICollection<TEntity> rootItems, object entityId, Func<TEntity, object?> idSelector)
+    {
+        if (!_nodeIndex.TryGetValue(entityId, out var nodeToRemove)) return;
+
+        object? parentId = _childToParentMap.TryGetValue(entityId, out var pId) ? pId : null;
+
+        if (parentId == null)
+        {
+            rootItems.Remove(nodeToRemove);
+        }
+        else if (_nodeIndex.TryGetValue(parentId, out var parentNode))
+        {
+            _childrenSelector(parentNode)?.Remove(nodeToRemove);
+        }
+
+        // Каскадно вычищаем удаленный подграф из индекса
+        RemoveFromIndexRecursive(nodeToRemove, idSelector);
+    }
+
+    // --- Служебные методы управления быстрым индексом O(1) ---
+
+    private void BuildIndexRecursive(ICollection<TEntity> nodes, Func<TEntity, object?> idSelector, object? parentId = null)
+    {
+        foreach (var node in nodes)
+        {
+            object? id = idSelector(node);
+            if (id == null) continue;
+
+            _nodeIndex[id] = node;
+            if (parentId != null) _childToParentMap[id] = parentId;
+
+            var children = _childrenSelector(node);
+            if (children != null && children.Count > 0)
+            {
+                BuildIndexRecursive(children, idSelector, id);
             }
         }
-        return null;
+    }
+
+    private void UpdateIndexForSubtree(TEntity node, Func<TEntity, object?> idSelector)
+    {
+        object? id = idSelector(node);
+        if (id == null) return;
+
+        _nodeIndex[id] = node;
+
+        object? parentId = _parentIdSelector(node);
+        if (parentId != null) _childToParentMap[id] = parentId;
+
+        var children = _childrenSelector(node);
+        if (children != null)
+        {
+            foreach (var child in children)
+            {
+                UpdateIndexForSubtree(child, idSelector);
+            }
+        }
+    }
+
+    private void RemoveFromIndexRecursive(TEntity node, Func<TEntity, object?> idSelector)
+    {
+        object? id = idSelector(node);
+        if (id == null) return;
+
+        _nodeIndex.Remove(id);
+        _childToParentMap.Remove(id);
+
+        var children = _childrenSelector(node);
+        if (children != null)
+        {
+            foreach (var child in children)
+            {
+                RemoveFromIndexRecursive(child, idSelector);
+            }
+        }
     }
 }
