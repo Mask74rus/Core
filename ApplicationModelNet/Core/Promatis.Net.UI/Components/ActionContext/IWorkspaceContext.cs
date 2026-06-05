@@ -1,40 +1,17 @@
 ﻿namespace Promatis.Net.UI.Components;
 
 /// <summary>
-/// Единый контракт контекста рабочей области, управляющий геометрией пяти зон,
-/// составом доступных UI-действий и текущим выделением данных на экране.
+/// Корневой интерфейс пульта управления пространственной геометрией холста и стейтом отображения.
 /// </summary>
 public interface IWorkspaceContext
 {
-    // --- СЛОЙ УПРАВЛЕНИЯ КОМПОНЕНТАМИ И ДАННЫМИ ---
-
     /// <summary>
-    /// Коллекция интерактивных элементов управления данного холста.
+    /// Глобальный флаг индикации загрузки. При значении true обобщенный 
+    /// каркас WorkspacePage блокирует экран и включает крутилку MudOverlay.
     /// </summary>
-    IEnumerable<IUiControl> Controls { get; }
+    public bool IsLoading { get; }
 
-    event Action? OnContextStateChanged;
-    void NotifyStateChanged();
-
-    /// <summary>
-    /// Единая точка инициализации жизненного цикла любого контекста.
-    /// Вызывается базовым холстом (WorkspacePage) при старте формы.
-    /// </summary>
-    void InitializeContext();
-
-    /// <summary>
-    /// ИСПРАВЛЕНО: Единая точка асинхронной загрузки метаданных фильтров и справочников.
-    /// Вызывается автоматически базовым холстом СТРОГО ПОСЛЕ первичного рендеринга под защитой MudOverlay.
-    /// </summary>
-    Task LoadMetadataAsync(CancellationToken ct);
-
-    /// <summary>
-    /// ИСПРАВЛЕНО: Флаг индикации загрузки поднят на самый верх контракта,
-    /// чтобы базовый холст страницы мог реактивно отображать крутилку MudOverlay.
-    /// </summary>
-    bool IsLoading { get; }
-
-    // --- ПАРАМЕТРЫ СТИЛИЗАЦИИ И ГЕОМЕТРИИ 5 ЗОН ---
+    // --- ПАРАМЕТРЫ СТИЛИЗАЦИИ И ГЕОМЕТРИИ 5 ЗОН ХОЛСТА СТРАНИЦЫ ---
     int PaperElevation { get; }
     string PaperClass { get; }
     string WorkspaceHeight { get; }
@@ -43,7 +20,7 @@ public interface IWorkspaceContext
     string LeftZoneWidth { get; }
     string RightZoneWidth { get; }
 
-    // ИСПРАВЛЕНО: Теперь интерфейс декларирует полноценное реактивное поведение
+    // --- РЕАКТИВНЫЕ ФЛАГИ СХЛОПЫВАНИЯ ПАНЕЛЕЙ (Блейзор отследит мутации сам) ---
     bool IsTopZoneCollapsed { get; set; }
     bool IsBottomZoneCollapsed { get; set; }
     bool IsLeftZoneCollapsed { get; set; }

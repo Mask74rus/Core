@@ -4,53 +4,51 @@ using Promatis.Net.Service;
 namespace Promatis.Net.UI.Components;
 
 /// <summary>
-/// Абстрактное инфраструктурное ядро работы с данными. 
-/// Инкапсулирует работу брокера, кэша и состояния загрузки, общаясь с сервисами только по интерфейсу.
+/// Абстрактное ядро работы со сквозными потоками данных доменной сущности.
+/// Координирует работу универсального Брокера и ОЗУ-кэша, отвечая за полиморфный флаг IsLoading и единый пульс.
 /// </summary>
-public abstract class DataContext<TEntity, TKey, TQueryState, TResultData> : WorkspaceContext,
-    IHasSelectedData<TEntity>,
-    IDisposable
+public abstract class DataContext<TEntity, TQueryState, TResultData> : WorkspaceContext
     where TEntity : class, new()
-    where TKey : notnull
 {
-    private readonly IBaseService<TEntity, TKey> _baseService;
-    private TEntity? _selectedData;
     private bool _isLoading;
-    private bool _isDisposed;
 
+    /// <summary>
+    /// Универсальный диспетчер конвейера данных текущего экрана (InMemory / Server).
+    /// </summary>
     public IUiDataBroker<TEntity, TQueryState, TResultData> Broker { get; }
+
+    /// <summary>
+    /// Высокопроизводительный ОЗУ-кэш живых объектов домена.
+    /// </summary>
     public IUiOzuCache<TEntity> OzuCache { get; }
 
-    public TEntity? SelectedData
-    {
-        get => _selectedData;
-        set
-        {
-            if (_selectedData != value)
-            {
-                _selectedData = value;
-                OnContextUpdated?.Invoke();
-                NotifyStateChanged();
-            }
-        }
-    }
-
-    public Action? OnContextUpdated { get; set; }
+    /// <summary>
+    /// Честное полиморфное переопределение свойства базовой геометрии холста.
+    /// Пассивный каркас WorkspacePage нативно считает его состояние через каскад параметров Blazor.
+    /// </summary>
     public override bool IsLoading => _isLoading;
 
-    protected DataContext(
-        IServiceProvider serviceProvider,
-        bool isInMemoryMode,
-        Action? onDataChangedNotifier = null)
-        : base()
+    /// <summary>
+    /// ЕДИНЫЙ ОТКРЫТЫЙ ПУЛЬС ХОЛСТА И ДАННЫХ.
+    /// Сигнализирует о ЛЮБЫХ изменениях состояния (загрузка, триггеры СУБД, мутации ОЗУ).
+    /// Обобщенная страница ядра (ReferencePageBase) подпишется на него централизованно в одной точке.
+    /// </summary>
+    public event Action? OnContextUpdated;
+
+    /// <summary>
+    /// Универсальный метод вызова пульса обновления для всех нижестоящих потомков и Брокера.
+    /// </summary>
+    public void NotifyContextUpdated() => OnContextUpdated?.Invoke();
+
+    protected DataContext(IServiceProvider serviceProvider, bool isInMemoryMode) : base()
     {
         if (serviceProvider == null) throw new ArgumentNullException(nameof(serviceProvider));
 
-        _baseService = serviceProvider.GetRequiredService<IBaseService<TEntity, TKey>>();
+        // Извлекаем Transient-компоненты автономного стейт-движка из DI сессии
         OzuCache = serviceProvider.GetRequiredService<IUiOzuCache<TEntity>>();
         Broker = serviceProvider.GetRequiredService<IUiDataBroker<TEntity, TQueryState, TResultData>>();
 
-        // ИСПРАВЛЕНО: Возвращаем конфигурацию на её законное место. Брокер готов к работе с первой секунды!
+        // Конфигурируем Брокер прямо в конструкторе — ликвидирует гонки состояний при ленивой загрузке.
         if (isInMemoryMode)
         {
             Broker.ConfigureInMemoryMode(OzuCache, LoadInitialDataForBrokerAsync, EvaluateDataStateInMemory);
@@ -62,51 +60,29 @@ public abstract class DataContext<TEntity, TKey, TQueryState, TResultData> : Wor
     }
 
     /// <summary>
-    /// Единая и универсальная точка запроса данных для базового холста страницы.
-    /// Включает визуальный индикатор загрузки (_isLoading) как для ServerMode, так и для InMemoryMode.
+    /// ЕДИНАЯ И УНИВЕРСАЛЬНАЯ ТОЧКА ЗАПРОСА ДАННЫХ ДЛЯ ЛЮБЫХ UI-ТАБЛИЦ И ДЕРЕВЬЕВ ПЛАТФОРМЫ.
+    /// Безопасно оборачивает выполнение Брокера в индикацию загрузки и бьет в колокол OnContextUpdated.
     /// </summary>
-    public async Task<TResultData> GetDataAsync(TQueryState state, CancellationToken ct = default)
+    public virtual async Task<TResultData> GetDataAsync(TQueryState state, CancellationToken ct = default)
     {
         if (_isLoading) return default!;
 
         try
         {
             _isLoading = true;
-            NotifyStateChanged(); // Показываем крутилку загрузки на экране
+            NotifyContextUpdated(); // Импульс 1: Включаем MudOverlay на экране через единое событие
 
             return await Broker.FetchDataAsync(state, ct);
         }
         finally
         {
             _isLoading = false;
-            NotifyStateChanged(); // Скрываем крутилку после отрисовки данных
+            NotifyContextUpdated(); // Импульс 2: Выключаем MudOverlay на экране через единое событие
         }
     }
 
-    /// <summary>
-    /// Служебный ленивый поставщик данных для Брокера (InMemory Mode).
-    /// </summary>
-    private async Task<List<TEntity>> LoadInitialDataForBrokerAsync(TQueryState state, CancellationToken ct)
-    {
-        try
-        {
-            return await _baseService.GetAllAsync(ct) ?? [];
-        }
-        catch (OperationCanceledException)
-        {
-            return [];
-        }
-    }
-
+    // --- ОБЯЗАТЕЛЬНЫЕ ФУНКЦИОНАЛЬНЫЕ МОСТЫ ДЛЯ ПОТОМКОВ ЯДРА ---
+    protected abstract Task<List<TEntity>> LoadInitialDataForBrokerAsync(TQueryState state, CancellationToken ct);
     protected abstract TResultData EvaluateDataStateInMemory(TQueryState state, IReadOnlyList<TEntity> inMemoryList);
     protected abstract Task<TResultData> FetchDataFromServerAsync(TQueryState state, CancellationToken ct);
-    protected IBaseService<TEntity, TKey> GetBaseService() => _baseService;
-
-    public virtual void Dispose()
-    {
-        if (_isDisposed) return;
-
-        Broker?.Dispose();
-        _isDisposed = true;
-    }
 }

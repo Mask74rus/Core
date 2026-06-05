@@ -1,6 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using MudBlazor;
-using Promatis.Net.Service;
+﻿using MudBlazor;
 
 namespace Promatis.Net.UI.Components;
 
@@ -8,47 +6,53 @@ namespace Promatis.Net.UI.Components;
 /// Промежуточный контекст представления для табличных страниц (Grid Mode).
 /// Мапит абстрактные данные ядра в строго типизированные структуры пагинации MudBlazor (GridState и GridData).
 /// </summary>
-public abstract class GridContext<TEntity, TKey>
-    : EntityContext<TEntity, TKey, GridState<TEntity>, GridData<TEntity>>
+public abstract class GridContext<TEntity, TKey> : EntityContext<TEntity, TKey, GridState<TEntity>, GridData<TEntity>>
     where TEntity : class, new()
     where TKey : notnull
 {
-    protected GridContext(
-        IServiceProvider serviceProvider,
-        bool isInMemoryMode,
-        Action? onDataChangedNotifier = null)
-        : base(serviceProvider, isInMemoryMode, onDataChangedNotifier)
+    protected GridContext(IServiceProvider serviceProvider, bool isInMemoryMode)
+        : base(serviceProvider, isInMemoryMode)
     {
-        // ИСПРАВЛЕНО: Инверсия зависимостей. Извлекаем стратегию мутаций ОЗУ через DI
-        var strategy = serviceProvider.GetRequiredService<IOzuMutationStrategy<TEntity>>();
-        OzuCache.SetMutationStrategy(strategy);
     }
 
     /// <summary>
-    /// ИСПРАВЛЕНО: Реализация локальной фильтрации, сортировки и пагинации в памяти.
-    /// Метод принимает безопасный IReadOnlyList и использует нативные методы MudBlazor для IQueryable.
+    /// ДОМЕННЫЙ ФИЛЬТР ДЛЯ НАСЛЕДНИКОВ.
+    /// Переопределяется конкретным справочником для жесткого отсечения строк (права, архивы)
+    /// БЕЗ риска нарушить потокобезопасность ОЗУ-кэша и БЕЗ копипаста рутины пагинации.
+    /// </summary>
+    protected virtual Func<TEntity, bool>? GetDomainFilter() => null;
+
+    /// <summary>
+    /// ИСТИННАЯ ОТВЕТСТВЕННОСТЬ ТАБЛИЦЫ: Математический конвейер обработки данных.
+    /// Принимает безопасный IReadOnlyList, изолированный Брокером внутри потокобезопасного ExecuteInLock.
     /// </summary>
     protected override GridData<TEntity> EvaluateDataStateInMemory(GridState<TEntity> state, IReadOnlyList<TEntity> inMemoryList)
     {
-        // Превращаем безопасный список в LINQ-выражение
-        IQueryable<TEntity> query = inMemoryList.AsQueryable();
+        // 1. Сначала нативно применяем доменный фильтр наследника, если он задан
+        var domainFilter = GetDomainFilter();
+        IEnumerable<TEntity> filteredList = domainFilter != null
+            ? inMemoryList.Where(domainFilter)
+            : inMemoryList;
 
-        // 1. Применяем пользовательские фильтры колонок MudBlazor на лету
+        // Превращаем отфильтрованный поток в LINQ-выражение для MudBlazor колонок
+        IQueryable<TEntity> query = filteredList.AsQueryable();
+
+        // 2. Динамическая фильтрация колонок самого интерфейса MudBlazor
         if (state.FilterDefinitions != null && state.FilterDefinitions.Any())
         {
             query = query.Where(state.FilterDefinitions);
         }
 
-        // 2. Применяем динамическую сортировку колонок MudBlazor
+        // 3. Динамическая сортировка колонок самого интерфейса MudBlazor
         if (state.SortDefinitions != null && state.SortDefinitions.Any())
         {
             query = query.OrderBy(state.SortDefinitions);
         }
 
-        // Вычисляем общее количество записей, прошедших фильтрацию, до разделения на страницы
+        // МАТЕМАТИЧЕСКИЙ ИНВАРИАНТ: Фиксируем точный тотал ОТФИЛЬТРОВАННЫХ строк ДО пагинации
         int totalCount = query.Count();
 
-        // 3. Вырезаем текущую страницу данных (Пагинация)
+        // 4. Вырезаем фрейм конкретной страницы (Пагинация MudBlazor)
         List<TEntity> pagedItems = query
             .Skip(state.Page * state.PageSize)
             .Take(state.PageSize)
@@ -58,21 +62,6 @@ public abstract class GridContext<TEntity, TKey>
         {
             Items = pagedItems,
             TotalItems = totalCount
-        };
-    }
-
-    /// <summary>
-    /// Реализация честного серверного постраничного запроса к СУБД (Server Mode).
-    /// </summary>
-    protected override async Task<GridData<TEntity>> FetchDataFromServerAsync(GridState<TEntity> state, CancellationToken ct)
-    {
-        // Вызываем базовый сервис данных, транслируя стейт MudBlazor в параметры пагинации API
-        PagedResult<TEntity> pagedResult = await GetBaseService().GetPagedAsync(state.Page, state.PageSize, ct);
-
-        return new GridData<TEntity>
-        {
-            Items = pagedResult.Items,
-            TotalItems = pagedResult.TotalCount
         };
     }
 }

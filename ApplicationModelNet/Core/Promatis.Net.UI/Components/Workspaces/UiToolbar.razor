@@ -3,7 +3,7 @@
 
     @if (Controls != null)
     {
-        @* Левая группа: фильтры выстраиваются в ряд с фиксированным зазором *@
+        @* Левая группа: фильтры и кнопки CRUD выстраиваются в ряд слева *@
         <div class="d-flex align-center gap-4">
             @foreach (IUiControl control in Controls.Where(c => c.Alignment == UiControlAlignment.Left))
             {
@@ -12,7 +12,7 @@
             }
         </div>
 
-        @* Правая группа: разделитель и кнопки выгрузки *@
+        @* Правая группа: разделители и кнопки выгрузки/экспорта справа *@
         <div class="d-flex align-center gap-4">
             @foreach (IUiControl control in Controls.Where(c => c.Alignment == UiControlAlignment.Right))
             {

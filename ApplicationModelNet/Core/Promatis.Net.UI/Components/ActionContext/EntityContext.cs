@@ -5,90 +5,65 @@ using Promatis.Net.Domain.Interface;
 namespace Promatis.Net.UI.Components;
 
 /// <summary>
-/// Инфраструктурное ядро работы с сущностями и операциями CRUD.
-/// Безопасно изолирует мутации данных, управляет модальными окнами и удалением записей.
+/// Абстрактное ядро работы со стейтом конкретного экземпляра сущности в памяти.
+/// Монопольно отвечает за хранение выделенной записи (SelectedData) и изолированного черновика (DraftData).
+/// Передает 3 generic-параметра наверх в DataContext для сквозной синхронизации Брокера данных.
 /// </summary>
-public abstract class EntityContext<TEntity, TKey, TQueryState, TResultData>
-    : DataContext<TEntity, TKey, TQueryState, TResultData>
+public abstract class EntityContext<TEntity, TKey, TQueryState, TResultData>(
+    IServiceProvider serviceProvider,
+    bool isInMemoryMode) : DataContext<TEntity, TQueryState, TResultData>(serviceProvider, isInMemoryMode)
     where TEntity : class, new()
     where TKey : notnull
 {
-    protected IDialogService DialogService { get; }
-    private readonly IEntityCloner _entityCloner;
-
-    protected EntityContext(
-        IServiceProvider serviceProvider,
-        bool isInMemoryMode,
-        Action? onDataChangedNotifier = null)
-        : base(serviceProvider, isInMemoryMode, onDataChangedNotifier)
-    {
-        // Безопасное нативное извлечение службы диалогов MudBlazor через GetRequiredService
-        DialogService = serviceProvider.GetRequiredService<IDialogService>();
-
-        // Инверсия зависимостей. Запрашиваем клонер через интерфейс из DI
-        _entityCloner = serviceProvider.GetRequiredService<IEntityCloner>();
-    }
+    private TEntity? _selectedData;
+    private TEntity? _draftData;
 
     /// <summary>
-    /// Команда Асинхронного Создания Записи.
-    /// Инициализирует чистый экземпляр сущности и передает управление в абстрактную точку вызова окна.
+    /// Текущая выделенная пользователем запись в UI (в гриде или дереве).
+    /// При изменении генерирует единый импульс NotifyContextUpdated() для реактивного обновления всего экрана.
     /// </summary>
-    protected async Task ExecuteCreateRecordAsync()
+    public TEntity? SelectedData
     {
-        await OpenDialogWindowAsync(new TEntity(), isNew: true);
-    }
-
-    /// <summary>
-    /// Команда Асинхронного Редактирования Записи.
-    /// Безопасно изолирует мутацию данных через абстрактный Cloner от основной таблицы до момента коммита.
-    /// </summary>
-    protected async Task ExecuteEditRecordAsync(TEntity? selectedRow)
-    {
-        if (selectedRow == null) return;
-
-        // Глубокое клонирование теперь защищено интерфейсом (решает проблему циклической иерархии в деревьях)
-        TEntity clone = _entityCloner.CloneEntity(selectedRow);
-
-        await OpenDialogWindowAsync(clone, isNew: false);
-    }
-
-    /// <summary>
-    /// Команда Асинхронного Удаления Записи.
-    /// Запрашивает нативное подтверждение и выполняет операцию через интерфейс базового сервиса данных.
-    /// </summary>
-    protected async Task ExecuteDeleteRecordAsync(TEntity? selectedRow)
-    {
-        if (selectedRow == null) return;
-
-        bool? confirm = await DialogService.ShowMessageBoxAsync(
-            "Удаление записи",
-            "Вы уверены, что хотите безвозвратно удалить выбранную запись?",
-            yesText: "Удалить",
-            noText: "Отмена");
-
-        if (confirm == true)
+        get => _selectedData;
+        set
         {
-            // Извлекаем строго типизированный ключ через проверку интерфейса IDomainObjectHasKey
-            if (selectedRow is IDomainObjectHasKey<TKey> hasKeyEntity)
+            if (_selectedData != value)
             {
-                TKey idValue = hasKeyEntity.Id;
-
-                // Получаем доступ к сервису данных из верхнего слоя ядра и вызываем удаление
-                await GetBaseService().DeleteAsync(idValue);
-            }
-            else
-            {
-                // Резервный строго типизированный путь, если интерфейс не реализован (например, через явный GetEntityId)
-                // Но архитектурно фиксируем, что доменные объекты обязаны иметь ключ.
-                throw new InvalidOperationException(
-                    $"Сущность '{typeof(TEntity).Name}' не реализует обязательный интерфейс 'IDomainObjectHasKey<{typeof(TKey).Name}>'.");
+                _selectedData = value;
+                NotifyContextUpdated(); // Пинает единый event обновления для тулбара и страницы
             }
         }
     }
 
     /// <summary>
-    /// Абстрактная точка вызова окна формы. 
-    /// Специфику вызова (какой именно Razor-компонент диалога открыть) задаст конечный прикладной класс.
+    /// Изолированный черновик (глубокий клон) сущности для прямой привязки к полям ввода в UI.
+    /// Наличие объекта в этом слоте автоматически сигнализирует базовой странице ядра о фазе мутации (CRUD).
     /// </summary>
-    protected abstract Task OpenDialogWindowAsync(TEntity model, bool isNew);
+    public TEntity? DraftData
+    {
+        get => _draftData;
+        set
+        {
+            if (_draftData != value)
+            {
+                _draftData = value;
+                NotifyContextUpdated(); // Пинает единое событие обновления для открытия/закрытия окон ввода
+            }
+        }
+    }
+
+    /// <summary>
+    /// Служебный хелпер ядра для извлечения строго типизированного первичного ключа Id из сущности.
+    /// Предоставляет универсальный инструмент для работы репозиториев СУБД PostgreSQL на нижних слоях.
+    /// </summary>
+    public TKey GetEntityKey(TEntity entity)
+    {
+        if (entity is IDomainObjectHasKey<TKey> hasKeyEntity)
+        {
+            return hasKeyEntity.Id;
+        }
+
+        throw new InvalidOperationException(
+            $"Критический сбой домена: Сущность '{typeof(TEntity).Name}' не реализует обязательный интерфейс 'IDomainObjectHasKey<{typeof(TKey).Name}>'.");
+    }
 }

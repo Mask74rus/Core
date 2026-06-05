@@ -1,62 +1,50 @@
-﻿<MudPaper Elevation="@GetPaperElevation()"
-          Class="@GetPaperClass()"
-          Style="@($"width: 100%; height: {GetWorkspaceHeight()}; overflow: hidden;")">
+﻿@* Базовый геометрический каркас 5 зон экрана платформы *@
+<MudPaper Elevation="@Context.PaperElevation"
+          Class="@Context.PaperClass"
+          Style="@($"height: {Context.WorkspaceHeight}; position: relative; overflow: hidden;")">
 
-    <!-- 1. ВЕРХНЯЯ ЗОНА (ЗАПОЛНЯЕТСЯ ТОЛЬКО ПРИ НАЛИЧИИ TOPCONTENT) -->
-    @if (TopContent != null && !IsTopCollapsed())
+    @* НАДЭКРАННЫЙ ОВЕРЛЕЙ ЗАГРУЗКИ: Нативно считывает состояние из каскадного контекста *@
+    <MudOverlay Visible="@Context.IsLoading" DarkBackground="true" Absolute="true" ZIndex="9999">
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+    </MudOverlay>
+
+    @* ВЕРХНЯЯ ЗОНА (Тулбары / Панели фильтрации) *@
+    @if (TopContent != null && !Context.IsTopZoneCollapsed)
     {
-        <div class="workspace-zone-top w-100 mb-2"
-             style="@($"height: {GetTopHeight()}; min-height: {GetTopHeight()}; max-height: {GetTopHeight()}; flex-shrink: 0;")">
+        <div class="workspace-top-zone flex-none" style="height: @Context.TopZoneHeight; width: 100%;">
             @TopContent
         </div>
     }
 
-    <!-- СРЕДНИЙ СЛОЙ (ЛЕВАЯ ЗОНА + БОДИ + ПРАВАЯ ЗОНА) -->
-    <div class="d-flex flex-row align-stretch flex-grow-1 gap-4 w-100" style="min-height: 0; height: 100%; overflow: hidden;">
+    @* СРЕДНИЙ МАКЕТ ХОЛСТА (Левая панель + Центральное тело + Правая панель) *@
+    <div class="d-flex flex-row flex-grow-1 w-100 h-100 min-w-0" style="overflow: hidden;">
 
-        <!-- 2. ЛЕВАЯ ЗОНА (НАВИГАЦИЯ / ДЕРЕВО) -->
-        @if (LeftContent != null && !IsLeftCollapsed())
+        @* ЛЕВАЯ ЗОНА (Древовидная навигация / Декларативные фильтры) *@
+        @if (LeftContent != null && !Context.IsLeftZoneCollapsed)
         {
-            <div class="workspace-zone-left d-flex flex-column align-stretch justify-space-between"
-                 style="@($"width: {GetLeftWidth()}; min-width: {GetLeftWidth()}; max-width: {GetLeftWidth()}; overflow-y: auto;")">
+            <div class="workspace-left-zone flex-none" style="width: @Context.LeftZoneWidth; height: 100%;">
                 @LeftContent
             </div>
         }
 
-        <!-- 3. ЦЕНТРАЛЬНАЯ ЗОНА (БОДИ: ГРИД / МНЕМОСХЕМА) -->
-        <!-- ИСПРАВЛЕНО: Добавлен класс position-relative для абсолютного позиционирования MudOverlay внутри зоны -->
-        <div class="workspace-zone-body flex-grow-1 h-100 position-relative" style="min-width: 0; min-height: 0;">
-            @if (BodyContent != null)
-            {
-                @BodyContent
-            }
-
-            <!-- ИСПРАВЛЕНО: Централизованный реактивный индикатор загрузки для всей системы. -->
-            <!-- Блокирует интерфейс зоны от повторных кликов во время тяжелых серверных gRPC/API-запросов. -->
-            <MudOverlay Visible="@(ActionContext?.IsLoading ?? false)"
-                        DarkBackground="false"
-                        LightBackground="true"
-                        Absolute="true">
-                <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" />
-            </MudOverlay>
+        @* ЦЕНТРАЛЬНОЕ ТЕЛО (Основной рабочий контент: Таблицы / Схемы / Документы) *@
+        <div class="workspace-body-zone flex-grow-1 h-100 min-w-0" style="position: relative;">
+            @BodyContent
         </div>
 
-        <!-- 4. ПРАВАЯ ЗОНА (ИНСПЕКТОР СВОЙСТВ) -->
-        @if (RightContent != null && !IsRightCollapsed())
+        @* ПРАВАЯ ЗОНА (Инспекторы свойств / Детализация) *@
+        @if (RightContent != null && !Context.IsRightZoneCollapsed)
         {
-            <div class="workspace-zone-right d-flex flex-column align-stretch justify-space-between"
-                 style="@($"width: {GetRightWidth()}; min-width: {GetRightWidth()}; max-width: {GetRightWidth()}; overflow-y: auto;")">
+            <div class="workspace-right-zone flex-none" style="width: @Context.RightZoneWidth; height: 100%;">
                 @RightContent
             </div>
         }
-
     </div>
 
-    <!-- 5. НИЖНЯЯ ЗОНА (СТАТУС-БАР) -->
-    @if (BottomContent != null && !IsBottomCollapsed())
+    @* НИЖНЯЯ ЗОНА (Статус-бар / Итоговые показатели) *@
+    @if (BottomContent != null && !Context.IsBottomZoneCollapsed)
     {
-        <div class="workspace-zone-bottom w-100 mt-2"
-             style="@($"height: {GetBottomHeight()}; min-height: {GetBottomHeight()}; max-height: {GetBottomHeight()}; flex-shrink: 0;")">
+        <div class="workspace-bottom-zone flex-none" style="height: @Context.BottomZoneHeight; width: 100%;">
             @BottomContent
         </div>
     }
