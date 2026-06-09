@@ -6,15 +6,16 @@
 
         @* 1. ВЕРХНЯЯ ЗОНА: Автоматический тулбар кнопок справочника НСИ *@
         <TopContent>
-            <UiToolbar Controls="@Context.Controls" />
+            <UiToolbar Controls="@(((IToolbarContext)Context).Controls)" />
         </TopContent>
 
         @* 2. ЦЕНТРАЛЬНАЯ ЗОНА: Табличная сетка с системными полями по умолчанию *@
         <BodyContent>
-            @* ИСПРАВЛЕНО: ServerDataProvider теперь вызывает GetDataAsync, запуская крутилку MudOverlay *@
+            @* СВЯЗУЮЩИЙ МОСТ: Привязываем OnRowSelected напрямую к свойству SelectedData контекста *@
             <GridPage TEntity="TEntity"
                       @ref="_grid"
                       ServerDataProvider="@Context.GetDataAsync"
+                      OnRowSelected="@(x => Context.SelectedData = x)"
                       WithPagination="true"
                       RowsPerPage="20">
                 <GridColumns>

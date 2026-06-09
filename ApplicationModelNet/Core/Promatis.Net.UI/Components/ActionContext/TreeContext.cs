@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using Promatis.Net.Domain.Interface;
 
 namespace Promatis.Net.UI.Components;
 
@@ -6,23 +7,27 @@ namespace Promatis.Net.UI.Components;
 /// Промежуточный контекст представления для древовидных страниц (Tree Mode).
 /// Переводит абстрактные данные ядра на язык иерархических визуализаторов.
 /// </summary>
-public abstract class TreeContext<TEntity, TKey> : EntityContext<TEntity, TKey, object, List<TEntity>>
-    where TEntity : class, new()
-    where TKey : notnull
+public abstract class TreeContext<TEntity> : EntityContext<TEntity, Guid, object, List<TEntity>>
+    where TEntity : class, ITreeNode<TEntity>, new()
 {
     protected TreeContext(IServiceProvider serviceProvider, bool isInMemoryMode)
         : base(serviceProvider, isInMemoryMode)
     {
-        // ВНИМАНИЕ (Иерархическая физика): Извлекаем и жестко связываем из DI 
-        // специализированную стратегию древовидных мутаций графа ОЗУ!
+        if (serviceProvider == null) throw new ArgumentNullException(nameof(serviceProvider));
+
+        // ВНИМАНИЕ: Извлекаем и жестко связываем специализированную стратегию 
+        // древовидных мутаций графа ОЗУ силами потокобезопасного кэша.
         var treeStrategy = serviceProvider.GetRequiredService<IOzuMutationStrategy<TEntity>>();
         OzuCache.SetMutationStrategy(treeStrategy);
     }
 
+    protected override List<TEntity> GetEmptyDataState()
+        => new List<TEntity>();
+
     /// <summary>
     /// ДОМЕННЫЙ ФИЛЬТР ДЛЯ НАСЛЕДНИКОВ ИЕРАРХИИ.
-    /// Переопределяется конкретным деревом для жесткого отсечения узлов графа (например, по правам доступа),
-    /// БЕЗ риска нарушить потокобезопасность ОЗУ-кэша.
+    /// Переопределяется конкретным деревом для жесткого отсечения узлов графа (права, архивы)
+    /// БЕЗ риска нарушить потокобезопасность ОЗУ-кэша и без дублирования конвейера сортировки.
     /// </summary>
     protected virtual Func<TEntity, bool>? GetDomainFilter() => null;
 
@@ -32,17 +37,17 @@ public abstract class TreeContext<TEntity, TKey> : EntityContext<TEntity, TKey, 
     /// </summary>
     protected override List<TEntity> EvaluateDataStateInMemory(object state, IReadOnlyList<TEntity> inMemoryList)
     {
-        // 1. Применяем доменный фильтр наследника, если он задан (например, скрыть архивные узлы)
+        // 1. Применяем жесткий доменный фильтр наследника, если он задан (например, скрыть архивные узлы)
         var domainFilter = GetDomainFilter();
         IEnumerable<TEntity> filteredList = domainFilter != null
             ? inMemoryList.Where(domainFilter)
             : inMemoryList;
 
-        // 2. Иерархическое упорядочивание графа. 
-        // По умолчанию мы возвращаем линейный список, но отсортированный так, чтобы корневые элементы 
-        // (у которых иерархическая связь пуста) шли первыми. Конкретное дерево может уточнить этот маппинг.
+        // 2. Иерархическое упорядочивание графа без рантайм-рефлексии.
+        // Корневые элементы (у которых ParentId == null) гарантированно идут первыми 
+        // в плоском массиве для безошибочной ленивой сборки рекурсивного дерева на прикладной странице.
         return filteredList
-            .OrderBy(x => x.GetType().GetProperty("ParentId")?.GetValue(x) != null)
+            .OrderBy(x => x.ParentId != null)
             .ToList();
     }
 }

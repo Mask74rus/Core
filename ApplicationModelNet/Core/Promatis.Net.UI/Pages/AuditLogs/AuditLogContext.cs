@@ -11,56 +11,85 @@ namespace Promatis.Net.UI.Pages.AuditLogs;
 /// Контекст страницы логирования аудита. 
 /// Фокусируется исключительно на логике фильтрации и маппинге параметров поиска.
 /// </summary>
-public class AuditLogContext : GridContext<AuditLog, Guid>
+
+public class AuditLogContext : GridContext<AuditLog, Guid>, IToolbarContext
 {
     private readonly IAuditLogService _auditLogService;
-    private readonly Action _onFilterChanged; // ИСПРАВЛЕНО: Снова строгое readonly свойство
+
+    // СТРОГО ТИПИЗИРОВАННЫЕ ФИЛЬТРЫ ВНУТРИ КОНТЕКСТА
+    public AuditActionSelect ActionFilter { get; }
+    public AuditPeriodPicker PeriodFilter { get; }
+    public AuditEntitySelect EntityFilter { get; }
+
+    // ИЗОЛИРОВАННЫЙ СИГНАЛ ДЛЯ СТРАНИЦЫ: Вызывается строго при мутации фильтров
+    public event Action? OnFiltersChanged;
+
+    public Lock ControlsLock { get; } = new();
+    public List<IUiControl> InnerControls { get; } = [];
+    public bool IsToolbarInitialized { get; set; }
 
     public override string TopZoneHeight => "48px";
 
-    /// <summary>
-    /// ИСПРАВЛЕНО: Конструктор принимает строго Action коллбек для прямой реактивности.
-    /// Никаких значений по умолчанию (= null) для DI-валидации больше нет!
-    /// </summary>
-    public AuditLogContext(IServiceProvider serviceProvider, Action onFilterChanged)
-        : base(serviceProvider, isInMemoryMode: false, onDataChangedNotifier: onFilterChanged)
+    public AuditLogContext(IServiceProvider serviceProvider)
+        : base(serviceProvider, isInMemoryMode: false)
     {
-        _onFilterChanged = onFilterChanged ?? throw new ArgumentNullException(nameof(onFilterChanged));
         _auditLogService = serviceProvider.GetRequiredService<IAuditLogService>();
 
-        // Сразу наполняем тулбар статическими элементами
-        AddControl(new AuditToolbarDivider());
-        AddControl(new AuditExportButton());
+        // Фильтры при изменении дергают внутренний метод-распределитель
+        ActionFilter = new AuditActionSelect(HandleFilterMutation);
+        PeriodFilter = new AuditPeriodPicker(HandleFilterMutation);
+        EntityFilter = new AuditEntitySelect(new List<string>(), HandleFilterMutation);
     }
 
     /// <summary>
-    /// ИСПРАВЛЕНО: Ваша оригинальная динамическая дособирка тулбара.
-    /// Вызывается из OnAfterRenderAsync Razor-страницы, когда экран уже гарантированно отрисован.
+    /// ВНУТРЕННИЙ ДИСПЕТЧЕР КНОПОК: Вызывается комбобоксами тулбара.
     /// </summary>
-    public void InitializeFilters(List<string> entityNames)
+    private void HandleFilterMutation()
     {
-        // Потокобезопасно через инкапсулированный метод базового класса (или напрямую, если восстановили доступ)
-        // возвращаем нативную вставку фильтров в самое начало тулбара слева направо
-        _controls.Insert(0, new AuditEntitySelect(entityNames, _onFilterChanged));
-        _controls.Insert(1, new AuditActionSelect(_onFilterChanged));
-        _controls.Insert(2, new AuditPeriodPicker(_onFilterChanged));
+        // 1. Пинаем тулбар на перерисовку
+        NotifyContextUpdated();
 
-        NotifyStateChanged();
+        // 2. Пинаем страницу, чтобы она адресно обновила строки грида!
+        OnFiltersChanged?.Invoke();
     }
 
+    public void PopulateDefaultToolbar(List<IUiControl> controls)
+    {
+        controls.Add(EntityFilter);
+        controls.Add(ActionFilter);
+        controls.Add(PeriodFilter);
+        controls.Add(new AuditToolbarDivider());
+        controls.Add(new AuditExportButton());
+    }
+
+    /// <summary>
+    /// ФАЗА А: Наполнение выпадающего меню комбобокса. 
+    /// Работает параллельно, не блокируя и не влияя на стартовую загрузку строк таблицы.
+    /// </summary>
+    protected override async Task LoadMetadataInternalAsync()
+    {
+        List<string> availableEntities = await _auditLogService.GetAvailableEntityNamesAsync();
+
+        var list = new List<string> { "Все сущности" };
+        list.AddRange(availableEntities);
+
+        // Просто отдали опции в UI. Никаких импульсов перезагрузки грида отсюда слать НЕЛЬЗЯ!
+        EntityFilter.Options = list;
+    }
+
+    /// <summary>
+    /// ФАЗА Б: Серверный транспорт данных таблицы.
+    /// Читает строго ТЕКУЩИЕ выбранные значения (Value) из объектов ОЗУ.
+    /// При старте здесь гарантированно лежат дефолты, поэтому запрос выполнится мгновенно и без гонок.
+    /// </summary>
     protected override async Task<GridData<AuditLog>> FetchDataFromServerAsync(GridState<AuditLog> state, CancellationToken ct)
     {
-        // ИСПРАВЛЕНО: Возвращаем ваш оригинальный, работающий поиск контролов по жестким Id
-        IUiControl? entityControl = Controls.FirstOrDefault(c => c.Id == "audit_filter_entity");
-        IUiControl? actionControl = Controls.FirstOrDefault(c => c.Id == "audit_filter_action");
-        IUiControl? periodControl = Controls.FirstOrDefault(c => c.Id == "audit_filter_period");
+        // Читаем выбранные пользователем критерии (Value)
+        string? selectedAction = ActionFilter.GetSelectedActionValue();
+        DateRange? selectedPeriod = PeriodFilter.Value as DateRange;
+        string? selectedEntity = EntityFilter.Value as string; // При старте тут лежит "Все сущности"
 
-        string? selectedEntity = entityControl is IHasValue ev ? ev.Value as string : null;
-        DateRange? selectedPeriod = periodControl is IHasValue pv ? pv.Value as DateRange : null;
-        string? selectedAction = actionControl is AuditActionSelect av ? av.GetSelectedActionValue() : null;
-
-        if (selectedEntity == "Все сущности")
-            selectedEntity = null;
+        if (selectedEntity == "Все сущности") selectedEntity = null;
 
         DateTime fromDate = selectedPeriod?.Start ?? DateTime.Today.AddDays(-7);
         DateTime toDate = selectedPeriod?.End ?? DateTime.Today;
@@ -81,10 +110,11 @@ public class AuditLogContext : GridContext<AuditLog, Guid>
 
         return new GridData<AuditLog>
         {
-            Items = pagedResult.Items,
+            Items = pagedResult.Items ?? new List<AuditLog>(),
             TotalItems = pagedResult.TotalCount
         };
     }
 
-    protected override Task OpenDialogWindowAsync(AuditLog model, bool isNew) => Task.CompletedTask;
+    protected override Task<List<AuditLog>> LoadInitialDataForBrokerAsync(GridState<AuditLog> state, CancellationToken ct)
+        => Task.FromResult(new List<AuditLog>());
 }

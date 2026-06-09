@@ -3,87 +3,56 @@ using MudBlazor;
 
 namespace Promatis.Net.UI.Components.Workspaces;
 
-public partial class GridPage<TEntity> : ComponentBase, IDisposable where TEntity : class
+public partial class GridPage<TEntity> : ComponentBase where TEntity : class
 {
     private MudDataGrid<TEntity>? _mudGrid;
-    private IWorkspaceContext? _currentContext;
 
-    [CascadingParameter]
-    protected IWorkspaceContext? ActionContext { get; set; }
-
+    /// <summary>
+    /// Прямой провайдер данных MudBlazor, транслируемый из DataContext.GetDataAsync.
+    /// </summary>
     [Parameter]
     public Func<GridState<TEntity>, CancellationToken, Task<GridData<TEntity>>>? ServerDataProvider { get; set; }
 
     [Parameter]
-    public RenderFragment? GridColumns { get; set; }
+    public RenderFragment? ChildContent { get; set; }
 
     [Parameter]
-    public bool WithPagination { get; set; } = false;
+    public bool WithPagination { get; set; }
 
     [Parameter]
     public int RowsPerPage { get; set; } = 10000;
 
+    /// <summary>
+    /// Обратный мост (Callback). Сигнализирует о факте выбора строки пользователем.
+    /// Прикладная страница свяжет это событие напрямую со свойством Context.SelectedData.
+    /// </summary>
+    [Parameter]
+    public Action<TEntity?>? OnRowSelected { get; set; }
+
     protected TEntity? SelectedRow { get; set; }
 
     /// <summary>
-    /// Контроль подписок на изменения контекста для защиты от утечек памяти.
-    /// Переподписывается на лету, если Blazor подменит CascadingParameter контекста.
+    /// Принудительное обновление данных таблицы (вызывается внешней страницей).
     /// </summary>
-    protected override void OnParametersSet()
-    {
-        base.OnParametersSet();
-
-        if (ActionContext != _currentContext)
-        {
-            if (_currentContext != null)
-            {
-                _currentContext.OnContextStateChanged -= HandleContextStateChanged;
-            }
-
-            _currentContext = ActionContext;
-
-            if (ActionContext != null)
-            {
-                ActionContext.OnContextStateChanged += HandleContextStateChanged;
-            }
-        }
-    }
+    public Task ReloadServerData() => _mudGrid != null ? _mudGrid.ReloadServerData() : Task.CompletedTask;
 
     /// <summary>
-    /// Реагирует на любые изменения состояния контекста (например, включение/выключение IsLoading).
+    /// Визуальная подсветка активного фокуса в браузере.
     /// </summary>
-    private void HandleContextStateChanged()
-    {
-        InvokeAsync(StateHasChanged);
-    }
-
-    public Task ReloadServerData()
-    {
-        return _mudGrid != null ? _mudGrid.ReloadServerData() : Task.CompletedTask;
-    }
-
     protected string FormatSelectedRowStyle(TEntity item, int rowNumber)
         => item == SelectedRow ? "background-color: var(--mud-palette-action-disabled-background); font-weight: 500;" : string.Empty;
 
+    /// <summary>
+    /// Локальный перехват события клика MudBlazor.
+    /// </summary>
     protected void OnSelectedRowChanged(TEntity? newSelection)
     {
-        // СОХРАНЕНО: Ваш намеренно спроектированный UX-шаг фиксации фокуса
+        // ЮВЕЛИРНЫЙ UX-ШАГ: Сохраняем фокус, если пользователь случайно кликнул мимо строк
         if (newSelection == null && SelectedRow != null) return;
 
         SelectedRow = newSelection;
 
-        // Транслируем стейт напрямую в ядро. Контекст сам синхронно обновит состояние кнопок тулбара!
-        if (ActionContext is IHasSelectedData<TEntity> bindableContext)
-        {
-            bindableContext.SelectedData = newSelection;
-        }
-    }
-
-    public void Dispose()
-    {
-        if (_currentContext != null)
-        {
-            _currentContext.OnContextStateChanged -= HandleContextStateChanged;
-        }
+        // Просто декларируем факт действия. Решения принимает координатор верхнего уровня.
+        OnRowSelected?.Invoke(newSelection);
     }
 }

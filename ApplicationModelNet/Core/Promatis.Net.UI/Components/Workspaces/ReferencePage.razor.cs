@@ -3,7 +3,7 @@
 namespace Promatis.Net.UI.Components.Workspaces;
 
 public abstract partial class ReferencePage<TEntity> : ComponentBase, IDisposable
-    where TEntity : Promatis.Net.Domain.ReferenceBase, new()
+    where TEntity : Domain.ReferenceBase, new()
 {
     protected GridPage<TEntity>? _grid;
     private bool _isDisposed;
@@ -26,39 +26,34 @@ public abstract partial class ReferencePage<TEntity> : ComponentBase, IDisposabl
     {
         base.OnInitialized();
 
-        // Подписываемся на события изменения стейта контекста для реактивной перерисовки тулбара (кнопок)
-        Context.OnContextStateChanged += RefreshUi;
-
-        // Связываем событие фиксации данных (коммита СУБД от триггеров) с мягкой перезагрузкой грида
-        Context.OnContextUpdated = RefreshGrid;
+        // СВЯЗУЮЩИЙ МОСТ РЕАКТИВНОСТИ: Подписываемся на ЕДИНЫЙ открытый пульс ядра в одной точке!
+        if (Context != null)
+        {
+            Context.OnContextUpdated += HandleContextUpdated;
+        }
     }
 
-    // ИСПРАВЛЕНО (Железное Архитектурное Правило): Блокирующий метод OnInitializedAsync()
-    // и ручной вызов старого метода LoadInitialDataAsync() ПОЛНОСТЬЮ УДАЛЕНЫ!
-    // Интерфейс открывается мгновенно, а данные лениво запрашиваются сеткой после отрисовки.
-
     /// <summary>
-    /// Метод принудительного обновления данных в MudDataGrid. Вызывается брокером при сигналах СУБД.
+    /// Центральный диспетчер реактивности экрана. Вызывается при ЛЮБЫХ мутациях стейта контекста.
     /// </summary>
-    protected void RefreshGrid()
+    private void HandleContextUpdated()
     {
-        // Используем встроенный потокобезопасный механизм Blazor для вызова из фоновых потоков СУБД
         InvokeAsync(async () =>
         {
-            if (_grid != null)
+            // Шаг 1: Форсируем перерисовку элементов страницы (тулбар, оверлеи загрузки)
+            StateHasChanged();
+
+            // Шаг 2: Если контекст завершил CRUD-операцию и очистил черновик,
+            // даем команду пассивному гриду мягко перезагрузить данные с gRPC-сервера
+            if (Context.DraftData == null && _grid != null)
             {
                 await _grid.ReloadServerData();
             }
         });
     }
 
-    private void RefreshUi()
-    {
-        InvokeAsync(StateHasChanged);
-    }
-
     /// <summary>
-    /// Полная очистка ресурсов для предотвращения утечек памяти в Blazor
+    /// Полная очистка ресурсов для предотвращения утечек памяти в Blazor Server
     /// </summary>
     public void Dispose()
     {
@@ -66,11 +61,13 @@ public abstract partial class ReferencePage<TEntity> : ComponentBase, IDisposabl
 
         if (Context != null)
         {
-            Context.OnContextStateChanged -= RefreshUi;
+            Context.OnContextUpdated -= HandleContextUpdated;
 
-            // Если контекст создается внутри жизненного цикла формы (не через глобальный Scope DI),
-            // вызываем утилизацию для отписки Брокера от шины СУБД.
-            Context.Dispose();
+            // Если контекст имеет собственную логику очистки, утилизируем его
+            if (Context is IDisposable disposableContext)
+            {
+                disposableContext.Dispose();
+            }
         }
 
         _isDisposed = true;

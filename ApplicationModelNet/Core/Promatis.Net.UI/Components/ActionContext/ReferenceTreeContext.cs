@@ -1,4 +1,5 @@
 ﻿using Promatis.Net.Domain;
+using Promatis.Net.Domain.Interface;
 using Promatis.Net.UI.Controls;
 
 namespace Promatis.Net.UI.Components;
@@ -7,65 +8,92 @@ namespace Promatis.Net.UI.Components;
 /// Бизнес-Агрегатор для всех древовидных (иерархических) справочников НСИ системы.
 /// Фиксирует типы данных, настраивает рекурсивный ОЗУ-кэш и автоматически собирает дерево-тулбар.
 /// </summary>
-public abstract class ReferenceTreeContext<TEntity> : TreeContext<TEntity, Guid>
-    where TEntity : ReferenceTreeBase<TEntity>, new()
+public abstract class ReferenceTreeContext<TEntity> : TreeContext<TEntity>, IToolbarContext
+    where TEntity : class, ITreeNode<TEntity>, new()
 {
-    // ИСПРАВЛЕНО: Конструктор стал кристально чистым. Настройка стратегий мутаций 
-    // и вызовы виртуальных методов отсюда полностью удалены!
-    protected ReferenceTreeContext(
-        IServiceProvider serviceProvider,
-        Action? onDataChangedNotifier = null)
-        : base(serviceProvider, isInMemoryMode: true, onDataChangedNotifier)
+    // --- ОБЕСПЕЧЕНИЕ ИНТЕРФЕЙСА IToolbarContext ФИЗИЧЕСКОЙ ПАМЯТЬЮ ---
+    public Lock ControlsLock { get; } = new();
+    public List<IUiControl> InnerControls { get; } = [];
+    public bool IsToolbarInitialized { get; set; }
+
+    protected ReferenceTreeContext(IServiceProvider serviceProvider)
+        : base(serviceProvider, isInMemoryMode: true)
     {
     }
 
     /// <summary>
-    /// ИСПРАВЛЕНО: Безопасный метод жизненного цикла контекста.
-    /// Автоматически вызывается базовым холстом (WorkspacePage) в событии OnInitialized,
-    /// гарантируя защиту классов-наследников от NullReferenceException.
+    /// ЧИСТЫЙ МЕТОД СБОРКИ ТУЛБАРА ДЕРЕВА.
+    /// Сигнатуры групп методов разделены строго по типам ожидания кнопок ядра Promatis.
     /// </summary>
-    public override void InitializeContext()
+    public void PopulateDefaultToolbar(List<IUiControl> controls)
     {
-        PopulateDefaultTreeToolbar();
-    }
-
-    /// <summary>
-    /// Автоматическая сборка панели управления для дерева.
-    /// </summary>
-    protected virtual void PopulateDefaultTreeToolbar()
-    {
-        // 1. Кнопка создания корневого элемента (без родителя)
-        AddControl(new CreateEntityButton<TEntity> { Title = "Добавить корень" }
+        // 1. Кнопки создания ожидают чистый Func<Task>. Сигнатура: () => Task
+        controls.Add(new CreateEntityButton<TEntity> { Title = "Добавить корень" }
             .OnExecute(ExecuteCreateRecordAsync));
 
-        // 2. Кнопка создания дочернего подузла (автоматически завязана на наличие SelectedData)
-        AddControl(new CreateChildButton<TEntity>().OnExecute(ExecuteCreateChildRecordAsync));
+        controls.Add(new CreateChildButton<TEntity>()
+            .OnExecute(ExecuteCreateChildRecordAsync));
 
-        // 3. ИСПРАВЛЕНО: Прямая передача ссылок на методы без анонимных лямбда-замыканий
-        AddControl(new EditEntityButton<TEntity>().OnExecute(ExecuteEditRecordAsync));
+        // 2. Кнопки мутаций ожидают Func<TEntity?, Task>. Сигнатура: (entity) => Task
+        controls.Add(new EditEntityButton<TEntity>()
+            .OnExecute(ExecuteEditRecordAsync));
 
-        // 4. Кнопка удаления (MessageBox подтверждения и команда удаления в СУБД)
-        AddControl(new DeleteEntityButton<TEntity>().OnExecute(ExecuteDeleteRecordAsync));
+        controls.Add(new DeleteEntityButton<TEntity>()
+            .OnExecute(ExecuteDeleteRecordAsync));
 
-        // Стандартный визуальный разделитель
-        AddControl(new ToolbarDivider());
+        controls.Add(new ToolbarDivider());
+        AddInitializeContext();
+    }
+
+    protected virtual void AddInitializeContext() { }
+
+    // --- БИЗНЕС-КОМАНДЫ ИНИЦИАЛИЗАЦИИ ЧЕРНОВИКОВ (БЕЗ ПАРАМЕТРОВ, ДЛЯ СОЗДАНИЯ) ---
+
+    /// <summary>
+    /// Команда создания КОРНЕВОГО элемента дерева. Соответствует сигнатуре Func<Task>.
+    /// </summary>
+    protected virtual Task ExecuteCreateRecordAsync()
+    {
+        DraftData = new TEntity();
+        return Task.CompletedTask;
     }
 
     /// <summary>
-    /// Специфичная бизнес-команда создания подчиненного узла.
-    /// Считывает ID выделенного родителя и записывает его в ParentId новой сущности перед вызовом окна.
+    /// Команда создания ПОДЧИНЕННОГО узла графа. Соответствует сигнатуре Func<Task>.
     /// </summary>
-    protected async Task ExecuteCreateChildRecordAsync()
+    protected virtual Task ExecuteCreateChildRecordAsync()
     {
-        if (SelectedData == null) return;
+        if (SelectedData == null) return Task.CompletedTask;
 
-        // Создаем чистый объект, используя новый синтаксис C# целевого типа, 
-        // и привязываем его к текущему выделенному узлу
-        TEntity childModel = new()
+        DraftData = new TEntity
         {
             ParentId = SelectedData.Id
         };
+        return Task.CompletedTask;
+    }
 
-        await OpenDialogWindowAsync(childModel, isNew: true);
+    // --- БИЗНЕС-КОМАНДЫ МУТАЦИЙ ЖИВЫХ СТРОК (С ПАРАМЕТРОМ TEntity?) ---
+
+    /// <summary>
+    /// Команда редактирования узла. Соответствует сигнатуре Func<TEntity?, Task>.
+    /// </summary>
+    protected virtual Task ExecuteEditRecordAsync(TEntity? entity)
+    {
+        var target = entity ?? SelectedData;
+        if (target == null) return Task.CompletedTask;
+
+        DraftData = target;
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Команда удаления узла. Соответствует сигнатуре Func<TEntity?, Task>.
+    /// </summary>
+    protected virtual Task ExecuteDeleteRecordAsync(TEntity? entity)
+    {
+        var target = entity ?? SelectedData;
+        if (target == null) return Task.CompletedTask;
+
+        return Task.CompletedTask;
     }
 }

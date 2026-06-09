@@ -15,21 +15,18 @@ public abstract class EntityContext<TEntity, TKey, TQueryState, TResultData>(
     where TEntity : class, new()
     where TKey : notnull
 {
-    private TEntity? _selectedData;
-    private TEntity? _draftData;
-
     /// <summary>
     /// Текущая выделенная пользователем запись в UI (в гриде или дереве).
     /// При изменении генерирует единый импульс NotifyContextUpdated() для реактивного обновления всего экрана.
     /// </summary>
     public TEntity? SelectedData
     {
-        get => _selectedData;
+        get;
         set
         {
-            if (_selectedData != value)
+            if (field != value)
             {
-                _selectedData = value;
+                field = value;
                 NotifyContextUpdated(); // Пинает единый event обновления для тулбара и страницы
             }
         }
@@ -41,12 +38,12 @@ public abstract class EntityContext<TEntity, TKey, TQueryState, TResultData>(
     /// </summary>
     public TEntity? DraftData
     {
-        get => _draftData;
-        set
+        get;
+        protected set
         {
-            if (_draftData != value)
+            if (field != value)
             {
-                _draftData = value;
+                field = value;
                 NotifyContextUpdated(); // Пинает единое событие обновления для открытия/закрытия окон ввода
             }
         }

@@ -1,30 +1,34 @@
 ﻿@page "/audit-logs"
 @using Promatis.Net.Domain
+@using Promatis.Net.UI.Components
 
-<CascadingValue Value="Context">
+
+<CascadingValue Value="@((IWorkspaceContext)Context)">
     <WorkspacePage>
 
-        <!-- 1. ВЕРХНЯЯ ЗОНА: Автоматический полиморфный тулбар (Динамические контролы) -->
+        @* 1. ВЕРХНЯЯ ЗОНА: Фильтры отрисуются изначально пустыми, а затем наполнятся метаданными *@
         <TopContent>
-            <UiToolbar Controls="@Context.Controls" />
+            <UiToolbar Controls="@(((IToolbarContext)Context).Controls)" />
         </TopContent>
 
-        <!-- 2. ЦЕНТРАЛЬНАЯ ЗОНА: Табличная сетка, работающая в фоновом серверном режиме -->
+        @* 2. ЦЕНТРАЛЬНАЯ ЗОНА: Таблица рождается СТРОГО после активации транспорта в контексте *@
         <BodyContent>
-            <GridPage TEntity="AuditLog"
-                      @ref="_grid"
-                      ServerDataProvider="@Context.GetDataAsync"
-                      WithPagination="true"
-                      RowsPerPage="20">
-                <GridColumns>
+            @if (Context.IsTransportActivated)
+            {
+                <GridPage TEntity="AuditLog"
+                          @ref="_grid"
+                          ServerDataProvider="@Context.GetDataAsync"
+                          OnRowSelected="@(x => Context.SelectedData = x)"
+                          WithPagination="true"
+                          RowsPerPage="20">
                     <PropertyColumn T="AuditLog" TProperty="DateTime" Property="x => x.ChangedAt" Title="Дата и время" Format="dd.MM.yyyy HH:mm:ss" HeaderStyle="width: 200px;" />
                     <PropertyColumn T="AuditLog" TProperty="string" Property="x => x.ChangedBy" Title="Пользователь" HeaderStyle="width: 150px;" />
                     <PropertyColumn T="AuditLog" TProperty="string" Property="x => x.EntityName" Title="Тип сущности" HeaderStyle="width: 200px;" />
                     <PropertyColumn T="AuditLog" TProperty="string" Property="x => x.Action" Title="Операция" HeaderStyle="width: 120px;" />
                     <PropertyColumn T="AuditLog" TProperty="Guid" Property="x => x.EntityId" Title="ID Сущности" HeaderStyle="width: 330px;" />
                     <PropertyColumn T="AuditLog" TProperty="string" Property="x => x.ChangesJson" Title="Изменения (JSON)" HeaderStyle="width: auto;" Class="text-truncate" />
-                </GridColumns>
-            </GridPage>
+                </GridPage>
+            }
         </BodyContent>
 
     </WorkspacePage>

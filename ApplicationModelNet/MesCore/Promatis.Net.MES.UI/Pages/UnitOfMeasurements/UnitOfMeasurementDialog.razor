@@ -1,8 +1,0 @@
-﻿@using Promatis.Net.MES.Domain
-
-@* Оборачиваем форму в умный бизнес-шаблон справочников НСИ.
-   Он сам вызовет базовый каркас, кнопки и наложит сетку Fluent-валидации *@
-<ReferenceDialogLayout TModel="UnitOfMeasurement"
-                       Model="@Model"
-                       Title="@(Model.Id == Guid.Empty ? "Создание единицы измерения" : "Редактирование единицы измерения")"
-                       Validator="@Validator" />

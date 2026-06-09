@@ -29,4 +29,8 @@
     <ProjectReference Include="..\Promatis.Net.MES.Service\Promatis.Net.MES.Service.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Pages\UnitOfMeasurements\" />
+  </ItemGroup>
+
 </Project>

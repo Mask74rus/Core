@@ -15,6 +15,9 @@ public abstract class GridContext<TEntity, TKey> : EntityContext<TEntity, TKey, 
     {
     }
 
+    protected override GridData<TEntity> GetEmptyDataState()
+        => new GridData<TEntity> { Items = [], TotalItems = 0 };
+
     /// <summary>
     /// ДОМЕННЫЙ ФИЛЬТР ДЛЯ НАСЛЕДНИКОВ.
     /// Переопределяется конкретным справочником для жесткого отсечения строк (права, архивы)
@@ -38,13 +41,13 @@ public abstract class GridContext<TEntity, TKey> : EntityContext<TEntity, TKey, 
         IQueryable<TEntity> query = filteredList.AsQueryable();
 
         // 2. Динамическая фильтрация колонок самого интерфейса MudBlazor
-        if (state.FilterDefinitions != null && state.FilterDefinitions.Any())
+        if (state.FilterDefinitions.Any())
         {
             query = query.Where(state.FilterDefinitions);
         }
 
         // 3. Динамическая сортировка колонок самого интерфейса MudBlazor
-        if (state.SortDefinitions != null && state.SortDefinitions.Any())
+        if (state.SortDefinitions.Any())
         {
             query = query.OrderBy(state.SortDefinitions);
         }

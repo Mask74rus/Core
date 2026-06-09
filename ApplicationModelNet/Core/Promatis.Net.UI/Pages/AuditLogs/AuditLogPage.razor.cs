@@ -1,21 +1,21 @@
 ﻿using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
+using MudBlazor;
 using Promatis.Net.Domain;
 using Promatis.Net.Service;
 using Promatis.Net.UI.Components.Workspaces;
 
 namespace Promatis.Net.UI.Pages.AuditLogs;
 
-public partial class AuditLogPage : ComponentBase
+
+
+public partial class AuditLogPage : ComponentBase, IDisposable
 {
     private GridPage<AuditLog>? _grid;
-    private bool _isLoaded;
+    private bool _isDisposed;
 
     [Inject]
     protected IServiceProvider PageServiceProvider { get; set; } = null!;
-
-    [Inject]
-    protected IAuditLogService AuditLogService { get; set; } = null!;
 
     protected AuditLogContext Context { get; set; } = null!;
 
@@ -23,39 +23,59 @@ public partial class AuditLogPage : ComponentBase
     {
         base.OnInitialized();
 
-        // МГНОВЕННО создаем пустой контекст. Страница рендерится без задержек за 0 мс
-        Context = new AuditLogContext(PageServiceProvider, onFilterChanged: RefreshGrid);
+        // 0 мс ИНИЦИАЛИЗАЦИЯ
+        Context = new AuditLogContext(PageServiceProvider);
+
+        // Подписка 1: Только на общие изменения (оверлеи загрузки)
+        Context.OnContextUpdated += HandleContextUpdated;
     }
 
-    /// <summary>
-    /// Каноническая точка запуска тяжелых запросов. Срабатывает ПОСЛЕ того, 
-    /// как пользователь уже увидел готовую страницу на экране.
-    /// </summary>
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         await base.OnAfterRenderAsync(firstRender);
 
-        // Выполняем загрузку только один раз при первом рендере экрана
         if (firstRender)
         {
-            // Спокойно скачиваем уникальные имена сущностей из СУБД PostgreSQL
-            List<string> availableEntities = await AuditLogService.GetAvailableEntityNamesAsync();
+            // Подписка 2: На адресный сигнал изменения фильтров ИЗ КОНТЕКСТА
+            Context.OnFiltersChanged += OnFiltersTriggered;
 
-            // Передаем данные в контекст для динамической генерации селекта и пикера периодов
-            Context.InitializeFilters(availableEntities);
+            // Включаем Брокер и качаем метаданные СУБД внутри контекста
+            await Context.ActivateTransportAsync();
 
-            _isLoaded = true;
-            StateHasChanged(); // Перерисовываем тулбар и запускаем первую загрузку логов
+            StateHasChanged();
         }
     }
 
-    protected void RefreshGrid()
+    /// <summary>
+    /// АДРЕСНЫЙ ПЕРЕХВАТ: Срабатывает только тогда, когда контекст сообщил о мутации фильтров.
+    /// Перезагружает пассивный грид без бесконечных петель!
+    /// </summary>
+    private void OnFiltersTriggered()
     {
-        // Запрещаем принудительное обновление грида от триггеров фильтров,
-        // пока эти фильтры еще первично не настроены в OnAfterRenderAsync
-        if (_isLoaded && _grid != null)
+        InvokeAsync(async () =>
         {
-            _ = _grid.ReloadServerData();
+            if (_grid != null)
+            {
+                await _grid.ReloadServerData();
+            }
+        });
+    }
+
+    private void HandleContextUpdated()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        if (_isDisposed) return;
+
+        if (Context != null)
+        {
+            Context.OnContextUpdated -= HandleContextUpdated;
+            Context.OnFiltersChanged -= OnFiltersTriggered;
         }
+
+        _isDisposed = true;
     }
 }
