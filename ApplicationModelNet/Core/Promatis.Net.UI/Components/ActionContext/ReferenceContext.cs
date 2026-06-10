@@ -1,8 +1,10 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using MudBlazor;
 using Promatis.Net.Domain;
+using Promatis.Net.Domain.Interface;
 using Promatis.Net.Service;
 using Promatis.Net.UI.Controls;
+using static MudBlazor.CategoryTypes;
 
 namespace Promatis.Net.UI.Components;
 
@@ -10,57 +12,94 @@ namespace Promatis.Net.UI.Components;
 /// Бизнес-Агрегатор для всех плоских справочников НСИ системы.
 /// Фиксирует типы данных, включает InMemory Mode и автоматически собирает типовой CRUD-тулбар.
 /// </summary>
-public abstract class ReferenceContext<TEntity> : GridContext<TEntity, Guid>, IToolbarContext
+public abstract class ReferenceContext<TEntity> : GridContext<TEntity>, IToolbarContext
     where TEntity : ReferenceBase, new()
 {
     private readonly IReferenceService<TEntity> _referenceService;
+    protected readonly IDialogService DialogService;
+    protected readonly IServiceProvider ServiceProvider; // Сохраняем IoC-сессию для лямбда-команд кнопок
 
-    // --- ОБЕСПЕЧЕНИЕ ИНТЕРФЕЙСА IToolbarContext ФИЗИЧЕСКОЙ ПАМЯТЬЮ СИЛАМИ ЯДРА ---
-    public Lock ControlsLock { get; } = new();
+    // ====================================================================================
+    // --- РЕАЛИЗАЦИЯ ФИЗИЧЕСКОЙ ПАМЯТИ ДЛЯ КОНТРАКТА IToolbarContext ---
+    // ====================================================================================
+
+    /// <summary>
+    /// Потокобезопасный замок синхронизации. Считывается дефолтной логикой интерфейса.
+    /// </summary>
+    public System.Threading.Lock ControlsLock { get; } = new();
+
+    /// <summary>
+    /// Мутабельный внутренний список кнопок ядра.
+    /// </summary>
     public List<IUiControl> InnerControls { get; } = [];
+
+    /// <summary>
+    /// Флаг, сигнализирующий о том, что стартовый пакет кнопок уже собран.
+    /// </summary>
     public bool IsToolbarInitialized { get; set; }
 
-    protected ReferenceContext(IServiceProvider serviceProvider, bool isInMemoryMode = true)
-        : base(serviceProvider, isInMemoryMode)
+    /// <summary>
+    /// Конструктор абстрактного ядра табличных справочников.
+    /// </summary>
+    protected ReferenceContext(IServiceProvider serviceProvider)
+        : base(serviceProvider)
     {
-        if (serviceProvider == null) throw new ArgumentNullException(nameof(serviceProvider));
-
-        // Возвращаем ваш реальный доменный сервис из DI-сессии
+        ServiceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
         _referenceService = serviceProvider.GetRequiredService<IReferenceService<TEntity>>();
+        DialogService = serviceProvider.GetRequiredService<IDialogService>();
 
+        // Связываем специализированную стратегию мутаций ОЗУ (нужна для ApplyOzuDelta в Брокере данных)
         var strategy = serviceProvider.GetRequiredService<IOzuMutationStrategy<TEntity>>();
         OzuCache.SetMutationStrategy(strategy);
     }
 
+    // ====================================================================================
+    // --- МЕТОД СБОРКИ СЛЕПЫХ КНОПОК ТУЛБАРА ---
+    // ====================================================================================
+
     /// <summary>
-    /// ЧИСТЫЙ МЕТОД СБОРКИ ТУЛБАРА.
-    /// Вызывается интерфейсом лениво в полной рантайм-тишине без блокировок и рекурсий.
+    /// Чистый метод сборки тулбара. Вызывается интерфейсом лениво при первом рендере UI.
+    /// Наполняет мутабельный список без риска гонок потоков.
     /// </summary>
     public void PopulateDefaultToolbar(List<IUiControl> controls)
     {
-        controls.Add(new CreateEntityButton<TEntity>());
-        controls.Add(new EditEntityButton<TEntity>());
-        controls.Add(new DeleteEntityButton<TEntity>());
+        // 1. КНОПКА "СОЗДАТЬ": Инициализирует чистый объект в теле бизнес-команды
+        controls.Add(new CreateEntityButton<TEntity>().OnExecute(async () =>
+        {
+            var newEntity = new TEntity();
+            await OpenDialogFormAsync(newEntity);
+        }));
 
-        // Безопасный хук расширения для конкретных прикладных справочников
-        AddInitializeContext();
+        // 2. КНОПКА "РЕДАКТИРОВАТЬ": Извлекает системный клонер платформы из IoC и изолирует стейт
+        controls.Add(new EditEntityButton<TEntity>().OnExecute(async (typedEntity) =>
+        {
+            // Извлекаем клонер платформы из сохраненного ServiceProvider ядра данных
+            var entityCloner = ServiceProvider.GetRequiredService<IEntityCloner>();
+
+            // Рождение объекта диалога (изолированного клона) происходит строго внутри бизнес-команды!
+            var clone = entityCloner.CloneEntity(typedEntity);
+            await OpenDialogFormAsync(clone);
+        }));
+
+        // 3. КНОПКА "УДАЛИТЬ": Выполняет прямое gRPC-удаление сущности
+        controls.Add(new DeleteEntityButton<TEntity>().OnExecute(async (typedEntity) =>
+        {
+            await _referenceService.DeleteAsync(typedEntity.Id);
+            SelectedData = null; // Мгновенно сбрасываем селекшен строки таблицы в UI после физического удаления
+        }));
+
+        // Мягкий защищенный хук расширения для уникальных кнопок конкретных прикладных справочников
+        AddInitializeContext(controls);
     }
 
-    protected virtual void AddInitializeContext() { }
+    /// <summary>
+    /// Абстрактный метод вызова диалогового окна. Каждое конкретное поддерево справочников 
+    /// переопределит его для вызова своего уникального визуального файла MudDialog (например, UserDialog).
+    /// </summary>
+    protected abstract Task OpenDialogFormAsync(TEntity model);
 
-    // --- ОБЯЗАТЕЛЬНЫЕ ФУНКЦИОНАЛЬНЫЕ МОСТЫ ТРАНСПОРТА (ДЛЯ БРОКЕРА) ---
-
-    protected override async Task<GridData<TEntity>> FetchDataFromServerAsync(GridState<TEntity> state, CancellationToken ct)
-    {
-        // Честный серверный транспорт выгрузки страниц (для редких тяжелых справочников без ОЗУ-кэша)
-        var pagedResult = await _referenceService.GetPagedAsync(state.Page, state.PageSize, ct);
-        return new GridData<TEntity> { Items = pagedResult.Items, TotalItems = pagedResult.TotalCount };
-    }
-
-    protected override async Task<List<TEntity>> LoadInitialDataForBrokerAsync(GridState<TEntity> state, CancellationToken ct)
-    {
-        // ИСПРАВЛЕНО: Ленивый поставщик сырых данных на вашем реальном сервисе
-        try { return await _referenceService.GetAllAsync(ct) ?? []; }
-        catch (OperationCanceledException) { return []; }
-    }
+    /// <summary>
+    /// Виртуальный хук расширения тулбара для добавления кастомных бизнес-кнопок.
+    /// </summary>
+    protected virtual void AddInitializeContext(List<IUiControl> controls) { }
 }

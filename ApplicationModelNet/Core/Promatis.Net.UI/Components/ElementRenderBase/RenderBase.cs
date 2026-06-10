@@ -3,44 +3,62 @@
 namespace Promatis.Net.UI.Components.ElementRenderBase;
 
 /// <summary>
-/// Абстрактный базовый компонент для всех Razor-рендереров элементов управления платформы.
+/// Абстрактный базовый компонент визуализации элементов управления (кнопок, полей ввода).
+/// Обеспечивает строгое ООП-взаимодействие с контекстом данных без использования рефлексии.
 /// </summary>
 public abstract class RenderBase : ComponentBase, IDisposable
 {
     /// <summary>
-    /// Бизнес-модель элемента управления, передаваемая из DynamicComponent.
+    /// Абстрактная модель элемента управления, содержащая бизнес-логику и флаги доступности.
     /// </summary>
     [Parameter]
     public IUiControl Control { get; set; } = null!;
 
     /// <summary>
-    /// Каскадный контекст холста рабочей области.
+    /// Захват контекста данных из каскада. Благодаря наследованию интерфейсов-матрешек,
+    /// сюда прозрачно прилетит любой контекст страницы (ReferenceContext, TreeContext, AuditLogContext).
     /// </summary>
     [CascadingParameter]
-    protected IWorkspaceContext? ActionContext { get; set; }
+    protected IEntityContext? EntityContext { get; set; }
 
     /// <summary>
-    /// Безопасно извлекает текущие выделенные данные из контекста формы.
+    /// Чистый ООП-контракт извлечения выделенной строки в виде object? напрямую из интерфейса.
     /// </summary>
-    protected object? CurrentSelectedData => GetSelectedDataFromContext();
+    protected object? CurrentSelectedData => EntityContext?.SelectedData;
 
+    /// <summary>
+    /// Фаза инициализации компонента Blazor Server. Настраивает сквозную событийную реактивность.
+    /// </summary>
     protected override void OnInitialized()
     {
         base.OnInitialized();
 
-        // Регистрируем реактивное обновление интерфейса при смене состояния бизнес-модели
+        // Подписка 1: Если модель самой кнопки изменила состояние (например, IsRunning или IsEnabled)
         Control.OnStateChanged += HandleStateChanged;
+
+        // Подписка 2: Если пользователь выбрал другую строку в таблице или узел в дереве,
+        // кнопка обязана мгновенно узнать об этом для пересчета метода IsEnabledForData
+        if (EntityContext != null)
+        {
+            EntityContext.OnContextUpdated += HandleStateChanged;
+        }
     }
 
+    /// <summary>
+    /// Потокобезопасный вызов перерисовки компонента в контексте синхронизации Blazor Server.
+    /// </summary>
     private void HandleStateChanged() => InvokeAsync(StateHasChanged);
 
-    private object? GetSelectedDataFromContext()
+    /// <summary>
+    /// Освобождение системных ресурсов и гарантированная отписка от событий для предотвращения утечек памяти.
+    /// </summary>
+    public virtual void Dispose()
     {
-        if (ActionContext == null) return null;
+        Control.OnStateChanged -= HandleStateChanged;
 
-        Type? interfaceType = ActionContext.GetType().GetInterface("IHasSelectedData`1");
-        return interfaceType?.GetProperty("SelectedData")?.GetValue(ActionContext);
+        if (EntityContext != null)
+        {
+            EntityContext.OnContextUpdated -= HandleStateChanged;
+        }
     }
-
-    public virtual void Dispose() => Control.OnStateChanged -= HandleStateChanged;
 }

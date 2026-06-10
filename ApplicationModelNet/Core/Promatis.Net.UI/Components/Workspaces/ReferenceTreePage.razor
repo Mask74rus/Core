@@ -1,6 +1,6 @@
 ﻿@typeparam TEntity where TEntity : Promatis.Net.Domain.ReferenceTreeBase<TEntity>, new()
 
-<CascadingValue Value="@((IWorkspaceContext)Context)">
+<CascadingValue Value="@((IEntityContext)Context)">
     <WorkspacePage>
 
         @* 1. ВЕРХНЯЯ ЗОНА: Автоматический тулбар кнопок управления деревом *@
@@ -12,7 +12,7 @@
         <BodyContent>
             @* СВЯЗУЮЩИЙ МОСТ: Передаем готовый TreeGraph и привязываем OnNodeSelected напрямую к стейту контекста *@
             <TreePage TEntity="TEntity"
-                      RootItems="@TreeGraph"
+                      RootItems="@Context.TreeGraph"
                       TextSelector="@(x => string.IsNullOrWhiteSpace(x.Code) ? x.Name : $"[{x.Code}] {x.Name}")"
                       IconSelector="@(x => x.Children != null && x.Children.Any() ? Icons.Material.Filled.Folder : Icons.Material.Filled.InsertDriveFile)"
                       OnNodeSelected="@(x => Context.SelectedData = x)" />

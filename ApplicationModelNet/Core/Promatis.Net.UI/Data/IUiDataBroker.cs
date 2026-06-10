@@ -3,16 +3,12 @@
 namespace Promatis.Net.UI;
 
 /// <summary>
-/// Контракт брокера данных, управляющего выбором источника (Server/OZU) и стратегией отображения.
-/// Не содержит дефолтных режимов — программист обязан явно сконфигурировать поведение формы.
+/// Универсальный интерфейс управляющего автомата данных (Брокера).
+/// Задает жесткие контракты для серверного и оперативного режимов работы.
 /// </summary>
-public interface IUiDataBroker<TEntity, TQueryState, TResultData> : IDisposable where TEntity : class
+public interface IUiDataBroker<TEntity, TQueryState, TResultData> : IDisposable
+    where TEntity : class
 {
-    /// <summary>
-    /// Признак, указывающий, что текущий инстанс брокера на форме работает в режиме оперативной памяти.
-    /// </summary>
-    bool IsInMemoryMode { get; }
-
     /// <summary>
     /// Жесткая конфигурация работы напрямую с СУБД / gRPC API (Server Mode).
     /// </summary>
@@ -23,8 +19,8 @@ public interface IUiDataBroker<TEntity, TQueryState, TResultData> : IDisposable 
     /// </summary>
     void ConfigureInMemoryMode(
         IUiOzuCache<TEntity> ozuCache,
-        Func<TQueryState, CancellationToken, Task<List<TEntity>>> serverDataLoader, // Передаем знание О ТОМ, КАК загрузить
-        Func<TQueryState, IReadOnlyList<TEntity>, TResultData> inMemoryEvaluator // Работает с IReadOnlyList
+        Func<CancellationToken, Task<List<TEntity>>> serverDataLoader, // ХИРУРГИЧЕСКИ ИСПРАВЛЕНО: Убран TQueryState для честной выкачки всей таблицы
+        Func<IReadOnlyList<TEntity>, TQueryState, TResultData> inMemoryEvaluator // Работает с IReadOnlyList и текущим стейтом MudBlazor
     );
 
     /// <summary>

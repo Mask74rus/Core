@@ -13,11 +13,11 @@
 
         @* 2. ЦЕНТРАЛЬНАЯ ЗОНА: Таблица рождается СТРОГО после активации транспорта в контексте *@
         <BodyContent>
-            @if (Context.IsTransportActivated)
+            @if(((AuditLogContext)Context).IsTransportActivated)
             {
                 <GridPage TEntity="AuditLog"
                           @ref="_grid"
-                          ServerDataProvider="@Context.GetDataAsync"
+                          ServerDataProvider="@(((AuditLogContext)Context).GetDataAsync)"
                           OnRowSelected="@(x => Context.SelectedData = x)"
                           WithPagination="true"
                           RowsPerPage="20">

@@ -3,33 +3,40 @@
 namespace Promatis.Net.UI;
 
 /// <summary>
-/// Платформенный брокер данных. Централизованно управляет поставкой данных для визуализаторов.
-/// Полностью абстрагирует UI от конкретных интерфейсов доменных служб бэкенда.
+/// Промышленный автомат управления gRPC-транспортом, Ozu-кэшем и реактивными триггерами СУБД.
+/// Полностью автономен, потокобезопасен и скрыт от прикладного программиста.
 /// </summary>
-/// <typeparam name="TEntity">Тип доменной сущности</typeparam>
-public class UiDataBroker<TEntity, TQueryState, TResultData> : IUiDataBroker<TEntity, TQueryState, TResultData>
-    where TEntity : class
+public class UiDataBroker<TEntity, TQueryState, TResultData> : IUiDataBroker<TEntity, TQueryState, TResultData>, IDisposable
+    where TEntity : class, new()
 {
+    // --- ДЕЛЕГАТЫ ЯДРА (СИНХРОНИЗИРОВАНЫ С DATA-CONTEXT) ---
     private Func<TQueryState, CancellationToken, Task<TResultData>>? _serverDataProvider;
-    private Func<TQueryState, CancellationToken, Task<List<TEntity>>>? _serverDataLoader;
-    private Func<TQueryState, IReadOnlyList<TEntity>, TResultData>? _inMemoryEvaluator;
+    private Func<CancellationToken, Task<List<TEntity>>>? _serverDataLoader;
+    private Func<IReadOnlyList<TEntity>, TQueryState, TResultData>? _inMemoryEvaluator;
+
     private IUiOzuCache<TEntity>? _ozuCache;
     private readonly Action? _onDataChangedNotifier;
 
     private bool _isInitialized;
-    private bool _isInMemoryMode;
     private bool _isOzuLoaded;
 
-    // Инфраструктура для дебаунса сетевых уведомлений в ServerMode
-    private CancellationTokenSource? _debounceCts;
-    private readonly object _debounceLock = new(); // Замок для потокобезопасного сброса таймера
-    private const int DebounceDelayMs = 300; // Временное окно ожидания затишья в БД (300 мс)
+    // Системный семафор для предотвращения Race Condition при стартовом прогреве кэша
+    private readonly SemaphoreSlim _cacheLock = new(1, 1);
 
-    public bool IsInMemoryMode => _isInMemoryMode;
+    // Инфраструктура дебаунса сетевых уведомлений для ServerMode
+    private CancellationTokenSource? _debounceCts;
+    private readonly object _debounceLock = new();
+    private const int DebounceDelayMs = 300;
+
+    /// <summary>
+    /// Режим работы определяется нативно: если провайдер сервера пуст, значит мы в памяти.
+    /// </summary>
+    public bool IsInMemoryMode => _serverDataProvider == null && _isInitialized;
 
     public UiDataBroker(Action? onDataChangedNotifier = null)
     {
         _onDataChangedNotifier = onDataChangedNotifier;
+        // Мягкая регистрация на глобальные триггеры СУБД
         DatabaseTriggerService.OnEntityCommitted += HandleGlobalEntityCommitted;
     }
 
@@ -44,21 +51,19 @@ public class UiDataBroker<TEntity, TQueryState, TResultData> : IUiDataBroker<TEn
         _serverDataLoader = null;
         _inMemoryEvaluator = null;
         _ozuCache = null;
-        _isInMemoryMode = false;
         _isInitialized = true;
         _isOzuLoaded = false;
     }
 
     public void ConfigureInMemoryMode(
         IUiOzuCache<TEntity> ozuCache,
-        Func<TQueryState, CancellationToken, Task<List<TEntity>>> serverDataLoader,
-        Func<TQueryState, IReadOnlyList<TEntity>, TResultData> inMemoryEvaluator)
+        Func<CancellationToken, Task<List<TEntity>>> serverDataLoader,
+        Func<IReadOnlyList<TEntity>, TQueryState, TResultData> inMemoryEvaluator)
     {
         _ozuCache = ozuCache ?? throw new ArgumentNullException(nameof(ozuCache));
         _serverDataLoader = serverDataLoader ?? throw new ArgumentNullException(nameof(serverDataLoader));
         _inMemoryEvaluator = inMemoryEvaluator ?? throw new ArgumentNullException(nameof(inMemoryEvaluator));
         _serverDataProvider = null;
-        _isInMemoryMode = true;
         _isInitialized = true;
         _isOzuLoaded = false;
     }
@@ -70,21 +75,36 @@ public class UiDataBroker<TEntity, TQueryState, TResultData> : IUiDataBroker<TEn
             throw new InvalidOperationException($"Брокер данных для '{typeof(TEntity).Name}' не был сконфигурирован.");
         }
 
+        // --- РЕЖИМ А: ПРЯМОЙ СЕРВЕРНЫЙ ТРАНСПОРТ (SERVER-SIDE) ---
         if (_serverDataProvider != null)
         {
             return await _serverDataProvider(state, cancellationToken);
         }
 
-        if (_isInMemoryMode && _ozuCache != null && _inMemoryEvaluator != null && _serverDataLoader != null)
+        // --- РЕЖИМ Б: ОПЕРАТИВНЫЙ КЭШ В ОЗУ (IN-MEMORY) ---
+        if (_ozuCache != null && _inMemoryEvaluator != null && _serverDataLoader != null)
         {
             if (!_isOzuLoaded)
             {
-                List<TEntity> initialData = await _serverDataLoader(state, cancellationToken);
-                _ozuCache.Initialize(initialData);
-                _isOzuLoaded = true;
+                // Блокируем параллельные потоки Blazor Server на время ленивого gRPC-запроса
+                await _cacheLock.WaitAsync(cancellationToken);
+                try
+                {
+                    if (!_isOzuLoaded)
+                    {
+                        List<TEntity> initialData = await _serverDataLoader(cancellationToken);
+                        _ozuCache.Initialize(initialData);
+                        _isOzuLoaded = true;
+                    }
+                }
+                finally
+                {
+                    _cacheLock.Release();
+                }
             }
 
-            return _ozuCache.ExecuteInLock(items => _inMemoryEvaluator(state, items));
+            // Безопасно вычисляем LINQ-стейт внутри внутреннего локального замка OzuCache
+            return _ozuCache.ExecuteInLock(items => _inMemoryEvaluator(items, state));
         }
 
         throw new InvalidOperationException("Критический сбой внутренней конфигурации брокера данных.");
@@ -92,57 +112,71 @@ public class UiDataBroker<TEntity, TQueryState, TResultData> : IUiDataBroker<TEn
 
     public void HandleDatabaseCommit(EntityStateChangeEnum state, object entity)
     {
-        // Проверяем: относится ли прилетевший из СУБД объект к типу данных текущего экрана?
         if (entity is not TEntity typedEntity) return;
 
-        if (_isInMemoryMode)
+        // Физика: Отсутствие серверного провайдера гарантирует In-Memory режим
+        if (_serverDataProvider == null)
         {
-            // РЕЖИМ IN-MEMORY: Мутируем ОЗУ мгновенно без задержек для сохранения целостности кэша
-            if (_ozuCache != null && _isOzuLoaded)
+            // Мгновенно обновляем ОЗУ дельтой из базы данных для сохранения консистентности
+            if (_isOzuLoaded && _ozuCache != null)
             {
                 _ozuCache.ApplyOzuDelta(state, typedEntity);
             }
 
-            // Сразу пинаем UI, так как сетевого запроса не будет — вычисления пройдут мгновенно в ОЗУ
+            // Мгновенно пинаем UI Blazor Server
             _onDataChangedNotifier?.Invoke();
         }
         else
         {
-            // РЕЖИМ SERVER-MODE: Включаем дебаунс для предотвращения сетевого шторма gRPC/API запросов
+            // Режим прямой работы с сервером: защищаем gRPC-каналы дебаунсом в 300 мс
             lock (_debounceLock)
             {
-                // Если предыдущий таймер еще тикал (пачка изменений продолжается) — отменяем его
+                if (!_isInitialized) return;
+
                 _debounceCts?.Cancel();
                 _debounceCts?.Dispose();
 
-                // Создаем новый токен задержки
                 _debounceCts = new CancellationTokenSource();
-                var token = _debounceCts.Token;
+                CancellationToken token = _debounceCts.Token;
 
-                // Запускаем фоновое ожидание затишья в БД
-                Task.Delay(DebounceDelayMs, token).ContinueWith(task =>
+                _ = Task.Run(async () =>
                 {
-                    // Вызываем пинок UI только если задача успешно завершилась и не была отменена новой дельтой
-                    if (task.Status == TaskStatus.RanToCompletion && !token.IsCancellationRequested)
+                    try
                     {
-                        _onDataChangedNotifier?.Invoke();
+                        await Task.Delay(DebounceDelayMs, token);
+
+                        if (!token.IsCancellationRequested)
+                        {
+                            _onDataChangedNotifier?.Invoke();
+                        }
                     }
-                }, TaskScheduler.Default);
+                    catch (OperationCanceledException)
+                    {
+                        // Мягко глотаем отмену таски при пачке изменений в БД
+                    }
+                }, CancellationToken.None);
             }
         }
     }
 
     public void Dispose()
     {
-        // Отписываемся от статического эвента службы триггеров СУБД
+        // Отписываемся от статического триггера ядра, предотвращая утечку всего контекста экрана
         DatabaseTriggerService.OnEntityCommitted -= HandleGlobalEntityCommitted;
 
-        // Зачищаем инфраструктуру дебаунса при уничтожении брокера формой
         lock (_debounceLock)
         {
-            _debounceCts?.Cancel();
-            _debounceCts?.Dispose();
-            _debounceCts = null;
+            _isInitialized = false;
+
+            if (_debounceCts != null)
+            {
+                _debounceCts.Cancel();
+                _debounceCts.Dispose();
+                _debounceCts = null;
+            }
         }
+
+        // Хирургически зачищаем системный семафор прогрева кэша
+        _cacheLock.Dispose();
     }
 }

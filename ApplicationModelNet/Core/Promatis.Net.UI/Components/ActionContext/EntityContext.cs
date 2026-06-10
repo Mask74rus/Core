@@ -1,23 +1,22 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using MudBlazor;
 using Promatis.Net.Domain.Interface;
 
 namespace Promatis.Net.UI.Components;
 
 /// <summary>
-/// Абстрактное ядро работы со стейтом конкретного экземпляра сущности в памяти.
-/// Монопольно отвечает за хранение выделенной записи (SelectedData) и изолированного черновика (DraftData).
-/// Передает 3 generic-параметра наверх в DataContext для сквозной синхронизации Брокера данных.
+/// Базовый контекст сущности, инкапсулирующий состояние выбранной пользователем строки.
+/// Реализует интерфейс IEntityContext для бесшовной связи с кнопками интерфейса.
 /// </summary>
-public abstract class EntityContext<TEntity, TKey, TQueryState, TResultData>(
-    IServiceProvider serviceProvider,
-    bool isInMemoryMode) : DataContext<TEntity, TQueryState, TResultData>(serviceProvider, isInMemoryMode)
+/// <typeparam name="TEntity">Класс бизнес-сущности (например, User, AuditLog).</typeparam>
+/// <typeparam name="TQueryState">Тип состояния запроса MudBlazor (например, GridState).</typeparam>
+/// <typeparam name="TResultData">Тип контейнера результатов (например, GridData).</typeparam>
+public abstract class EntityContext<TEntity, TQueryState, TResultData>
+    : DataContext<TEntity, TQueryState, TResultData>, IEntityContext
     where TEntity : class, new()
-    where TKey : notnull
 {
     /// <summary>
-    /// Текущая выделенная пользователем запись в UI (в гриде или дереве).
-    /// При изменении генерирует единый импульс NotifyContextUpdated() для реактивного обновления всего экрана.
+    /// Текущая выделенная пользователем запись в UI (строго типизированная для прикладного C#-кода страниц).
+    /// При изменении значения генерирует единый импульс NotifyContextUpdated() для пересчета доступности кнопок.
     /// </summary>
     public TEntity? SelectedData
     {
@@ -27,40 +26,26 @@ public abstract class EntityContext<TEntity, TKey, TQueryState, TResultData>(
             if (field != value)
             {
                 field = value;
-                NotifyContextUpdated(); // Пинает единый event обновления для тулбара и страницы
+                NotifyContextUpdated(); // Мгновенно оповещает кнопки тулбара и формы о смене селекшена
             }
         }
     }
 
     /// <summary>
-    /// Изолированный черновик (глубокий клон) сущности для прямой привязки к полям ввода в UI.
-    /// Наличие объекта в этом слоте автоматически сигнализирует базовой странице ядра о фазе мутации (CRUD).
+    /// ТИХИЙ КОНСТРУКТОР СЛОЯ СУЩНОСТИ.
+    /// Передает serviceProvider наверх в DataContext для извлечения Брокера и Ozu-кэша.
     /// </summary>
-    public TEntity? DraftData
+    protected EntityContext(IServiceProvider serviceProvider) : base(serviceProvider)
     {
-        get;
-        protected set
-        {
-            if (field != value)
-            {
-                field = value;
-                NotifyContextUpdated(); // Пинает единое событие обновления для открытия/закрытия окон ввода
-            }
-        }
     }
 
     /// <summary>
-    /// Служебный хелпер ядра для извлечения строго типизированного первичного ключа Id из сущности.
-    /// Предоставляет универсальный инструмент для работы репозиториев СУБД PostgreSQL на нижних слоях.
+    /// ЯВНАЯ РЕАЛИЗАЦИЯ ИНТЕРФЕЙСА IEntityContext ДЛЯ НЕ-GENERIC КОМПОНЕНТОВ (RenderBase)
+    /// Безопасный проброс выбранной строки в виде object? для пассивных визуализаторов кнопок.
     /// </summary>
-    public TKey GetEntityKey(TEntity entity)
+    object? IEntityContext.SelectedData
     {
-        if (entity is IDomainObjectHasKey<TKey> hasKeyEntity)
-        {
-            return hasKeyEntity.Id;
-        }
-
-        throw new InvalidOperationException(
-            $"Критический сбой домена: Сущность '{typeof(TEntity).Name}' не реализует обязательный интерфейс 'IDomainObjectHasKey<{typeof(TKey).Name}>'.");
+        get => SelectedData;
+        set => SelectedData = (TEntity?)value; // Абсолютно безопасный downcasting в рамках конкретного экрана
     }
 }

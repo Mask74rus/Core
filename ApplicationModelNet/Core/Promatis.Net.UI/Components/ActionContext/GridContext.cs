@@ -3,51 +3,58 @@
 namespace Promatis.Net.UI.Components;
 
 /// <summary>
-/// Промежуточный контекст представления для табличных страниц (Grid Mode).
-/// Мапит абстрактные данные ядра в строго типизированные структуры пагинации MudBlazor (GridState и GridData).
+/// Абстрактный табличный контекст платформы.
+/// Инкапсулирует в себе универсальный математический конвейер динамической фильтрации, сортировки и пагинации MudBlazor.
 /// </summary>
-public abstract class GridContext<TEntity, TKey> : EntityContext<TEntity, TKey, GridState<TEntity>, GridData<TEntity>>
+/// <typeparam name="TEntity">Класс бизнес-сущности таблицы (например, User, Client).</typeparam>
+public abstract class GridContext<TEntity> : EntityContext<TEntity, GridState<TEntity>, GridData<TEntity>>
     where TEntity : class, new()
-    where TKey : notnull
 {
-    protected GridContext(IServiceProvider serviceProvider, bool isInMemoryMode)
-        : base(serviceProvider, isInMemoryMode)
+    /// <summary>
+    /// ТИХИЙ КОНСТРУКТОР ТАБЛИЧНОГО ЯДРА.
+    /// </summary>
+    protected GridContext(IServiceProvider serviceProvider)
+        : base(serviceProvider)
     {
     }
 
+    /// <summary>
+    /// Возвращает пустой дефолтный стейт для защиты MudBlazor от null в фазе до загрузки транспорта.
+    /// </summary>
     protected override GridData<TEntity> GetEmptyDataState()
-        => new GridData<TEntity> { Items = [], TotalItems = 0 };
+        => new GridData<TEntity> { Items = Array.Empty<TEntity>(), TotalItems = 0 };
 
     /// <summary>
     /// ДОМЕННЫЙ ФИЛЬТР ДЛЯ НАСЛЕДНИКОВ.
-    /// Переопределяется конкретным справочником для жесткого отсечения строк (права, архивы)
+    /// Переопределяется конкретным справочником для жесткого системного отсечения строк (права, архивы)
     /// БЕЗ риска нарушить потокобезопасность ОЗУ-кэша и БЕЗ копипаста рутины пагинации.
     /// </summary>
     protected virtual Func<TEntity, bool>? GetDomainFilter() => null;
 
     /// <summary>
     /// ИСТИННАЯ ОТВЕТСТВЕННОСТЬ ТАБЛИЦЫ: Математический конвейер обработки данных.
-    /// Принимает безопасный IReadOnlyList, изолированный Брокером внутри потокобезопасного ExecuteInLock.
+    /// Сделан virtual, чтобы тяжелые или специфичные экраны могли переопределить логику фильтрации колонок.
+    /// Передается ссылкой в метод ConfigureUsingInMemoryMode при сборке конечного контекста.
     /// </summary>
-    protected override GridData<TEntity> EvaluateDataStateInMemory(GridState<TEntity> state, IReadOnlyList<TEntity> inMemoryList)
+    protected virtual GridData<TEntity> EvaluateDataStateInMemory(IReadOnlyList<TEntity> inMemoryList, GridState<TEntity> state)
     {
-        // 1. Сначала нативно применяем доменный фильтр наследника, если он задан
+        // 1. Сначала нативно применяем доменный фильтр наследника, если он задан прикладным программистом
         var domainFilter = GetDomainFilter();
         IEnumerable<TEntity> filteredList = domainFilter != null
             ? inMemoryList.Where(domainFilter)
             : inMemoryList;
 
-        // Превращаем отфильтрованный поток в LINQ-выражение для MudBlazor колонок
+        // Превращаем отфильтрованный поток в LINQ-выражение для динамических колонок MudBlazor
         IQueryable<TEntity> query = filteredList.AsQueryable();
 
-        // 2. Динамическая фильтрация колонок самого интерфейса MudBlazor
-        if (state.FilterDefinitions.Any())
+        // 2. Динамическая фильтрация колонок самого интерфейса MudBlazor (выполняется на стороне клиента мгновенно)
+        if (state.FilterDefinitions != null && state.FilterDefinitions.Any())
         {
             query = query.Where(state.FilterDefinitions);
         }
 
         // 3. Динамическая сортировка колонок самого интерфейса MudBlazor
-        if (state.SortDefinitions.Any())
+        if (state.SortDefinitions != null && state.SortDefinitions.Any())
         {
             query = query.OrderBy(state.SortDefinitions);
         }

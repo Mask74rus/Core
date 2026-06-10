@@ -7,9 +7,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Pages\**" />
     <Compile Remove="UnitBase\**" />
+    <Content Remove="Pages\**" />
     <Content Remove="UnitBase\**" />
+    <EmbeddedResource Remove="Pages\**" />
     <EmbeddedResource Remove="UnitBase\**" />
+    <None Remove="Pages\**" />
     <None Remove="UnitBase\**" />
   </ItemGroup>
 
@@ -27,10 +31,6 @@
     <ProjectReference Include="..\..\Core\Configuration.Web\Promatis.Net.Configuration.Web.csproj" />
     <ProjectReference Include="..\..\Core\Promatis.Net.UI\Promatis.Net.UI.csproj" />
     <ProjectReference Include="..\Promatis.Net.MES.Service\Promatis.Net.MES.Service.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Pages\UnitOfMeasurements\" />
   </ItemGroup>
 
 </Project>

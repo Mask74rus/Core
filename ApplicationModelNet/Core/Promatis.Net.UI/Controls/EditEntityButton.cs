@@ -19,7 +19,7 @@ public class EditEntityButton<TEntity> : BaseUiControl where TEntity : class
 
     public EditEntityButton<TEntity> OnExecute(Func<TEntity, Task> command)
     {
-        _command = command;
+        _command = command ?? throw new ArgumentNullException(nameof(command));
         return this;
     }
 

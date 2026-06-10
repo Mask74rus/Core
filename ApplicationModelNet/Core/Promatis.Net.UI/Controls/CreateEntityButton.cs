@@ -22,7 +22,7 @@ public class CreateEntityButton<TEntity> : BaseUiControl where TEntity : class, 
     // Метод для внедрения реального действия из контекста
     public CreateEntityButton<TEntity> OnExecute(Func<Task> command)
     {
-        _command = command;
+        _command = command?? throw new ArgumentNullException(nameof(command));;
         return this;
     }
 

@@ -5,6 +5,9 @@ namespace Promatis.Net.UI.Components.Workspaces;
 
 public partial class TreePage<TEntity> : ComponentBase where TEntity : class
 {
+    [CascadingParameter]
+    protected IWorkspaceContext Context { get; set; } = null!;
+
     [Parameter]
     public List<TreeItemData<TEntity>> RootItems { get; set; } = [];
 

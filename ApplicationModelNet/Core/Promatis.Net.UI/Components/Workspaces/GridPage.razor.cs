@@ -7,6 +7,9 @@ public partial class GridPage<TEntity> : ComponentBase where TEntity : class
 {
     private MudDataGrid<TEntity>? _mudGrid;
 
+    [CascadingParameter]
+    protected IWorkspaceContext Context { get; set; } = null!;
+
     /// <summary>
     /// Прямой провайдер данных MudBlazor, транслируемый из DataContext.GetDataAsync.
     /// </summary>

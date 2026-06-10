@@ -21,7 +21,7 @@ public partial class BaseDialogLayout<TModel> : ComponentBase where TModel : cla
     public IValidator<TModel>? Validator { get; set; }
 
     /// <summary>
-    /// Контент, который будет развернут внутри формы (уникальные поля ввода или другие шаблоны типа ReferenceDialogLayout)
+    /// Уникальный контент (инпуты), который будет развернут внутри формы.
     /// </summary>
     [Parameter]
     public required RenderFragment ChildContent { get; set; }
@@ -33,18 +33,31 @@ public partial class BaseDialogLayout<TModel> : ComponentBase where TModel : cla
             throw new ArgumentNullException(nameof(Model), "Параметр Model является обязательным для BaseDialogLayout.");
     }
 
+    /// <summary>
+    /// Обработка клика по кнопке «Сохранить». 
+    /// Проверяет контракт валидации и возвращает объект наружу.
+    /// </summary>
     public async Task HandleSubmitAsync()
     {
         if (_form == null) return;
 
-        // Нативно сканируем всю форму силами MudBlazor
+        // 1. Включаем визуальную подсветку ошибок на инпутах MudBlazor
         await _form.ValidateAsync();
 
-        if (_form.IsValid)
+        // 2. ЖЕЛЕЗНАЯ ЗАЩИТА: Проверяем FluentValidation напрямую во избежание 
+        // асинхронной гонки за флагом _form.IsValid.
+        if (Validator != null)
         {
-            // Закрываем окно и возвращаем валидную модель на страницу
-            MudDialog.Close(DialogResult.Ok(Model));
+            var validationResult = await Validator.ValidateAsync(Model);
+            if (!validationResult.IsValid)
+            {
+                return; // Валидация провалена, прерываем закрытие диалога.
+            }
         }
+
+        // 3. Валидация пройдена успешно. Закрываем окно и отдаем 
+        // измененную модель обратно в вызвавший метод (в лямбду кнопки).
+        MudDialog.Close(DialogResult.Ok(Model));
     }
 
     public void HandleCancelAsync()
@@ -52,6 +65,9 @@ public partial class BaseDialogLayout<TModel> : ComponentBase where TModel : cla
         MudDialog.Cancel();
     }
 
+    /// <summary>
+    /// Нативный асинхронный мост между инпутами MudForm и движком FluentValidation.
+    /// </summary>
     protected async Task<IEnumerable<string>> ValidateModelViaFluentAsync()
     {
         if (Validator == null) return Array.Empty<string>();
@@ -59,7 +75,7 @@ public partial class BaseDialogLayout<TModel> : ComponentBase where TModel : cla
         var result = await Validator.ValidateAsync(Model);
         if (result.IsValid) return Array.Empty<string>();
 
-        // Отдаем MudForm плоский список текстовых ошибок для подсветки инпутов
+        // Отдаем MudForm плоский список текстовых ошибок для мгновенной подсветки инпутов
         return result.Errors.Select(e => e.ErrorMessage);
     }
 }

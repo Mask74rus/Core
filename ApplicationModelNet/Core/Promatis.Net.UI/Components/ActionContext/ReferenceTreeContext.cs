@@ -1,4 +1,6 @@
-﻿using Promatis.Net.Domain;
+﻿using Microsoft.Extensions.DependencyInjection;
+using MudBlazor;
+using Promatis.Net.Domain;
 using Promatis.Net.Domain.Interface;
 using Promatis.Net.UI.Controls;
 
@@ -11,89 +13,98 @@ namespace Promatis.Net.UI.Components;
 public abstract class ReferenceTreeContext<TEntity> : TreeContext<TEntity>, IToolbarContext
     where TEntity : class, ITreeNode<TEntity>, new()
 {
-    // --- ОБЕСПЕЧЕНИЕ ИНТЕРФЕЙСА IToolbarContext ФИЗИЧЕСКОЙ ПАМЯТЬЮ ---
-    public Lock ControlsLock { get; } = new();
+    protected readonly IDialogService DialogService;
+    protected readonly IServiceProvider ServiceProvider; // Сохраняем IoC-сессию для извлечения клонера внутри лямбд
+
+    // ====================================================================================
+    // --- РЕАЛИЗАЦИЯ ФИЗИЧЕСКОЙ ПАМЯТИ ДЛЯ КОНТРАКТА IToolbarContext ---
+    // ====================================================================================
+
+    public System.Threading.Lock ControlsLock { get; } = new();
     public List<IUiControl> InnerControls { get; } = [];
     public bool IsToolbarInitialized { get; set; }
 
+    /// <summary>
+    /// Конструктор абстрактного ядра древовидных справочников.
+    /// </summary>
     protected ReferenceTreeContext(IServiceProvider serviceProvider)
-        : base(serviceProvider, isInMemoryMode: true)
+        : base(serviceProvider)
     {
+        ServiceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+        DialogService = serviceProvider.GetRequiredService<IDialogService>();
+
+        // ВНИМАНИЕ: Настройка InMemory/ServerSide стратегий получения данных 
+        // делегирована исключительно конечному прикладному классу!
     }
 
+    // ====================================================================================
+    // --- МЕТОД СБОРКИ СЛЕПЫХ КНОПОК ТУЛБАРА ДЕРЕВА ---
+    // ====================================================================================
+
     /// <summary>
-    /// ЧИСТЫЙ МЕТОД СБОРКИ ТУЛБАРА ДЕРЕВА.
-    /// Сигнатуры групп методов разделены строго по типам ожидания кнопок ядра Promatis.
+    /// Чистый метод сборки тулбара дерева. Вызывается интерфейсом лениво при первом рендере UI.
+    /// Рождение объектов для диалогов (New/Clone/Child) инкапсулировано внутри бизнес-команд.
     /// </summary>
     public void PopulateDefaultToolbar(List<IUiControl> controls)
     {
-        // 1. Кнопки создания ожидают чистый Func<Task>. Сигнатура: () => Task
-        controls.Add(new CreateEntityButton<TEntity> { Title = "Добавить корень" }
-            .OnExecute(ExecuteCreateRecordAsync));
+        // 1. КНОПКА "ДОБАВИТЬ КОРЕНЬ": Создает пустую сущность, у которой ParentId гарантированно null
+        controls.Add(new CreateEntityButton<TEntity> { Title = "Добавить корень" }.OnExecute(async () =>
+        {
+            var newRoot = new TEntity();
+            await OpenDialogFormAsync(newRoot);
+        }));
 
-        controls.Add(new CreateChildButton<TEntity>()
-            .OnExecute(ExecuteCreateChildRecordAsync));
+        // 2. КНОПКА "ДОБАВИТЬ ПОДЧИНЕННЫЙ УЗЕЛ": АКТИВНА при наличии селекшена. Привязывает ParentId к выбранной строке.
+        controls.Add(new CreateChildButton<TEntity>().OnExecute(async () =>
+        {
+            if (SelectedData == null) return;
 
-        // 2. Кнопки мутаций ожидают Func<TEntity?, Task>. Сигнатура: (entity) => Task
-        controls.Add(new EditEntityButton<TEntity>()
-            .OnExecute(ExecuteEditRecordAsync));
+            var newChild = new TEntity
+            {
+                ParentId = SelectedData.Id // Жесткая иерархическая ООП-привязка к родителю
+            };
+            await OpenDialogFormAsync(newChild);
+        }));
 
-        controls.Add(new DeleteEntityButton<TEntity>()
-            .OnExecute(ExecuteDeleteRecordAsync));
+        // 3. КНОПКА "РЕДАКТИРОВАТЬ": Извлекает системный клонер платформы из IoC и изолирует стейт узла
+        controls.Add(new EditEntityButton<TEntity>().OnExecute(async (typedEntity) =>
+        {
+            if (SelectedData == null) return;
+
+            var entityCloner = ServiceProvider.GetRequiredService<IEntityCloner>();
+
+            // Рождение объекта диалога (изолированного клона) происходит строго внутри бизнес-команды контекста!
+            var clone = entityCloner.CloneEntity(SelectedData);
+            await OpenDialogFormAsync(clone);
+        }));
+
+        // 4. КНОПКА "УДАЛИТЬ": Точка расширения для удаления (может вызывать доменный gRPC сервис)
+        controls.Add(new DeleteEntityButton<TEntity>().OnExecute(async (typedEntity) =>
+        {
+            if (SelectedData == null) return;
+            await ExecuteDeleteNodeInternalAsync(SelectedData);
+            SelectedData = null; // Сбрасываем селекшен после удаления узла графа
+        }));
 
         controls.Add(new ToolbarDivider());
-        AddInitializeContext();
-    }
 
-    protected virtual void AddInitializeContext() { }
-
-    // --- БИЗНЕС-КОМАНДЫ ИНИЦИАЛИЗАЦИИ ЧЕРНОВИКОВ (БЕЗ ПАРАМЕТРОВ, ДЛЯ СОЗДАНИЯ) ---
-
-    /// <summary>
-    /// Команда создания КОРНЕВОГО элемента дерева. Соответствует сигнатуре Func<Task>.
-    /// </summary>
-    protected virtual Task ExecuteCreateRecordAsync()
-    {
-        DraftData = new TEntity();
-        return Task.CompletedTask;
+        // Мягкий защищенный хук расширения для уникальных кнопок конкретных прикладных деревьев
+        AddInitializeContext(controls);
     }
 
     /// <summary>
-    /// Команда создания ПОДЧИНЕННОГО узла графа. Соответствует сигнатуре Func<Task>.
+    /// Абстрактный метод вызова диалогового окна. Каждое конкретное дерево 
+    /// переопределит его для вызова своего уникального визуального файла MudDialog.
     /// </summary>
-    protected virtual Task ExecuteCreateChildRecordAsync()
-    {
-        if (SelectedData == null) return Task.CompletedTask;
-
-        DraftData = new TEntity
-        {
-            ParentId = SelectedData.Id
-        };
-        return Task.CompletedTask;
-    }
-
-    // --- БИЗНЕС-КОМАНДЫ МУТАЦИЙ ЖИВЫХ СТРОК (С ПАРАМЕТРОМ TEntity?) ---
+    protected abstract Task OpenDialogFormAsync(TEntity model);
 
     /// <summary>
-    /// Команда редактирования узла. Соответствует сигнатуре Func<TEntity?, Task>.
+    /// Виртуальный метод удаления узла. Переопределяется на конечном слое для gRPC вызова.
     /// </summary>
-    protected virtual Task ExecuteEditRecordAsync(TEntity? entity)
-    {
-        var target = entity ?? SelectedData;
-        if (target == null) return Task.CompletedTask;
-
-        DraftData = target;
-        return Task.CompletedTask;
-    }
+    protected virtual Task ExecuteDeleteNodeInternalAsync(TEntity entity) => Task.CompletedTask;
 
     /// <summary>
-    /// Команда удаления узла. Соответствует сигнатуре Func<TEntity?, Task>.
+    /// Виртуальный хук расширения тулбара для добавления кастомных древовидных бизнес-кнопок.
     /// </summary>
-    protected virtual Task ExecuteDeleteRecordAsync(TEntity? entity)
-    {
-        var target = entity ?? SelectedData;
-        if (target == null) return Task.CompletedTask;
-
-        return Task.CompletedTask;
-    }
+    protected virtual void AddInitializeContext(List<IUiControl> controls) { }
 }

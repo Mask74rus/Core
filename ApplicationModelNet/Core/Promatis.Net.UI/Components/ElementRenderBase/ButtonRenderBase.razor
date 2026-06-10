@@ -3,7 +3,7 @@
     <MudButton Variant="@Variant"
                StartIcon="@(Control.IsRunning ? null : Control.Icon)"
                Disabled="@(!Control.IsEnabled || Control.IsRunning || !Control.IsEnabledForData(CurrentSelectedData))"
-               Color="@Color" 
+               Color="@Color"
                OnClick="@HandleClickAsync">
 
         @if (Control.IsRunning)
