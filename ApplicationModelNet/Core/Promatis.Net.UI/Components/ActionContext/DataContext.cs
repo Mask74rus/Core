@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using Promatis.Net.Service;
 
 namespace Promatis.Net.UI.Components;
 
@@ -117,18 +116,16 @@ public abstract class DataContext<TEntity, TQueryState, TResultData> : Workspace
         if (!_isTransportActivated)
             return GetEmptyDataState();
 
-        if (_isLoading)
-            return default!;
-
         try
         {
             _isLoading = true;
+            // Спокойно даем Брокеру скачать свежие строки под новые фильтры комбобоксов
             return await Broker.FetchDataAsync(state, ct);
         }
         finally
         {
             _isLoading = false;
-            NotifyContextUpdated(); // Кнопки тулбара мгновенно пересчитают IsEnabled на основе новых строк
+            NotifyContextUpdated(); // Включаем колокол строго в конце
         }
     }
 }

@@ -4,7 +4,6 @@ using Promatis.Net.Domain;
 using Promatis.Net.Domain.Interface;
 using Promatis.Net.Service;
 using Promatis.Net.UI.Controls;
-using static MudBlazor.CategoryTypes;
 
 namespace Promatis.Net.UI.Components;
 

@@ -1,7 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using Promatis.Net.Domain.Interface;
-
-namespace Promatis.Net.UI.Components;
+﻿namespace Promatis.Net.UI.Components;
 
 /// <summary>
 /// Базовый контекст сущности, инкапсулирующий состояние выбранной пользователем строки.

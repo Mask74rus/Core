@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using MudBlazor;
-using Promatis.Net.Domain;
 using Promatis.Net.Domain.Interface;
 using Promatis.Net.UI.Controls;
 

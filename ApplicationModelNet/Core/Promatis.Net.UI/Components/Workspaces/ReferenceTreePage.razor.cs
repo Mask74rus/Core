@@ -1,6 +1,4 @@
 ﻿using Microsoft.AspNetCore.Components;
-using MudBlazor;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace Promatis.Net.UI.Components.Workspaces;
 

@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Components;
-using MudBlazor;
 
 namespace Promatis.Net.UI.Components.Workspaces;
 

@@ -1,9 +1,11 @@
 using Microsoft.Extensions.DependencyInjection;
 using MudBlazor;
+using Promatis.Net.Data;
 using Promatis.Net.Domain;
 using Promatis.Net.Service;
 using Promatis.Net.UI.Components;
 using Promatis.Net.UI.Pages.AuditLogs.Toolbar;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace Promatis.Net.UI.Pages.AuditLogs;
 
@@ -53,14 +55,22 @@ public class AuditLogContext : Components.GridContext<AuditLog>, Components.IToo
     }
 
     /// <summary>
+    /// Выделенное событие мутации критериев поиска. 
+    /// Срабатывает строго тогда, когда пользователь руками изменил комбобокс на тулбаре.
+    /// </summary>
+    public event Action? OnFiltersChanged;
+
+    /// <summary>
     /// ВНУТРЕННИЙ ДИСПЕТЧЕР МУТАЦИИ ФИЛЬТРОВ.
-    /// ХИРУРГИЧЕСКИ ИСПРАВЛЕНО: Убран лишний эвент OnFiltersChanged. 
-    /// Метод бьет в единый колокол OnContextUpdated, заставляя пассивную страницу ReferencePage 
-    /// сделать мягкий StateHasChanged(), а таблицу — перечитать данные с новыми критериями.
+    /// Вызывается комбобоксами тулбара. Чистое синхронное ООП-решение без async void и без красного InvokeAsync!
     /// </summary>
     private void HandleFilterMutation()
     {
+        // 1. Пинаем тулбар на перерисовку (чтобы комбобокс зафиксировал выбранный текст)
         NotifyContextUpdated();
+
+        // 2. Выбрасываем адресный импульс для страницы. Страница поймает его в своем потоке Blazor!
+        OnFiltersChanged?.Invoke();
     }
 
     /// <summary>
@@ -130,4 +140,5 @@ public class AuditLogContext : Components.GridContext<AuditLog>, Components.IToo
             TotalItems = pagedResult.TotalCount
         };
     }
+
 }
